@@ -33,6 +33,7 @@ namespace IpInfo.CoreTests
             TestFirewallReader();
             TestIpv6InboundServer();
             TestWebView2();
+            TestNatHopTracer();
 
             if (live)
             {
@@ -350,6 +351,23 @@ namespace IpInfo.CoreTests
             else
             {
                 Console.WriteLine("    [跳过] 未找到 notepad.exe，跳过安装取消测试");
+            }
+        }
+
+        private static void TestNatHopTracer()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[8] 多层 NAT 跃点跟踪（取消路径）");
+
+            using (CancellationTokenSource cts = new CancellationTokenSource())
+            {
+                cts.Cancel();
+                NatHopTraceResult result = NatHopTracer.Trace(null, cts.Token);
+                CheckTrue("返回跃点跟踪结果", result != null);
+                if (result == null) return;
+
+                CheckTrue("取消后标记为已停止", result.Canceled);
+                CheckTrue("取消结果摘要非空", !string.IsNullOrEmpty(result.Summary));
             }
         }
 

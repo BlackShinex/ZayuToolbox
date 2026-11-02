@@ -142,6 +142,10 @@ try {
     Check "显示 WebView2 运行库卡片" (($joined -match "WebView2 运行库") -and ($joined -match "版本：") -and ($joined -match "路径："))
     Check "显示 WebView2 检测状态" (($joined -match "已安装") -or ($joined -match "未安装") -or ($joined -match "安装异常"))
 
+    # 多层 NAT 跃点跟踪
+    $natTraceStart = Get-ElementByAutomationId $window "NatTraceStartButton"
+    Check "显示多层 NAT 跃点跟踪卡片" ($natTraceStart -ne $null -and $natTraceStart.Current.IsEnabled)
+
     # IPv6 入站自检
     Check "显示 IPv6 入站自检" (($joined -match "IPv6 入站可达性") -and ($joined -match "启动入站自检"))
 

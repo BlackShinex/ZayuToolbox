@@ -27,6 +27,8 @@ namespace IpInfo.App
         private static readonly Brush BannerIndigoBg = UiPalette.Brush("#EEF2FF");
         private static readonly Brush BannerIndigoFg = UiPalette.Brush("#3730A3");
         private static readonly Brush BannerIndigoDot = UiPalette.Brush("#6366F1");
+        private static readonly Brush BannerRedBg = UiPalette.Brush("#FEF2F2");
+        private static readonly Brush BannerRedFg = UiPalette.Brush("#B91C1C");
 
         private NetworkReport _report;
         private bool _revealed;
@@ -42,6 +44,9 @@ namespace IpInfo.App
         private WebView2DetectionResult _webView2Result;
         private bool _webView2Busy;
         private WebView2InstallDialog _webView2InstallDialog;
+        private NatHopTraceResult _natTraceResult;
+        private CancellationTokenSource _natTraceCts;
+        private bool _natTraceRunning;
 
         public MainWindow()
         {
@@ -161,6 +166,7 @@ namespace IpInfo.App
             {
                 StopInboundTest(false);
             }
+            CancelNatTrace();
 
             _busy = true;
             RefreshButton.IsEnabled = false;
@@ -296,6 +302,155 @@ namespace IpInfo.App
 
             TimestampText.Text = "检测时间 " + report.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")
                 + "  ·  耗时 " + report.Elapsed.TotalSeconds.ToString("0.0") + " 秒";
+        }
+
+        private async void NatTraceStartButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_natTraceRunning) return;
+
+            _natTraceRunning = true;
+            _natTraceCts = new CancellationTokenSource();
+            CancellationToken token = _natTraceCts.Token;
+            _natTraceResult = null;
+            NatHopList.ItemsSource = null;
+            NatTraceStartButton.IsEnabled = false;
+            NatTraceStartButton.Content = "跟踪中…";
+            NatTraceStopButton.IsEnabled = true;
+            NatTraceStopButton.Visibility = Visibility.Visible;
+            NatTraceProgressBar.Visibility = Visibility.Visible;
+            SetNatTraceBanner(BannerIndigoBg, BannerIndigoFg);
+            NatTraceSummaryText.Text = "正在准备跃点跟踪…";
+
+            try
+            {
+                IProgress<string> progress = new Progress<string>(delegate(string message)
+                {
+                    NatTraceSummaryText.Text = MaskNatTraceText(message);
+                });
+                NatHopTraceResult result = await Task.Run(delegate
+                {
+                    return NatHopTracer.Trace(new Action<string>(progress.Report), token);
+                }, token);
+
+                if (result == null) throw new InvalidOperationException("跃点跟踪返回了空结果。");
+                _natTraceResult = result;
+                RenderNatTrace(result);
+            }
+            catch (OperationCanceledException)
+            {
+                NatTraceSummaryText.Text = "跃点跟踪已停止。";
+                SetNatTraceBanner(BannerIndigoBg, BannerIndigoFg);
+            }
+            catch (Exception ex)
+            {
+                NatTraceSummaryText.Text = "跃点跟踪失败：" + ex.Message;
+                SetNatTraceBanner(BannerRedBg, BannerRedFg);
+            }
+            finally
+            {
+                _natTraceRunning = false;
+                NatTraceProgressBar.Visibility = Visibility.Collapsed;
+                NatTraceStopButton.Visibility = Visibility.Collapsed;
+                NatTraceStopButton.IsEnabled = true;
+                NatTraceStartButton.IsEnabled = true;
+                NatTraceStartButton.Content = _natTraceResult != null ? "重新跟踪" : "开始跟踪";
+                if (_natTraceCts != null)
+                {
+                    _natTraceCts.Dispose();
+                    _natTraceCts = null;
+                }
+            }
+        }
+
+        private void NatTraceStopButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_natTraceCts != null)
+            {
+                _natTraceCts.Cancel();
+                NatTraceStopButton.IsEnabled = false;
+                NatTraceSummaryText.Text = "正在停止跃点跟踪…";
+            }
+        }
+
+        private void RenderNatTrace(NatHopTraceResult result)
+        {
+            List<NatHopRow> rows = new List<NatHopRow>();
+            if (result.Hops != null)
+            {
+                for (int i = 0; i < result.Hops.Count; i++)
+                {
+                    NatHop hop = result.Hops[i];
+                    NatHopRow row = new NatHopRow();
+                    row.TtlText = hop.Ttl.ToString();
+                    row.AddressText = hop.TimedOut
+                        ? "无响应"
+                        : (_revealed ? hop.Address : IpPrivacy.Mask(hop.Address));
+                    row.ScopeLabel = hop.TimedOut
+                        ? "超时"
+                        : (string.IsNullOrEmpty(hop.ScopeLabel) ? "未知" : hop.ScopeLabel);
+                    row.RoundTripText = hop.TimedOut ? "—" : hop.RoundTripMilliseconds + " ms";
+                    row.Note = hop.Note;
+                    if (hop.TimedOut)
+                    {
+                        row.TagBackground = UiPalette.GrayBg;
+                        row.TagForeground = UiPalette.GrayFg;
+                    }
+                    else
+                    {
+                        Brush background;
+                        Brush foreground;
+                        UiPalette.GetScopeColors(hop.Scope, out background, out foreground);
+                        row.TagBackground = background;
+                        row.TagForeground = foreground;
+                    }
+                    rows.Add(row);
+                }
+            }
+            NatHopList.ItemsSource = rows;
+
+            if (!string.IsNullOrEmpty(result.Error))
+            {
+                NatTraceSummaryText.Text = MaskNatTraceText(result.Error);
+                SetNatTraceBanner(BannerRedBg, BannerRedFg);
+            }
+            else if (result.Canceled)
+            {
+                NatTraceSummaryText.Text = MaskNatTraceText(string.IsNullOrEmpty(result.Summary)
+                    ? "跃点跟踪已停止。"
+                    : result.Summary);
+                SetNatTraceBanner(BannerIndigoBg, BannerIndigoFg);
+            }
+            else if (result.ReachedInternet)
+            {
+                NatTraceSummaryText.Text = MaskNatTraceText(result.Summary);
+                SetNatTraceBanner(BannerGreenBg, BannerGreenFg);
+            }
+            else
+            {
+                NatTraceSummaryText.Text = MaskNatTraceText(result.Summary);
+                SetNatTraceBanner(BannerAmberBg, BannerAmberFg);
+            }
+        }
+
+        private void SetNatTraceBanner(Brush background, Brush foreground)
+        {
+            NatTraceSummaryBanner.Background = background;
+            NatTraceSummaryText.Foreground = foreground;
+        }
+
+        private string MaskNatTraceText(string text)
+        {
+            if (_revealed || string.IsNullOrEmpty(text)) return text;
+            return Regex.Replace(text, @"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+                delegate(Match match) { return IpPrivacy.Mask(match.Value); });
+        }
+
+        private void CancelNatTrace()
+        {
+            if (_natTraceCts != null)
+            {
+                _natTraceCts.Cancel();
+            }
         }
 
         private List<IpRow> BuildRows(List<IpAddressEntry> entries, bool ipv6)
@@ -696,6 +851,7 @@ namespace IpInfo.App
 
         private void MainWindow_Closed(object sender, EventArgs e)
         {
+            CancelNatTrace();
             StopInboundTest(false);
         }
 
@@ -909,6 +1065,7 @@ namespace IpInfo.App
             RevealToggle.Content = "隐藏 IP";
             RevealToggle.Foreground = UiPalette.IndigoFg;
             if (_report != null) RenderReport(_report);
+            if (_natTraceResult != null) RenderNatTrace(_natTraceResult);
         }
 
         private void RevealToggle_Unchecked(object sender, RoutedEventArgs e)
@@ -917,6 +1074,7 @@ namespace IpInfo.App
             RevealToggle.Content = "显示 IP";
             RevealToggle.Foreground = Brushes.White;
             if (_report != null) RenderReport(_report);
+            if (_natTraceResult != null) RenderNatTrace(_natTraceResult);
         }
 
         private void CopyIpButton_Click(object sender, RoutedEventArgs e)

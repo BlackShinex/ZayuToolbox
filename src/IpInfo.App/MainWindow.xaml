@@ -368,6 +368,99 @@
                     </Grid>
                 </Border>
 
+                <!-- 多层 NAT 跃点跟踪 -->
+                <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="22">
+                    <StackPanel>
+                        <Grid>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="34" Height="34" CornerRadius="9" Background="#FFF7ED">
+                                    <TextBlock Text="N" FontSize="15" FontWeight="Bold" Foreground="#C2410C"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="多层 NAT 跃点跟踪" Style="{StaticResource SectionTitle}" FontSize="15.5"/>
+                                    <TextBlock Text="逐跳查看私网 / CGNAT / 公网出口，遇到公网就停止"
+                                               Style="{StaticResource SectionSubtitle}"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Button x:Name="NatTraceStartButton" Content="开始跟踪"
+                                        Style="{StaticResource CopyButton}" Click="NatTraceStartButton_Click"/>
+                                <Button x:Name="NatTraceStopButton" Content="停止" Visibility="Collapsed"
+                                        Style="{StaticResource CopyButton}" Click="NatTraceStopButton_Click"
+                                        Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <ProgressBar x:Name="NatTraceProgressBar" Height="3" IsIndeterminate="True"
+                                     Foreground="#C2410C" Background="#FFEDD5" BorderThickness="0"
+                                     Margin="0,10,0,0" Visibility="Collapsed"/>
+
+                        <Border x:Name="NatTraceSummaryBanner" Background="#EEF2FF" CornerRadius="10"
+                                Padding="14,11" Margin="0,12,0,0">
+                            <TextBlock x:Name="NatTraceSummaryText"
+                                       Text="尚未开始。点击「开始跟踪」逐跳探测到公网出口。"
+                                       FontSize="12" Foreground="#3730A3" TextWrapping="Wrap"/>
+                        </Border>
+
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="86"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="跳" FontSize="10.5" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                            <TextBlock Grid.Column="1" Text="地址 / 说明" FontSize="10.5" FontWeight="SemiBold"
+                                       Foreground="#94A3B8"/>
+                            <TextBlock Grid.Column="2" Text="延迟" FontSize="10.5" FontWeight="SemiBold"
+                                       Foreground="#94A3B8" HorizontalAlignment="Right"/>
+                        </Grid>
+
+                        <Border Background="#F8FAFC" BorderBrush="#EEF2F7" BorderThickness="1"
+                                CornerRadius="10" Padding="12,8" Margin="0,4,0,0">
+                            <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="NatHopList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="44"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="86"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding TtlText}" FontFamily="Consolas"
+                                                           FontSize="11" Foreground="#64748B" VerticalAlignment="Top"/>
+                                                <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding AddressText}" FontFamily="Consolas"
+                                                                   FontSize="11.5" FontWeight="SemiBold"
+                                                                   Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
+                                                        <Border Background="{Binding TagBackground}" CornerRadius="5"
+                                                                Padding="5,0" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding ScopeLabel}" FontSize="9.5"
+                                                                       Foreground="{Binding TagForeground}"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Note}" FontSize="10"
+                                                               Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{Binding RoundTripText}"
+                                                           FontFamily="Consolas" FontSize="10.5"
+                                                           Foreground="#64748B" HorizontalAlignment="Right"
+                                                           VerticalAlignment="Top"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+
+                        <TextBlock x:Name="NatTraceHintText"
+                                   Text="目标：阿里公共 DNS · 最多 30 跳 · 仅 ICMP，不需要管理员权限。跃点只代表三层路径；私网/CGNAT 跃点提示可能存在 NAT 层，实际 NAT 设备数需结合拓扑确认。"
+                                   FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- IPv6 入站自检 -->
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="22">
                     <StackPanel>
