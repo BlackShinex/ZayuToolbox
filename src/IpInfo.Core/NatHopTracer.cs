@@ -25,6 +25,9 @@ namespace IpInfo.Core
         /// <summary>该跳的说明，例如“私网路由，可能位于 NAT 后”。</summary>
         public string Note { get; set; }
 
+        /// <summary>同一 TTL 的多次探测收到的地址；分流或负载均衡时可能不止一个。</summary>
+        public List<string> Addresses { get; private set; }
+
         public bool IsPublic
         {
             get { return Scope == IpAddressScope.Public; }
@@ -36,6 +39,7 @@ namespace IpInfo.Core
             Scope = IpAddressScope.Unknown;
             ScopeLabel = string.Empty;
             Note = string.Empty;
+            Addresses = new List<string>();
         }
     }
 
@@ -50,6 +54,10 @@ namespace IpInfo.Core
         public bool Canceled { get; set; }
         public string PublicHopAddress { get; set; }
         public int PublicHopTtl { get; set; }
+
+        /// <summary>最后一个公网跃点，通常就是实际出口。</summary>
+        public string ExitHopAddress { get; set; }
+        public int ExitHopTtl { get; set; }
         public int PrivateHopCount { get; set; }
         public int CgnatHopCount { get; set; }
         public string Summary { get; set; }
@@ -62,6 +70,7 @@ namespace IpInfo.Core
             Hops = new List<NatHop>();
             Target = string.Empty;
             PublicHopAddress = string.Empty;
+            ExitHopAddress = string.Empty;
             Summary = string.Empty;
             Error = string.Empty;
             Timestamp = DateTime.Now;
@@ -120,6 +129,7 @@ namespace IpInfo.Core
                 byte[] request = BuildRequestData();
                 uint destination = BitConverter.ToUInt32(target.GetAddressBytes(), 0);
 
+                int consecutiveTimeouts = 0;
                 for (int ttl = 1; ttl <= DefaultMaxHops; ttl++)
                 {
                     if (cancellationToken.IsCancellationRequested)
@@ -135,25 +145,37 @@ namespace IpInfo.Core
 
                     if (hop.TimedOut)
                     {
+                        consecutiveTimeouts++;
                         Report(progress, "第 " + ttl + " 跳：无响应。");
+                        if (result.ReachedInternet && consecutiveTimeouts >= 3)
+                        {
+                            break;
+                        }
                         continue;
                     }
 
+                    consecutiveTimeouts = 0;
                     Report(progress, "第 " + ttl + " 跳：" + hop.Address + " · " + hop.ScopeLabel);
 
                     if (hop.ReachedTarget)
                     {
                         result.ReachedTarget = true;
                         result.ReachedInternet = true;
+                        result.ExitHopAddress = hop.Address;
+                        result.ExitHopTtl = hop.Ttl;
                         break;
                     }
 
                     if (hop.IsPublic)
                     {
+                        if (!result.ReachedInternet)
+                        {
+                            result.PublicHopAddress = hop.Address;
+                            result.PublicHopTtl = hop.Ttl;
+                        }
                         result.ReachedInternet = true;
-                        result.PublicHopAddress = hop.Address;
-                        result.PublicHopTtl = hop.Ttl;
-                        break;
+                        result.ExitHopAddress = hop.Address;
+                        result.ExitHopTtl = hop.Ttl;
                     }
                 }
             }
@@ -185,7 +207,31 @@ namespace IpInfo.Core
             return result;
         }
 
+        /// <summary>
+        /// 单跳探测：超时补测一次；公网跳点额外再采一次，用于发现分流/负载均衡造成的多出口。
+        /// </summary>
         private static NatHop ProbeHop(IntPtr handle, uint destination, byte[] request, int ttl)
+        {
+            NatHop hop = ProbeHopOnce(handle, destination, request, ttl);
+            if (hop.TimedOut)
+            {
+                NatHop retry = ProbeHopOnce(handle, destination, request, ttl);
+                return retry.TimedOut ? hop : retry;
+            }
+
+            hop.Addresses.Add(hop.Address);
+            if (!hop.IsPublic) return hop;
+
+            NatHop extra = ProbeHopOnce(handle, destination, request, ttl);
+            if (extra.TimedOut || string.Equals(extra.Address, hop.Address, StringComparison.Ordinal)) return hop;
+
+            if (!hop.Addresses.Contains(extra.Address)) hop.Addresses.Add(extra.Address);
+            string note = "同跳还有 " + extra.Address + "（分流或负载均衡）";
+            hop.Note = string.IsNullOrEmpty(hop.Note) ? note : hop.Note + "；" + note;
+            return hop;
+        }
+
+        private static NatHop ProbeHopOnce(IntPtr handle, uint destination, byte[] request, int ttl)
         {
             NatHop hop = new NatHop();
             hop.Ttl = ttl;
@@ -277,16 +323,28 @@ namespace IpInfo.Core
             if (result.ReachedTarget)
             {
                 result.Summary = "已到达目标 " + result.Target + "（第 " + result.Hops.Count
-                    + " 跳）。共经过 " + result.PrivateHopCount + " 个私网跃点、"
+                    + " 跳，耗时 " + result.Elapsed.TotalMilliseconds.ToString("0") + " ms）。共经过 "
+                    + result.PrivateHopCount + " 个私网跃点、"
                     + result.CgnatHopCount + " 个 CGNAT 跃点。";
                 return;
             }
 
             if (result.ReachedInternet)
             {
-                result.Summary = "发现首个公网跃点 " + result.PublicHopAddress + "（第 "
-                    + result.PublicHopTtl + " 跳）。之前有 " + result.PrivateHopCount
-                    + " 个私网跃点、" + result.CgnatHopCount + " 个 CGNAT 跃点。";
+                string exitAddress = string.IsNullOrEmpty(result.ExitHopAddress)
+                    ? result.PublicHopAddress
+                    : result.ExitHopAddress;
+                int exitTtl = result.ExitHopTtl > 0 ? result.ExitHopTtl : result.PublicHopTtl;
+
+                string summary = "出口 " + exitAddress + "（第 " + exitTtl + " 跳）";
+                if (!string.IsNullOrEmpty(result.PublicHopAddress) && result.PublicHopTtl != exitTtl)
+                {
+                    summary += "，首个公网跃点 " + result.PublicHopAddress + "（第 " + result.PublicHopTtl + " 跳）";
+                }
+                summary += "；之前有 " + result.PrivateHopCount + " 个私网跃点、"
+                    + result.CgnatHopCount + " 个 CGNAT 跃点，耗时 "
+                    + result.Elapsed.TotalMilliseconds.ToString("0") + " ms。";
+                result.Summary = summary;
                 return;
             }
 
