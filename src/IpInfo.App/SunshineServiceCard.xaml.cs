@@ -49,6 +49,18 @@ namespace IpInfo.App
 
             try
             {
+                SunshineDetectionResult edition = await Task.Run(delegate
+                {
+                    return SunshineDetector.Detect();
+                });
+
+                if (edition == null || edition.Kind != SunshineBuildKind.BaseEdition)
+                {
+                    _status = null;
+                    RenderLocked(edition);
+                    return;
+                }
+
                 SunshineServiceStatus status = await Task.Run(delegate
                 {
                     return SunshineServiceManager.Detect();
@@ -75,6 +87,32 @@ namespace IpInfo.App
                 _busy = false;
                 ServiceRefreshButton.IsEnabled = true;
             }
+        }
+
+        /// <summary>非基地版不启用该功能，只提示当前检测到的版本。</summary>
+        private void RenderLocked(SunshineDetectionResult edition)
+        {
+            ServiceStatusChip.Background = UiPalette.GrayBg;
+            ServiceStatusText.Foreground = UiPalette.GrayFg;
+            ServiceStatusText.Text = "仅基地版可用";
+
+            ServiceHeadlineText.Text = "需要基地版 Sunshine";
+            string current = edition == null || edition.Kind == SunshineBuildKind.Unknown
+                ? "未检测到 Sunshine"
+                : "当前检测到 " + edition.KindLabel;
+            ServiceSummaryText.Text = current + "，服务检测与开机自启仅对基地版开放。";
+            ServiceHintText.Text = "安装基地版后回到本页会自动启用。";
+
+            ServiceNameText.Text = "服务名：—";
+            ServiceStartModeText.Text = "启动类型：—";
+            ServiceAccountText.Text = "运行账户：—";
+            ServiceProcessText.Text = "进程 PID：—";
+            ServicePathText.Text = "可执行文件：—";
+
+            ServiceAutoStartToggle.IsEnabled = false;
+            ServiceCopyButton.IsEnabled = false;
+            ServiceWarningBanner.Visibility = Visibility.Collapsed;
+            ServiceWarningText.Text = string.Empty;
         }
 
         private void Render(SunshineServiceStatus status)

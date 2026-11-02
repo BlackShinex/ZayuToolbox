@@ -46,6 +46,9 @@
     <Reference Include="System.Xml">
       <Private>False</Private>
     </Reference>
+    <Reference Include="System.Management">
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System.Xaml">
       <Private>False</Private>
     </Reference>
@@ -84,6 +87,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="ZakoDisplayCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -106,6 +113,10 @@
     </Compile>
     <Compile Include="SunshineServiceCard.xaml.cs">
       <DependentUpon>SunshineServiceCard.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ZakoDisplayCard.xaml.cs">
+      <DependentUpon>ZakoDisplayCard.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="UiModels.cs" />

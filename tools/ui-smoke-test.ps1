@@ -220,10 +220,25 @@ try {
     $serviceToggle = Get-ElementByAutomationId $window "ServiceAutoStartToggle"
     Check "存在开机自启开关" ($serviceToggle -ne $null)
     $serviceCopy = Get-ElementByAutomationId $window "ServiceCopyButton"
-    Check "存在服务诊断复制按钮" ($serviceCopy -ne $null -and $serviceCopy.Current.IsEnabled)
-    if ($serviceCopy -ne $null -and $serviceCopy.Current.IsEnabled) {
+    Check "存在服务诊断复制按钮" ($serviceCopy -ne $null)
+
+    $baseLocked = $sunshineTexts -match "仅基地版可用"
+    if ($baseLocked) {
+        Check "非基地版时服务卡片被锁定" ($serviceCopy -ne $null -and -not $serviceCopy.Current.IsEnabled)
+        Check "非基地版时开机自启被锁定" ($serviceToggle -ne $null -and -not $serviceToggle.Current.IsEnabled)
+    } elseif ($serviceCopy -ne $null -and $serviceCopy.Current.IsEnabled) {
         Invoke-Element $serviceCopy
         Check "服务诊断信息包含服务状态" (Wait-ClipboardTextMatch "(?s)Sunshine 服务.*检测结果")
+    }
+
+    Check "显示 Zako 虚拟显示器卡片" (($sunshineTexts -match "Zako 虚拟显示器") -and ($sunshineTexts -match "设备状态："))
+    $zakoCopy = Get-ElementByAutomationId $window "ZakoCopyButton"
+    Check "存在 Zako 诊断复制按钮" ($zakoCopy -ne $null)
+    if ($baseLocked) {
+        Check "非基地版时 Zako 卡片被锁定" ($zakoCopy -ne $null -and -not $zakoCopy.Current.IsEnabled)
+    } elseif ($zakoCopy -ne $null -and $zakoCopy.Current.IsEnabled) {
+        Invoke-Element $zakoCopy
+        Check "Zako 诊断信息包含系统版本" (Wait-ClipboardTextMatch "(?s)Zako.*操作系统")
     }
     Check "存在 Sunshine 诊断复制按钮" ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled)
     if ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled) {

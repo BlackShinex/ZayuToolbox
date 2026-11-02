@@ -718,6 +718,9 @@
 
                         <!-- Sunshine 服务状态 -->
                         <views:SunshineServiceCard/>
+
+                        <!-- Zako 虚拟显示器 -->
+                        <views:ZakoDisplayCard/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

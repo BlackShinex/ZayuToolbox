@@ -54,6 +54,7 @@ namespace IpInfo.CoreTests
             TestSunshineClassifier();
             TestSunshineDetection();
             TestSunshineService();
+            TestZakoDisplay();
 
             if (live)
             {
@@ -581,6 +582,34 @@ namespace IpInfo.CoreTests
                 mode.ToString());
             CheckTrue("拒绝未知启动类型", !SunshineServiceManager.TryParseStartMode("bogus", out mode));
             CheckEqual("启动类型文案", SunshineServiceManager.StartModeText(SunshineStartMode.Automatic), "自动");
+        }
+
+        private static void TestZakoDisplay()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[12] Zako 虚拟显示器");
+
+            ZakoDisplayStatus status = ZakoDisplayDetector.Detect();
+            CheckTrue("返回 Zako 检测结果", status != null);
+            if (status == null) return;
+
+            CheckTrue("系统版本已读取", !string.IsNullOrEmpty(status.OsDisplay));
+            CheckTrue("系统架构已读取", !string.IsNullOrEmpty(status.OsArch));
+            CheckTrue("Zako 状态已识别", status.State != ZakoDisplayState.Unknown, status.State.ToString());
+            CheckTrue("Zako 状态标签非空", !string.IsNullOrEmpty(status.StateLabel));
+            CheckTrue("Zako 摘要非空", !string.IsNullOrEmpty(status.Summary));
+            CheckTrue("Zako 诊断信息包含标题",
+                status.ToDiagnostics().IndexOf("Zako", StringComparison.Ordinal) >= 0);
+
+            if (status.State == ZakoDisplayState.NotInstalled)
+            {
+                Console.WriteLine("    [跳过] 本机未安装 Zako 虚拟显示器");
+            }
+            else
+            {
+                CheckTrue("已安装时能找到适配器", status.Adapter != null, "适配器为空");
+                Console.WriteLine("    " + status.Summary + " | 设备数 " + status.Devices.Count);
+            }
         }
 
         private static string DescribeFirewall(FirewallInfo info)
