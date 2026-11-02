@@ -126,6 +126,9 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Assets\sunshine-logo.png" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- 直接编译 Core 源码，发布时只生成单个 杂鱼串流工具箱.exe，不再输出 IpInfo.Core.dll。 -->
     <Compile Include="..\IpInfo.Core\*.cs" Exclude="..\IpInfo.Core\AssemblyInfo.cs">
       <Link>Core\%(Filename)%(Extension)</Link>

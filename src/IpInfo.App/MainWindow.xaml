@@ -36,8 +36,7 @@
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Width="44" Height="44" CornerRadius="12" Background="#33FFFFFF">
-                        <TextBlock Text="杂" FontSize="16" FontWeight="Bold" Foreground="White"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image Source="/Assets/sunshine-logo.png" Stretch="Uniform" Margin="2"/>
                     </Border>
                     <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="杂鱼串流工具箱" FontSize="24" FontWeight="SemiBold" Foreground="White"/>
