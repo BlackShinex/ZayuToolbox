@@ -140,15 +140,16 @@ namespace IpInfo.Core
                     }
 
                     Report(progress, "正在探测第 " + ttl + " 跳…");
-                    NatHop hop = ProbeHop(handle, destination, request, ttl);
+                    NatHop hop = ProbeHop(handle, destination, request, ttl, !result.ReachedInternet);
                     result.Hops.Add(hop);
 
                     if (hop.TimedOut)
                     {
                         consecutiveTimeouts++;
                         Report(progress, "第 " + ttl + " 跳：无响应。");
-                        if (result.ReachedInternet && consecutiveTimeouts >= 3)
+                        if (result.ReachedInternet && consecutiveTimeouts >= 2)
                         {
+                            // 进入公网后连续两跳没有响应就收尾，不再追到目标主机。
                             break;
                         }
                         continue;
@@ -208,16 +209,18 @@ namespace IpInfo.Core
         }
 
         /// <summary>
-        /// 单跳探测：超时补测一次；公网跳点额外再采一次，用于发现分流/负载均衡造成的多出口。
+        /// 单跳探测：私网段超时补测一次，公网跳点额外再采一次（用于发现分流/负载均衡造成的多出口）。
+        /// 公网段不补测，靠连续两跳无响应判断路径结束，避免收尾多等一个超时周期。
         /// </summary>
-        private static NatHop ProbeHop(IntPtr handle, uint destination, byte[] request, int ttl)
+        private static NatHop ProbeHop(IntPtr handle, uint destination, byte[] request, int ttl, bool retryOnTimeout)
         {
             NatHop hop = ProbeHopOnce(handle, destination, request, ttl);
-            if (hop.TimedOut)
+            if (hop.TimedOut && retryOnTimeout)
             {
                 NatHop retry = ProbeHopOnce(handle, destination, request, ttl);
                 return retry.TimedOut ? hop : retry;
             }
+            if (hop.TimedOut) return hop;
 
             hop.Addresses.Add(hop.Address);
             if (!hop.IsPublic) return hop;

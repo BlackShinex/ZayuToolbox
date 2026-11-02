@@ -527,7 +527,7 @@
                                 </Border>
                                 <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
                                     <TextBlock Text="多层 NAT 跃点跟踪" Style="{StaticResource SectionTitle}" FontSize="15.5"/>
-                                    <TextBlock Text="逐跳查看私网 / CGNAT / 公网出口，一直探测到目标主机"
+                                    <TextBlock Text="逐跳查看私网 / CGNAT / 公网出口，进入公网段就收尾"
                                                Style="{StaticResource SectionSubtitle}"/>
                                 </StackPanel>
                             </StackPanel>
@@ -603,7 +603,7 @@
                         </Border>
 
                         <TextBlock x:Name="NatTraceHintText"
-                                   Text="目标：阿里公共 DNS · 最多 30 跳 · 仅 ICMP，不需要管理员权限。每跳会探测两次，公网跳点出现多个地址说明存在分流或负载均衡。跃点只代表三层路径；私网/CGNAT 跃点提示可能存在 NAT 层，实际 NAT 设备数需结合拓扑确认。"
+                                   Text="目标：阿里公共 DNS · 最多 30 跳 · 仅 ICMP，不需要管理员权限。进入公网段后不再追到目标主机，连续两跳没有响应就收尾。每跳会探测两次，公网跳点出现多个地址说明存在分流或负载均衡。跃点只代表三层路径；私网/CGNAT 跃点提示可能存在 NAT 层，实际 NAT 设备数需结合拓扑确认。"
                                    FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Border>
