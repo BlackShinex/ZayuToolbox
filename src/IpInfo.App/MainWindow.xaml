@@ -715,6 +715,9 @@
                     <StackPanel>
                         <!-- Sunshine 版本自检 -->
                         <views:SunshineCard/>
+
+                        <!-- Sunshine 服务状态 -->
+                        <views:SunshineServiceCard/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

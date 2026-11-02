@@ -53,6 +53,7 @@ namespace IpInfo.CoreTests
             TestNatHopTracer();
             TestSunshineClassifier();
             TestSunshineDetection();
+            TestSunshineService();
 
             if (live)
             {
@@ -540,6 +541,46 @@ namespace IpInfo.CoreTests
                     "整机 " + result.Kind + "，目录 " + byDirectory.Kind);
                 CheckTrue("按目录检测能读到版本号", !string.IsNullOrEmpty(byDirectory.Version));
             }
+        }
+
+        private static void TestSunshineService()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[11] Sunshine 服务状态");
+
+            SunshineServiceStatus status = SunshineServiceManager.Detect();
+            CheckTrue("返回服务检测结果", status != null);
+            if (status == null) return;
+
+            CheckTrue("服务状态标签非空", !string.IsNullOrEmpty(status.StateLabel));
+            CheckTrue("服务摘要非空", !string.IsNullOrEmpty(status.Summary));
+            CheckTrue("服务诊断信息包含标题",
+                status.ToDiagnostics().IndexOf("Sunshine 服务", StringComparison.Ordinal) >= 0);
+
+            if (!status.IsFound)
+            {
+                CheckTrue("未安装时状态为未安装", status.State == SunshineServiceState.NotFound, status.State.ToString());
+                Console.WriteLine("    [跳过] 本机未注册 Sunshine 服务");
+            }
+            else
+            {
+                CheckTrue("已找到服务时状态已识别", status.State != SunshineServiceState.Unknown, status.State.ToString());
+                CheckTrue("已找到服务时启动类型已识别", status.StartMode != SunshineStartMode.Unknown, status.StartMode.ToString());
+                Console.WriteLine("    " + status.Summary + " | " + status.ServiceName + " | " + status.ImagePath);
+            }
+
+            SunshineStartMode mode;
+            CheckTrue("解析启动类型 auto",
+                SunshineServiceManager.TryParseStartMode("auto", out mode) && mode == SunshineStartMode.Automatic,
+                mode.ToString());
+            CheckTrue("解析启动类型 manual",
+                SunshineServiceManager.TryParseStartMode("manual", out mode) && mode == SunshineStartMode.Manual,
+                mode.ToString());
+            CheckTrue("解析启动类型 disabled",
+                SunshineServiceManager.TryParseStartMode("disabled", out mode) && mode == SunshineStartMode.Disabled,
+                mode.ToString());
+            CheckTrue("拒绝未知启动类型", !SunshineServiceManager.TryParseStartMode("bogus", out mode));
+            CheckEqual("启动类型文案", SunshineServiceManager.StartModeText(SunshineStartMode.Automatic), "自动");
         }
 
         private static string DescribeFirewall(FirewallInfo info)

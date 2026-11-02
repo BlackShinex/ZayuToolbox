@@ -216,6 +216,15 @@ try {
     $sunshineCopy = Get-ElementByAutomationId $window "SunshineCopyButton"
     Check "显示 Sunshine 版本自检卡片" (($sunshineTexts -match "Sunshine 版本自检") -and ($sunshineTexts -match "安装来源："))
     Check "Sunshine 页不提供显示 IP" ($sunshineTexts -notmatch "显示 IP")
+    Check "显示 Sunshine 服务卡片" (($sunshineTexts -match "Sunshine 服务") -and ($sunshineTexts -match "启动类型："))
+    $serviceToggle = Get-ElementByAutomationId $window "ServiceAutoStartToggle"
+    Check "存在开机自启开关" ($serviceToggle -ne $null)
+    $serviceCopy = Get-ElementByAutomationId $window "ServiceCopyButton"
+    Check "存在服务诊断复制按钮" ($serviceCopy -ne $null -and $serviceCopy.Current.IsEnabled)
+    if ($serviceCopy -ne $null -and $serviceCopy.Current.IsEnabled) {
+        Invoke-Element $serviceCopy
+        Check "服务诊断信息包含服务状态" (Wait-ClipboardTextMatch "(?s)Sunshine 服务.*检测结果")
+    }
     Check "存在 Sunshine 诊断复制按钮" ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled)
     if ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled) {
         Invoke-Element $sunshineCopy

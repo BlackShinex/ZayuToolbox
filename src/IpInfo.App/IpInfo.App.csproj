@@ -80,6 +80,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="SunshineServiceCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -98,6 +102,10 @@
     </Compile>
     <Compile Include="SunshineCard.xaml.cs">
       <DependentUpon>SunshineCard.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="SunshineServiceCard.xaml.cs">
+      <DependentUpon>SunshineServiceCard.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="UiModels.cs" />
