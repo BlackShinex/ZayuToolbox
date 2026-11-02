@@ -4,7 +4,7 @@
 #   .\tools\build.ps1              # Debug 构建
 #   .\tools\build.ps1 -Release     # Release 构建
 #   .\tools\build.ps1 -Release -Package  # Release 构建并打包到 dist\
-#   .\tools\build.ps1 -Release -Package -Zip  # 再额外生成 dist\IpInfo-1.4-win-x64.zip
+#   .\tools\build.ps1 -Release -Package -Zip  # 再额外生成 dist\杂鱼串流工具箱-1.5-win-x64.zip
 param(
     [switch]$Release,
     [switch]$Package,
@@ -17,7 +17,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $msbuild = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe"
 $config = if ($Release) { "Release" } else { "Debug" }
-$version = "1.4"
+$version = "1.5"
 
 if (-not (Test-Path $msbuild)) {
     throw "找不到 MSBuild：$msbuild"
@@ -55,9 +55,9 @@ if ($Package) {
     $dist = Join-Path $root "dist"
     if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $dist | Out-Null
-    Copy-Item (Join-Path $appDir "IpInfo.exe") $dist
+    Copy-Item (Join-Path $appDir "杂鱼串流工具箱.exe") $dist
     Copy-Item (Join-Path $appDir "IpInfo.Core.dll") $dist
-    Copy-Item (Join-Path $appDir "IpInfo.exe.config") $dist -ErrorAction SilentlyContinue
+    Copy-Item (Join-Path $appDir "杂鱼串流工具箱.exe.config") $dist -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $root "README.md") $dist -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $root "LICENSE") $dist -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $root "CHANGELOG.md") $dist -ErrorAction SilentlyContinue
@@ -69,12 +69,12 @@ if ($Package) {
     Write-Host "已打包到：$dist" -ForegroundColor Green
 
     if ($Zip) {
-        $staging = Join-Path $env:TEMP ("IpInfo-zip-" + [Guid]::NewGuid().ToString("N"))
-        $packageRoot = Join-Path $staging ("IpInfo-" + $version)
+        $staging = Join-Path $env:TEMP ("ZayuToolbox-zip-" + [Guid]::NewGuid().ToString("N"))
+        $packageRoot = Join-Path $staging ("杂鱼串流工具箱-" + $version)
         try {
             New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
             Copy-Item (Join-Path $dist "*") $packageRoot -Recurse
-            $zipPath = Join-Path $dist ("IpInfo-" + $version + "-win-x64.zip")
+            $zipPath = Join-Path $dist ("杂鱼串流工具箱-" + $version + "-win-x64.zip")
             if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
             Compress-Archive -Path $packageRoot -DestinationPath $zipPath -CompressionLevel Optimal
             Write-Host "已生成压缩包：$zipPath" -ForegroundColor Green

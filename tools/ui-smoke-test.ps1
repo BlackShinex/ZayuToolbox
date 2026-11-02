@@ -14,7 +14,7 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrEmpty($AppPath)) {
-    $AppPath = Join-Path $root "src\IpInfo.App\bin\Debug\IpInfo.exe"
+    $AppPath = Join-Path $root "src\IpInfo.App\bin\Debug\杂鱼串流工具箱.exe"
 }
 if (-not (Test-Path $AppPath)) {
     throw "找不到应用：$AppPath，请先运行 tools\build.ps1"
@@ -103,7 +103,7 @@ try {
     while ((Get-Date) -lt $deadline) {
         Start-Sleep -Milliseconds 400
         $condition = New-Object System.Windows.Automation.PropertyCondition(
-            [System.Windows.Automation.AutomationElement]::NameProperty, "本机网络信息")
+            [System.Windows.Automation.AutomationElement]::NameProperty, "杂鱼串流工具箱")
         $window = [System.Windows.Automation.AutomationElement]::RootElement.FindFirst(
             [System.Windows.Automation.TreeScope]::Children, $condition)
         if ($window -ne $null) {

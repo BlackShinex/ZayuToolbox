@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -87,7 +87,7 @@ namespace IpInfo.Core
         public string ToDiagnostics()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("IpInfo · WebView2 运行库检测");
+            sb.AppendLine("杂鱼串流工具箱 · WebView2 运行库检测");
             sb.AppendLine("检测时间：" + DetectedAt.ToString("yyyy-MM-dd HH:mm:ss"));
             sb.AppendLine("检测结果：" + StatusText);
             if (Primary != null)

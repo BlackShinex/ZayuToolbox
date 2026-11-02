@@ -1,8 +1,8 @@
-# 本机网络信息（IpInfo）
+# 杂鱼串流工具箱
 
-> 作者：**BlackCat** · 版本：**1.4**
+> 作者：**BlackCat** · 版本：**1.5**
 
-一个基于 **WPF / .NET Framework 4.8** 的 Windows 小工具：查看本机 IPv4 / IPv6 地址、公网出口，检测当前网络是否在公网、属于哪种 NAT 类型，提供 **IPv6 入站可达性自检**，并集成 **WebView2 运行库检测与安装修复**。默认对 IP 中间部分打码，支持一键显示和逐条复制。
+**杂鱼串流工具箱**是一个面向串流与网络排障的 Windows 工具箱：查看本机 IPv4 / IPv6 地址、公网出口，检测当前网络是否在公网、属于哪种 NAT 类型，提供 **IPv6 入站可达性自检**，并集成 **WebView2 运行库检测与安装修复**。默认对 IP 中间部分打码，支持一键显示和逐条复制。
 
 ![界面预览](docs/ui-preview-full.png)
 
@@ -47,14 +47,14 @@
 
 ## 直接运行
 
-双击 `dist\IpInfo.exe` 即可。要求 Windows 10 / 11（自带 .NET Framework 4.8），无需安装 .NET SDK。
+双击 `dist\杂鱼串流工具箱.exe` 即可。要求 Windows 10 / 11（自带 .NET Framework 4.8），无需安装 .NET SDK。
 
 > 首次运行如需联网，请允许 Windows 防火墙的“专用/公用网络”访问（程序使用 UDP 访问公共 STUN 服务器；使用 IPv6 入站自检时会临时监听一个 TCP 端口）。安装 / 修复 WebView2 时还会访问 Microsoft 官方服务器下载安装包。
 
 ## 下载发布版
 
-从 GitHub **Releases** 下载 `IpInfo-1.4-win-x64.zip`，解压后双击 `IpInfo-1.4\IpInfo.exe` 运行。  
-压缩包内含 `IpInfo.exe`、`IpInfo.Core.dll`、`IpInfo.exe.config`（高分屏配置）和 README。
+从 GitHub **Releases** 下载 `杂鱼串流工具箱-1.5-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.5\杂鱼串流工具箱.exe` 运行。  
+压缩包内含 `杂鱼串流工具箱.exe`、`IpInfo.Core.dll`、`杂鱼串流工具箱.exe.config`（高分屏配置）和 README。
 
 也可以按下一节从源码自行构建。
 
@@ -66,9 +66,9 @@
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zip
 ```
 
-- 构建产物：`src\IpInfo.App\bin\Release\IpInfo.exe`、`IpInfo.Core.dll`、`IpInfo.exe.config`
+- 构建产物：`src\IpInfo.App\bin\Release\杂鱼串流工具箱.exe`、`IpInfo.Core.dll`、`杂鱼串流工具箱.exe.config`
 - `-Package` 会把可运行文件复制到 `dist\`
-- `-Zip` 会额外生成 `dist\IpInfo-1.4-win-x64.zip`，解压后双击 `IpInfo-1.4\IpInfo.exe` 即可运行
+- `-Zip` 会额外生成 `dist\杂鱼串流工具箱-1.5-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.5\杂鱼串流工具箱.exe` 即可运行
 - 也可以使用 Visual Studio 2019/2022 打开 `IpInfo.sln`（经典 .NET Framework WPF 项目）直接构建、调试
 
 ## 测试
@@ -212,8 +212,8 @@ Windows 防火墙状态优先通过 `HNetCfg.FwPolicy2` COM 读取；普通用�
 ## 作者与版本
 
 - 作者：BlackCat
-- 版本：1.4
-- v1.4：集成 WebView2 运行库检测、诊断复制、官方下载 / 本地包安装与修复功能。
+- 版本：1.5
+- v1.5：软件正式更名为「杂鱼串流工具箱」，同步更新窗口标题、程序名、图标文字、exe 文件名、发布包与文档。
 
 ## 许可证
 

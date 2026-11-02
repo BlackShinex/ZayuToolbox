@@ -50,8 +50,8 @@ namespace IpInfo.App
             RevealToggle.Foreground = Brushes.White;
 
             Version appVersion = typeof(MainWindow).Assembly.GetName().Version;
-            VersionText.Text = "IpInfo v" + appVersion.Major + "." + appVersion.Minor
-                + " · 作者 BlackCat · IP 数据仅在本机处理";
+            VersionText.Text = "杂鱼串流工具箱 v" + appVersion.Major + "." + appVersion.Minor
+                + " · 作者 BlackCat · 数据仅在本机处理";
 
             Loaded += MainWindow_Loaded;
             Closed += MainWindow_Closed;

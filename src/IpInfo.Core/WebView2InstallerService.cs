@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -142,7 +142,7 @@ namespace IpInfo.Core
                 using (HttpClient client = new HttpClient(handler))
                 {
                     client.Timeout = TimeSpan.FromMinutes(20);
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("IpInfo/1.4 (Windows NT 10.0; Win64; x64)");
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("ZayuToolbox/1.5 (Windows NT 10.0; Win64; x64)");
 
                     using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
                     {

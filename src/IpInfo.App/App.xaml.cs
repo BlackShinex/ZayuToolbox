@@ -92,7 +92,7 @@ namespace IpInfo.App
 
         private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            MessageBox.Show("程序发生错误：" + e.Exception.Message, "本机网络信息",
+            MessageBox.Show("程序发生错误：" + e.Exception.Message, "杂鱼串流工具箱",
                 MessageBoxButton.OK, MessageBoxImage.Error);
             e.Handled = true;
         }
