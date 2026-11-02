@@ -49,7 +49,7 @@
                     </StackPanel>
                     <TextBlock x:Name="ZakoHintText"
                                Text="只读检测，不会安装或卸载驱动。设备管理器里的黄色感叹号通常对应问题码 28 或 31。"
-                               FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap"
+                               FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap"
                                Margin="0,8,0,0"/>
                 </StackPanel>
 

@@ -52,7 +52,7 @@
                     </StackPanel>
                     <TextBlock x:Name="SunshineHintText"
                                Text="检测覆盖注册表安装记录、Sunshine.exe 版本资源、服务路径和安装目录指纹。"
-                               FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap"
+                               FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap"
                                Margin="0,8,0,0"/>
                 </StackPanel>
 

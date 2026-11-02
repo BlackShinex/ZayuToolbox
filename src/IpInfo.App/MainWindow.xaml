@@ -196,13 +196,13 @@
                             <StackPanel>
                                 <TextBlock Text="小提示" FontSize="12" FontWeight="SemiBold" Foreground="#475569"/>
                                 <TextBlock Text="· 默认隐藏 IP 中间部分，点击右上角「显示 IP」查看完整地址。"
-                                           FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,6,0,0"/>
                                 <TextBlock Text="· 每个地址右侧的「复制」按钮复制完整 IP。"
-                                           FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 <TextBlock Text="· IPv6 出现多个地址是正常现象：除主地址外，Windows 还会生成临时地址和链路本地地址。"
-                                           FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 <TextBlock Text="· 公网出口与 NAT 类型通过公共 STUN 服务器（UDP）检测，不经过第三方 HTTP 服务。"
-                                           FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -473,7 +473,7 @@
                                             Margin="6,0,0,0"/>
                                 </StackPanel>
                                 <TextBlock x:Name="InboundHintText" Text="提示：自检会在本机临时打开一个 TCP 端口，检测结束后自动关闭。"
-                                           FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             </StackPanel>
 
                             <Border Grid.Column="2" Background="#F8FAFC" BorderBrush="#EEF2F7" BorderThickness="1"
@@ -486,9 +486,9 @@
                                     <TextBlock Text="为什么必须用移动数据？" FontSize="11" FontWeight="SemiBold"
                                                Foreground="#94A3B8" Margin="0,12,0,0"/>
                                     <TextBlock Text="如果手机仍连着本机 Wi-Fi，访问会走内网，无法代表外部 IPv6 入站是否放行。关闭 Wi-Fi 后使用 4G/5G，才能真实测试。"
-                                               FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                               FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                     <TextBlock Text="点击「启动入站自检」后会弹出说明窗口，3 秒倒计时结束才能关闭。"
-                                               FontSize="10.5" Foreground="#B6C2D2" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                               FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,8,0,0"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -604,7 +604,7 @@
 
                         <TextBlock x:Name="NatTraceHintText"
                                    Text="目标：阿里公共 DNS · 最多 30 跳 · 仅 ICMP，不需要管理员权限。跃点只代表三层路径；私网/CGNAT 跃点提示可能存在 NAT 层，实际 NAT 设备数需结合拓扑确认。"
-                                   FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                   FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -671,7 +671,7 @@
                                 </StackPanel>
                                 <TextBlock x:Name="WebView2HintText"
                                            Text="安装包从 Microsoft 官方服务器下载，并校验 Microsoft 数字签名后静默安装。"
-                                           FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap"
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap"
                                            Margin="0,8,0,0"/>
                             </StackPanel>
 
