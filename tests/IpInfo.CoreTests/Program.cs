@@ -463,6 +463,19 @@ namespace IpInfo.CoreTests
             SunshineVerdict futureOfficialVerdict = SunshineDetector.Classify(futureOfficial);
             CheckTrue("官方版升级到 1.x 仍判为官方", futureOfficialVerdict.Kind == SunshineBuildKind.Official, futureOfficialVerdict.Kind.ToString());
 
+            CheckTrue("安装状态：服务+文件=已安装",
+                SunshineDetector.DetermineInstallState(true, false, true) == SunshineInstallState.Installed);
+            CheckTrue("安装状态：安装记录+文件=已安装",
+                SunshineDetector.DetermineInstallState(false, true, true) == SunshineInstallState.Installed);
+            CheckTrue("安装状态：只有文件=残留",
+                SunshineDetector.DetermineInstallState(false, false, true) == SunshineInstallState.Leftover);
+            CheckTrue("安装状态：只有安装记录=已卸载",
+                SunshineDetector.DetermineInstallState(false, true, false) == SunshineInstallState.Uninstalled);
+            CheckTrue("安装状态：服务指向的文件已消失=已卸载",
+                SunshineDetector.DetermineInstallState(true, false, false) == SunshineInstallState.Uninstalled);
+            CheckTrue("安装状态：什么都没有=未安装",
+                SunshineDetector.DetermineInstallState(false, false, false) == SunshineInstallState.NotInstalled);
+
             SunshineSignature axixi = new SunshineSignature();
             axixi.CompanyName = "Third Party Publisher";
             axixi.FileVersion = "1.1.0";

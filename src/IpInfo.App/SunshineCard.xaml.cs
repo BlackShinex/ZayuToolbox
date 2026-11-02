@@ -99,11 +99,41 @@ namespace IpInfo.App
                     break;
             }
 
+            bool leftover = result.InstallState == SunshineInstallState.Leftover;
+            bool removed = result.InstallState == SunshineInstallState.Uninstalled;
+            bool active = installed && !leftover && !removed;
+
+            if (!active)
+            {
+                chipBackground = UiPalette.GrayBg;
+                chipForeground = UiPalette.GrayFg;
+            }
+
             SunshineStatusChip.Background = chipBackground;
             SunshineStatusText.Foreground = chipForeground;
-            SunshineStatusText.Text = installed ? result.KindLabel : "未安装";
 
-            if (!installed)
+            if (leftover)
+                SunshineStatusText.Text = "未安装";
+            else if (removed)
+                SunshineStatusText.Text = "已卸载";
+            else
+                SunshineStatusText.Text = installed ? result.KindLabel : "未安装";
+
+            if (leftover)
+            {
+                SunshineHeadlineText.Text = "未安装（发现残留文件）";
+                SunshineSummaryText.Text = string.IsNullOrEmpty(result.Version)
+                    ? "没有服务与安装记录，只找到残留文件。"
+                    : "没有服务与安装记录，残留版本 " + result.Version + "。";
+                SunshineHintText.Text = "如果确认已经卸载，可以删除安装目录后再点「重新检测」。";
+            }
+            else if (removed)
+            {
+                SunshineHeadlineText.Text = "已卸载（注册表残留）";
+                SunshineSummaryText.Text = "安装记录还在，但安装目录里找不到 Sunshine.exe。";
+                SunshineHintText.Text = "重新安装后点击「重新检测」。";
+            }
+            else if (!installed)
             {
                 SunshineHeadlineText.Text = "未检测到 Sunshine";
                 SunshineSummaryText.Text = "未找到 Sunshine.exe，可能尚未安装或安装在非默认位置。";
@@ -121,7 +151,7 @@ namespace IpInfo.App
                 SunshineHintText.Text = BuildHint(result);
             }
 
-            SunshineVersionText.Text = "版本：" + NullSafe(result.Version);
+            SunshineVersionText.Text = (leftover ? "残留版本：" : "版本：") + NullSafe(result.Version);
             SunshinePublisherText.Text = "发布者：" + NullSafe(result.CompanyName);
             SunshineInstallerText.Text = "安装来源：" + NullSafe(result.InstallerKind);
             SunshineServiceText.Text = "服务：" + (string.IsNullOrEmpty(result.ServiceName)

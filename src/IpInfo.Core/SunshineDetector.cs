@@ -29,6 +29,21 @@ namespace IpInfo.Core
         High
     }
 
+    /// <summary>Sunshine 在本机的安装状态。</summary>
+    public enum SunshineInstallState
+    {
+        Unknown = 0,
+        /// <summary>服务或安装记录存在，且能找到 Sunshine.exe。</summary>
+        Installed,
+        /// <summary>已卸载，但安装目录里还留着文件。</summary>
+        Leftover,
+        /// <summary>安装记录还在，但文件已经没了。</summary>
+        Uninstalled,
+        /// <summary>没有安装记录（只在指定目录扫描时使用）。</summary>
+        DirectoryScan,
+        NotInstalled
+    }
+
     /// <summary>从安装目录和注册表提取出的原始特征，用于版本判定。</summary>
     public sealed class SunshineSignature
     {
@@ -89,6 +104,30 @@ namespace IpInfo.Core
     {
         public SunshineBuildKind Kind { get; set; }
         public SunshineConfidence Confidence { get; set; }
+        public SunshineInstallState InstallState { get; set; }
+
+        /// <summary>是否算作“已安装”：有服务或安装记录，且能找到程序文件。</summary>
+        public bool IsInstalled
+        {
+            get { return InstallState == SunshineInstallState.Installed; }
+        }
+
+        /// <summary>安装状态的中文描述。</summary>
+        public string InstallStateLabel
+        {
+            get
+            {
+                switch (InstallState)
+                {
+                    case SunshineInstallState.Installed: return "已安装";
+                    case SunshineInstallState.Leftover: return "未安装（残留文件）";
+                    case SunshineInstallState.Uninstalled: return "已卸载（注册表残留）";
+                    case SunshineInstallState.DirectoryScan: return "目录扫描";
+                    case SunshineInstallState.NotInstalled: return "未安装";
+                    default: return "未知";
+                }
+            }
+        }
 
         public string Version { get; set; }
         public string ProductVersion { get; set; }
@@ -134,6 +173,7 @@ namespace IpInfo.Core
         {
             Kind = SunshineBuildKind.Unknown;
             Confidence = SunshineConfidence.None;
+            InstallState = SunshineInstallState.Unknown;
             Version = string.Empty;
             ProductVersion = string.Empty;
             CompanyName = string.Empty;
@@ -208,6 +248,7 @@ namespace IpInfo.Core
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("杂鱼串流工具箱 · Sunshine 版本自检");
             sb.AppendLine("检测结果：" + KindLabel + "（" + ConfidenceLabel + "置信）");
+            sb.AppendLine("安装状态：" + InstallStateLabel);
             sb.AppendLine("版本号：" + NullSafe(Version));
             if (!string.IsNullOrEmpty(ProductVersion) && !string.Equals(ProductVersion, Version, StringComparison.OrdinalIgnoreCase))
                 sb.AppendLine("产品版本：" + ProductVersion);
@@ -392,6 +433,15 @@ namespace IpInfo.Core
             return verdict;
         }
 
+        /// <summary>根据服务、安装记录和程序文件判断安装状态。纯函数，便于测试。</summary>
+        public static SunshineInstallState DetermineInstallState(bool hasService, bool hasUninstallEntry, bool hasExecutable)
+        {
+            if (hasExecutable && (hasService || hasUninstallEntry)) return SunshineInstallState.Installed;
+            if (hasService || hasUninstallEntry) return SunshineInstallState.Uninstalled;
+            if (hasExecutable) return SunshineInstallState.Leftover;
+            return SunshineInstallState.NotInstalled;
+        }
+
         private static SunshineDetectionResult DetectCore(string installRoot, bool useRegistry)
         {
             SunshineDetectionResult result = new SunshineDetectionResult();
@@ -441,6 +491,20 @@ namespace IpInfo.Core
 
             string exePath = FindSunshineExe(root);
             result.ExePath = exePath;
+
+            result.InstallState = useRegistry
+                ? DetermineInstallState(service != null, entry != null, !string.IsNullOrEmpty(exePath))
+                : SunshineInstallState.DirectoryScan;
+
+            if (result.InstallState == SunshineInstallState.Leftover)
+            {
+                result.Warnings.Add("没有检测到 Sunshine 服务和安装记录，只发现残留文件：" + exePath
+                    + "。如果确认已经卸载，可以删除该目录，避免影响下一次安装。");
+            }
+            else if (result.InstallState == SunshineInstallState.Uninstalled)
+            {
+                result.Warnings.Add("安装记录仍在，但安装目录里找不到 Sunshine.exe，可能已被手动删除。");
+            }
 
             SunshineSignature signature = new SunshineSignature();
             signature.InstallerKind = DetectInstallerKind(root, entry, useRegistry);
