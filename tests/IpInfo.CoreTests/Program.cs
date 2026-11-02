@@ -413,6 +413,24 @@ namespace IpInfo.CoreTests
             CheckTrue("基地版：渠道判定", baseVerdict.Kind == SunshineBuildKind.BaseEdition, baseVerdict.Kind.ToString());
             CheckTrue("基地版：高置信", baseVerdict.Confidence == SunshineConfidence.High, baseVerdict.Confidence.ToString());
 
+            SunshineSignature earlyBase = new SunshineSignature();
+            earlyBase.CompanyName = "LizardByte";
+            earlyBase.FileVersion = "2024.0715.211805.7ff3168e.杂鱼";
+            earlyBase.InstallerKind = "Uninstall.exe";
+            earlyBase.MatchedFiles.Add(@"assets\gui\sunshine-gui.exe");
+            SunshineVerdict earlyBaseVerdict = SunshineDetector.Classify(earlyBase);
+            CheckTrue("初版基地：渠道判定", earlyBaseVerdict.Kind == SunshineBuildKind.BaseEdition, earlyBaseVerdict.Kind.ToString());
+            CheckTrue("初版基地：高置信", earlyBaseVerdict.Confidence == SunshineConfidence.High, earlyBaseVerdict.Confidence.ToString());
+
+            CheckEqual("版本号乱码修复（936）",
+                SunshineDetector.NormalizeText("2024.0715.211805.7ff3168e.\u93c9\u509e\u5954"),
+                "2024.0715.211805.7ff3168e.杂鱼");
+            CheckEqual("版本号乱码修复（1252）",
+                SunshineDetector.NormalizeText("v2026.1031.121458.\u00e6\u009d\u201a\u00e9\u00b1\u00bc"),
+                "v2026.1031.121458.杂鱼");
+            CheckEqual("正常中文不被改写", SunshineDetector.NormalizeText("杂鱼"), "杂鱼");
+            CheckEqual("纯英文版本号不被改写", SunshineDetector.NormalizeText("0.23.1"), "0.23.1");
+
             SunshineSignature axixi = new SunshineSignature();
             axixi.CompanyName = "Third Party Publisher";
             axixi.FileVersion = "1.1.0";

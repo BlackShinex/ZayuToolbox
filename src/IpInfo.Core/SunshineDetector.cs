@@ -390,11 +390,14 @@ namespace IpInfo.Core
 
             string processDirectory = useRegistry ? TryGetRunningDirectory() : string.Empty;
             string serviceDirectory = service == null ? string.Empty : GetDirectorySafe(service.ExecutablePath);
+            string installLocation = entry == null ? string.Empty : entry.InstallLocation;
+            string iconDirectory = entry == null ? string.Empty : GetDirectorySafe(entry.DisplayIcon);
 
-            string root = FirstDirectory(new string[]
+            string root = ResolveInstallDirectory(new string[]
             {
                 installRoot,
-                entry == null ? string.Empty : entry.InstallLocation,
+                installLocation,
+                iconDirectory,
                 serviceDirectory,
                 processDirectory,
                 DefaultInstallDirectory
@@ -462,7 +465,7 @@ namespace IpInfo.Core
                 }
             }
 
-            if (!string.IsNullOrEmpty(result.UninstallVersion) && !string.IsNullOrEmpty(result.Version))
+            if (IsMeaningfulVersion(result.UninstallVersion) && !string.IsNullOrEmpty(result.Version))
             {
                 string registryVersion = result.UninstallVersion.TrimStart('v', 'V');
                 string fileVersion = result.Version.TrimStart('v', 'V');
@@ -481,11 +484,11 @@ namespace IpInfo.Core
             try
             {
                 FileVersionInfo info = FileVersionInfo.GetVersionInfo(exePath);
-                result.Version = RepairMojibake(NullToEmpty(info.FileVersion)).Trim();
-                result.ProductVersion = RepairMojibake(NullToEmpty(info.ProductVersion)).Trim();
-                result.CompanyName = RepairMojibake(NullToEmpty(info.CompanyName)).Trim();
-                result.ProductName = RepairMojibake(NullToEmpty(info.ProductName)).Trim();
-                result.FileDescription = RepairMojibake(NullToEmpty(info.FileDescription)).Trim();
+                result.Version = NormalizeText(NullToEmpty(info.FileVersion)).Trim();
+                result.ProductVersion = NormalizeText(NullToEmpty(info.ProductVersion)).Trim();
+                result.CompanyName = NormalizeText(NullToEmpty(info.CompanyName)).Trim();
+                result.ProductName = NormalizeText(NullToEmpty(info.ProductName)).Trim();
+                result.FileDescription = NormalizeText(NullToEmpty(info.FileDescription)).Trim();
 
                 signature.FileVersion = result.Version;
                 signature.ProductVersion = result.ProductVersion;
@@ -507,7 +510,7 @@ namespace IpInfo.Core
             if (!string.IsNullOrEmpty(root))
             {
                 if (File.Exists(Path.Combine(root, "unins000.exe"))) return "Inno Setup";
-                if (File.Exists(Path.Combine(root, "Uninstall.exe"))) return "未知";
+                if (File.Exists(Path.Combine(root, "Uninstall.exe"))) return "Uninstall.exe";
             }
 
             return useRegistry ? "未登记" : "未检测";
@@ -667,23 +670,25 @@ namespace IpInfo.Core
         }
 
         /// <summary>
-        /// 版本资源里的中文可能被按 ANSI 码页解码成乱码（例如“杂鱼”变成 æ\u009d\u201aé±¼）。
-        /// 按 1252/28591 还原成字节后再按 UTF-8 解码，只有确实还原出中文时才采用。
+        /// 版本资源里的中文会根据系统码页被解码成乱码：在 936 下“杂鱼”会变成“鏉傞奔”，
+        /// 在 1252 下会变成 æ\u009d\u201aé±¼。这里按候选码页还原成字节再按 UTF-8 解码，
+        /// 只有确实还原出中文时才采用，避免破坏正常字符串。
         /// </summary>
-        private static string RepairMojibake(string value)
+        public static string NormalizeText(string value)
         {
-            if (string.IsNullOrEmpty(value) || IsAscii(value) || ContainsCjk(value)) return value;
+            if (string.IsNullOrEmpty(value) || IsAscii(value)) return value;
 
-            int[] codePages = new int[] { 1252, 28591 };
+            int[] codePages = new int[] { 936, 1252, 28591 };
             for (int i = 0; i < codePages.Length; i++)
             {
                 try
                 {
-                    byte[] bytes = Encoding.GetEncoding(codePages[i]).GetBytes(value);
+                    Encoding encoder = Encoding.GetEncoding(codePages[i], EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+                    byte[] bytes = encoder.GetBytes(value);
                     string decoded = new UTF8Encoding(false, true).GetString(bytes);
                     if (!string.IsNullOrEmpty(decoded)
-                        && ContainsCjk(decoded)
-                        && decoded.IndexOf('\uFFFD') < 0)
+                        && !string.Equals(decoded, value, StringComparison.Ordinal)
+                        && ContainsCjk(decoded))
                     {
                         return decoded;
                     }
@@ -764,19 +769,48 @@ namespace IpInfo.Core
             return string.Empty;
         }
 
-        private static string FirstDirectory(string[] candidates)
+        /// <summary>
+        /// 找一个确实包含 Sunshine.exe 的目录。旧版安装器会把服务放在 tools 子目录、
+        /// 卸载项又不写 InstallLocation，所以候选目录找不到 exe 时逐级向上找。
+        /// </summary>
+        private static string ResolveInstallDirectory(string[] candidates)
         {
             string fallback = string.Empty;
+
             for (int i = 0; i < candidates.Length; i++)
             {
-                string candidate = candidates[i];
+                string candidate = TrimDirectory(candidates[i]);
                 if (string.IsNullOrEmpty(candidate)) continue;
-                candidate = candidate.Trim().Trim('"');
-                if (string.IsNullOrEmpty(candidate)) continue;
-                if (string.IsNullOrEmpty(fallback)) fallback = candidate;
-                if (Directory.Exists(candidate)) return candidate;
+                if (string.IsNullOrEmpty(fallback) && Directory.Exists(candidate)) fallback = candidate;
+
+                string current = candidate;
+                for (int level = 0; level < 3 && !string.IsNullOrEmpty(current); level++)
+                {
+                    if (!string.IsNullOrEmpty(FindSunshineExe(current))) return current;
+                    current = GetDirectorySafe(current);
+                }
             }
+
             return fallback;
+        }
+
+        private static string TrimDirectory(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return string.Empty;
+            return path.Trim().Trim('"');
+        }
+
+        /// <summary>0.0.0 之类的占位版本号视为不可用。</summary>
+        private static bool IsMeaningfulVersion(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return false;
+            string trimmed = value.Trim().TrimStart('v', 'V');
+            for (int i = 0; i < trimmed.Length; i++)
+            {
+                char c = trimmed[i];
+                if (c != '0' && c != '.') return true;
+            }
+            return false;
         }
 
         private static string NormalizeDirectory(string path)
