@@ -454,13 +454,11 @@ namespace IpInfo.Core
                 result.ServiceName = service.Name;
                 result.ServicePath = service.ExecutablePath;
                 result.ServiceStartMode = service.StartMode;
-                string serviceDir = GetDirectorySafe(service.ExecutablePath);
-                result.ServicePathMatchesInstall = !string.IsNullOrEmpty(serviceDir)
-                    && !string.IsNullOrEmpty(root)
-                    && string.Equals(NormalizeDirectory(serviceDir), NormalizeDirectory(root), StringComparison.OrdinalIgnoreCase);
+                result.ServicePathMatchesInstall = IsUnderDirectory(service.ExecutablePath, root);
                 if (!result.ServicePathMatchesInstall)
                 {
-                    result.Warnings.Add("服务实际指向 " + serviceDir + "，与安装目录 " + root + " 不一致。");
+                    result.Warnings.Add("服务实际指向 " + GetDirectorySafe(service.ExecutablePath)
+                        + "，不在安装目录 " + root + " 下。");
                 }
             }
 
@@ -483,11 +481,11 @@ namespace IpInfo.Core
             try
             {
                 FileVersionInfo info = FileVersionInfo.GetVersionInfo(exePath);
-                result.Version = NullToEmpty(info.FileVersion);
-                result.ProductVersion = NullToEmpty(info.ProductVersion);
-                result.CompanyName = NullToEmpty(info.CompanyName);
-                result.ProductName = NullToEmpty(info.ProductName);
-                result.FileDescription = NullToEmpty(info.FileDescription);
+                result.Version = RepairMojibake(NullToEmpty(info.FileVersion)).Trim();
+                result.ProductVersion = RepairMojibake(NullToEmpty(info.ProductVersion)).Trim();
+                result.CompanyName = RepairMojibake(NullToEmpty(info.CompanyName)).Trim();
+                result.ProductName = RepairMojibake(NullToEmpty(info.ProductName)).Trim();
+                result.FileDescription = RepairMojibake(NullToEmpty(info.FileDescription)).Trim();
 
                 signature.FileVersion = result.Version;
                 signature.ProductVersion = result.ProductVersion;
@@ -655,6 +653,57 @@ namespace IpInfo.Core
                 if (text[i] > 127) return false;
             }
             return true;
+        }
+
+        private static bool ContainsCjk(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            for (int i = 0; i < text.Length; i++)
+            {
+                char value = text[i];
+                if (value >= 0x4E00 && value <= 0x9FFF) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 版本资源里的中文可能被按 ANSI 码页解码成乱码（例如“杂鱼”变成 æ\u009d\u201aé±¼）。
+        /// 按 1252/28591 还原成字节后再按 UTF-8 解码，只有确实还原出中文时才采用。
+        /// </summary>
+        private static string RepairMojibake(string value)
+        {
+            if (string.IsNullOrEmpty(value) || IsAscii(value) || ContainsCjk(value)) return value;
+
+            int[] codePages = new int[] { 1252, 28591 };
+            for (int i = 0; i < codePages.Length; i++)
+            {
+                try
+                {
+                    byte[] bytes = Encoding.GetEncoding(codePages[i]).GetBytes(value);
+                    string decoded = new UTF8Encoding(false, true).GetString(bytes);
+                    if (!string.IsNullOrEmpty(decoded)
+                        && ContainsCjk(decoded)
+                        && decoded.IndexOf('\uFFFD') < 0)
+                    {
+                        return decoded;
+                    }
+                }
+                catch
+                {
+                }
+            }
+            return value;
+        }
+
+        private static bool IsUnderDirectory(string filePath, string directory)
+        {
+            if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(directory)) return false;
+
+            string normalizedFile = NormalizeDirectory(filePath);
+            string normalizedDirectory = NormalizeDirectory(directory);
+            if (string.IsNullOrEmpty(normalizedFile) || string.IsNullOrEmpty(normalizedDirectory)) return false;
+
+            return normalizedFile.StartsWith(normalizedDirectory + "\\", StringComparison.OrdinalIgnoreCase);
         }
 
         private static int IndexOfAsciiIgnoreCase(byte[] haystack, byte[] needle)
