@@ -6,7 +6,7 @@
 
 - 一个 GitHub 账号
 - Git for Windows：<https://git-scm.com/download/win>
-- 项目目录：`C:\Users\black\Documents\deepseek-harness\default-workspace\ip-info`
+- 项目目录：`D:\code\ZayuToolBox`
 
 安装 Git 后打开 PowerShell 验证：
 
