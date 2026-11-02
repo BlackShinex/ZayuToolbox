@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -31,6 +32,7 @@ namespace IpInfo.CoreTests
             TestVirtualAdapters();
             TestFirewallReader();
             TestIpv6InboundServer();
+            TestWebView2();
 
             if (live)
             {
@@ -278,6 +280,52 @@ namespace IpInfo.CoreTests
                 catch { }
                 try { server.Dispose(); }
                 catch { }
+            }
+        }
+
+        private static void TestWebView2()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[7] WebView2 运行库检测");
+
+            WebView2DetectionResult result = WebView2Detector.Detect();
+            CheckTrue("返回 WebView2 检测结果", result != null);
+            if (result == null) return;
+
+            CheckTrue("WebView2 状态已识别", result.Status != WebView2Status.Unknown);
+            CheckTrue("WebView2 状态文本非空", !string.IsNullOrEmpty(result.StatusText));
+            CheckTrue("WebView2 安装列表已初始化", result.Installations != null);
+            CheckTrue("WebView2 系统架构非空", !string.IsNullOrEmpty(result.OsArch));
+
+            string diagnostics = result.ToDiagnostics();
+            CheckTrue("WebView2 诊断信息包含标题", diagnostics.IndexOf("WebView2", StringComparison.Ordinal) >= 0);
+            CheckTrue("WebView2 诊断信息包含检测结果", diagnostics.IndexOf("检测结果", StringComparison.Ordinal) >= 0);
+            CheckTrue("WebView2 版本比较正确",
+                WebView2Detector.CompareVersions("1.2.3.4", "1.2.3.5") < 0);
+
+            if (result.Primary != null)
+            {
+                CheckTrue("WebView2 主安装版本非空", !string.IsNullOrEmpty(result.Primary.Version));
+                Console.WriteLine("    检测到 WebView2：" + result.Primary.Version + " · "
+                    + result.Primary.Scope + " · " + result.Primary.Location);
+            }
+            else
+            {
+                Console.WriteLine("    未检测到 WebView2 运行库（未安装或仅 Fixed Version）");
+            }
+
+            string edgeExe = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                @"Microsoft\Edge\Application\msedge.exe");
+            if (File.Exists(edgeExe))
+            {
+                WebView2SignatureVerification signature = WebView2InstallerService.VerifySignature(edgeExe);
+                CheckTrue("Edge 可执行文件数字签名有效", signature.Valid,
+                    string.IsNullOrEmpty(signature.Error) ? string.Empty : signature.Error);
+            }
+            else
+            {
+                Console.WriteLine("    [跳过] 未找到 msedge.exe，跳过数字签名正向校验");
             }
         }
 

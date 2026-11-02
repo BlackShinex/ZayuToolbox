@@ -2,7 +2,8 @@
 #   1. 默认状态 IP 被遮罩（不出现完整 IPv4/IPv6）；
 #   2. 每个「复制」按钮复制的是完整 IP（同时覆盖 IPv4 与 IPv6）；
 #   3. 「显示 IP」按钮能切换为完整地址，「隐藏 IP」能恢复遮罩；
-#   4. IPv6 入站自检可启动、停止，并能从回环地址收到连接。
+#   4. IPv6 入站自检可启动、停止，并能从回环地址收到连接；
+#   5. WebView2 运行库状态、诊断复制与安装窗口可正常打开。
 #
 # 用法（先构建 Debug）：
 #   powershell -ExecutionPolicy Bypass -File .\tools\ui-smoke-test.ps1
@@ -54,10 +55,20 @@ function Get-WindowTexts($window) {
 }
 
 function Get-WindowByTitle([string]$title) {
-    $condition = New-Object System.Windows.Automation.PropertyCondition(
+    $nameCondition = New-Object System.Windows.Automation.PropertyCondition(
         [System.Windows.Automation.AutomationElement]::NameProperty, $title)
+    $typeCondition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::Window)
+    $condition = New-Object System.Windows.Automation.AndCondition($nameCondition, $typeCondition)
     return [System.Windows.Automation.AutomationElement]::RootElement.FindFirst(
         [System.Windows.Automation.TreeScope]::Descendants, $condition)
+}
+
+function Get-ElementByAutomationId($window, [string]$automationId) {
+    $condition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::AutomationIdProperty, $automationId)
+    return $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
 }
 
 function Get-EnabledCopyButtons($window) {
@@ -127,6 +138,10 @@ try {
     Check "默认状态不出现完整 IPv4" ($leak.Count -eq 0) ("发现未遮罩的 IP 文本：" + ($leak -join " / "))
     Check "默认状态显示 IPv6 遮罩" ($maskedIpv6.Count -gt 0) "没有找到形如 240e:****:…:865c 的文本"
 
+    # WebView2 运行库卡片
+    Check "显示 WebView2 运行库卡片" (($joined -match "WebView2 运行库") -and ($joined -match "版本：") -and ($joined -match "路径："))
+    Check "显示 WebView2 检测状态" (($joined -match "已安装") -or ($joined -match "未安装") -or ($joined -match "安装异常"))
+
     # IPv6 入站自检
     Check "显示 IPv6 入站自检" (($joined -match "IPv6 入站可达性") -and ($joined -match "启动入站自检"))
 
@@ -156,6 +171,40 @@ try {
     }
     Check "复制按钮复制完整 IPv4" $sawIpv4
     Check "复制按钮复制完整 IPv6" $sawIpv6
+
+    # WebView2 诊断复制与安装窗口
+    Write-Host "测试 WebView2 诊断与安装窗口…" -ForegroundColor Cyan
+    $webView2Copy = Get-ElementByAutomationId $window "WebView2CopyButton"
+    Check "存在 WebView2 诊断复制按钮" ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled)
+    if ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled) {
+        Invoke-Element $webView2Copy
+        Start-Sleep -Milliseconds 500
+        $wvClipboard = $null
+        try { $wvClipboard = [System.Windows.Forms.Clipboard]::GetText() } catch { }
+        Check "WebView2 诊断信息包含版本和路径" ($wvClipboard -match "WebView2" -and $wvClipboard -match "检测结果")
+    }
+
+    $webView2Install = Get-ElementByAutomationId $window "WebView2InstallButton"
+    Check "存在 WebView2 安装按钮" ($webView2Install -ne $null -and $webView2Install.Current.IsEnabled)
+    if ($webView2Install -ne $null -and $webView2Install.Current.IsEnabled) {
+        Invoke-Element $webView2Install
+        Start-Sleep -Milliseconds 700
+        $wvDialog = Get-WindowByTitle "安装 / 修复 WebView2"
+        Check "点击后弹出 WebView2 安装窗口" ($wvDialog -ne $null)
+        if ($wvDialog -ne $null) {
+            $wvDialogTexts = (Get-WindowTexts $wvDialog) -join "`n"
+            Check "安装窗口包含安装方式与签名说明" (($wvDialogTexts -match "安装方式") -and ($wvDialogTexts -match "数字签名"))
+            $wvCancel = $wvDialog.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, "取消")))
+            Check "安装窗口包含取消按钮" ($wvCancel -ne $null)
+            if ($wvCancel -ne $null) {
+                Invoke-Element $wvCancel
+                Start-Sleep -Milliseconds 500
+                Check "关闭 WebView2 安装窗口" ((Get-WindowByTitle "安装 / 修复 WebView2") -eq $null)
+            }
+        }
+    }
 
     # 显示 IP
     Write-Host "测试「显示 IP」按钮…" -ForegroundColor Cyan
@@ -210,8 +259,13 @@ try {
                 Start-Sleep -Milliseconds 3400
                 Check "3 秒倒计时结束后「了解」可点击" ($understandButton.Current.IsEnabled)
                 Invoke-Element $understandButton
-                Start-Sleep -Milliseconds 500
-                Check "点击「了解」后弹窗关闭" ((Get-WindowByTitle "IPv6 入站自检") -eq $null)
+                $closed = $false
+                $closeDeadline = (Get-Date).AddSeconds(4)
+                while ((Get-Date) -lt $closeDeadline) {
+                    Start-Sleep -Milliseconds 200
+                    if ((Get-WindowByTitle "IPv6 入站自检") -eq $null) { $closed = $true; break }
+                }
+                Check "点击「了解」后弹窗关闭" $closed
             }
         }
 

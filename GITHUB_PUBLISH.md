@@ -40,7 +40,7 @@ git status
 确认 `git status` 中**没有** `bin/`、`obj/`、`dist/`（`.gitignore` 已忽略），然后提交：
 
 ```powershell
-git commit -m "Initial commit: IpInfo v1.3"
+git commit -m "Initial commit: IpInfo v1.4"
 git branch -M main
 ```
 
@@ -75,19 +75,19 @@ https://<你的用户名>:<你的PAT>@github.com/<你的用户名>/IpInfo.git
 本地已经生成了发布包：
 
 ```text
-dist\IpInfo-1.3-win-x64.zip
+dist\IpInfo-1.4-win-x64.zip
 ```
 
 在 GitHub 仓库页面：
 
 1. 点击右侧 **Releases** → **Draft a new release**；
-2. Tag 填 `v1.3`，Target 选 `main`；
-3. 标题填 `IpInfo v1.3`；
-4. 把 `dist\IpInfo-1.3-win-x64.zip` 拖到附件区域；
-5. 填写更新说明（可以把 `CHANGELOG.md` 中 v1.3 的内容复制进去）；
+2. Tag 填 `v1.4`，Target 选 `main`；
+3. 标题填 `IpInfo v1.4`；
+4. 把 `dist\IpInfo-1.4-win-x64.zip` 拖到附件区域；
+5. 填写更新说明（可以把 `CHANGELOG.md` 中 v1.4 的内容复制进去）；
 6. 点击 **Publish release**。
 
-之后别人就可以从 Releases 下载并直接运行 `IpInfo-1.3\IpInfo.exe`。
+之后别人就可以从 Releases 下载并直接运行 `IpInfo-1.4\IpInfo.exe`。
 
 ## 5. GitHub Actions
 

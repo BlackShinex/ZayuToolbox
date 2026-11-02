@@ -1,8 +1,8 @@
 # 本机网络信息（IpInfo）
 
-> 作者：**BlackCat** · 版本：**1.3**
+> 作者：**BlackCat** · 版本：**1.4**
 
-一个基于 **WPF / .NET Framework 4.8** 的 Windows 小工具：查看本机 IPv4 / IPv6 地址、公网出口，检测当前网络是否在公网、属于哪种 NAT 类型，并提供 **IPv6 入站可达性自检**。默认对 IP 中间部分打码，支持一键显示和逐条复制。
+一个基于 **WPF / .NET Framework 4.8** 的 Windows 小工具：查看本机 IPv4 / IPv6 地址、公网出口，检测当前网络是否在公网、属于哪种 NAT 类型，提供 **IPv6 入站可达性自检**，并集成 **WebView2 运行库检测与安装修复**。默认对 IP 中间部分打码，支持一键显示和逐条复制。
 
 ![界面预览](docs/ui-preview-full.png)
 
@@ -33,6 +33,12 @@
   - 点击「启动入站自检」会弹出说明窗口：明确提示**必须关闭手机 Wi-Fi、改用 4G/5G 移动数据**，并将自测地址复制到手机浏览器打开
   - 说明窗口带 3 秒倒计时，倒计时结束前无法关闭；关闭按钮文字为「了解」
   - 程序会自动确认是否收到外部入站连接，从而判断光猫/路由器的 IPv6 防火墙是否放行
+- **WebView2 运行库检测与修复**
+  - 读取 Edge Update 注册表，并与 `msedgewebview2.exe` 安装目录交叉验证，区分「已安装 / 未安装 / 安装异常」
+  - 显示运行库版本、安装范围、系统架构、安装路径、检测来源、Edge 浏览器版本与当前权限
+  - 支持复制完整诊断信息、打开安装目录、访问 Microsoft 官方下载页
+  - 「安装 / 修复」会从 Microsoft 官方短链下载 Evergreen Bootstrapper，校验 Microsoft Authenticode 数字签名后静默安装
+  - 普通用户可以安装到当前用户，也可以勾选「为所有用户安装」触发 UAC；也支持选择本地 WebView2 安装包离线安装
 - **高分屏适配**
   - 清单启用 Per-Monitor V2 DPI 感知，并配置 WPF `DoNotScaleForDpiChanges=false`
   - 窗口启动/跨屏移动时自动限制在当前屏幕可用区域内，125% / 150% 缩放下不会超出屏幕；内容用 ScrollViewer 兜底
@@ -43,11 +49,11 @@
 
 双击 `dist\IpInfo.exe` 即可。要求 Windows 10 / 11（自带 .NET Framework 4.8），无需安装 .NET SDK。
 
-> 首次运行如需联网，请允许 Windows 防火墙的“专用/公用网络”访问（程序使用 UDP 访问公共 STUN 服务器；使用 IPv6 入站自检时会临时监听一个 TCP 端口）。
+> 首次运行如需联网，请允许 Windows 防火墙的“专用/公用网络”访问（程序使用 UDP 访问公共 STUN 服务器；使用 IPv6 入站自检时会临时监听一个 TCP 端口）。安装 / 修复 WebView2 时还会访问 Microsoft 官方服务器下载安装包。
 
 ## 下载发布版
 
-从 GitHub **Releases** 下载 `IpInfo-1.3-win-x64.zip`，解压后双击 `IpInfo-1.3\IpInfo.exe` 运行。  
+从 GitHub **Releases** 下载 `IpInfo-1.4-win-x64.zip`，解压后双击 `IpInfo-1.4\IpInfo.exe` 运行。  
 压缩包内含 `IpInfo.exe`、`IpInfo.Core.dll`、`IpInfo.exe.config`（高分屏配置）和 README。
 
 也可以按下一节从源码自行构建。
@@ -62,21 +68,21 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zi
 
 - 构建产物：`src\IpInfo.App\bin\Release\IpInfo.exe`、`IpInfo.Core.dll`、`IpInfo.exe.config`
 - `-Package` 会把可运行文件复制到 `dist\`
-- `-Zip` 会额外生成 `dist\IpInfo-1.3-win-x64.zip`，解压后双击 `IpInfo-1.3\IpInfo.exe` 即可运行
+- `-Zip` 会额外生成 `dist\IpInfo-1.4-win-x64.zip`，解压后双击 `IpInfo-1.4\IpInfo.exe` 即可运行
 - 也可以使用 Visual Studio 2019/2022 打开 `IpInfo.sln`（经典 .NET Framework WPF 项目）直接构建、调试
 
 ## 测试
 
 ```powershell
-# 1) 核心逻辑 + 真实网络探测（53 项离线检查；--live 额外 5 项联网检查）
+# 1) 核心逻辑 + 真实网络探测（63 项离线检查；--live 额外 5 项联网检查）
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 .\tests\IpInfo.CoreTests\bin\Debug\IpInfo.CoreTests.exe --live
 
-# 2) UI 冒烟测试（离屏启动，验证遮罩、复制、显示 IP、IPv6 弹窗倒计时、入站自检）
+# 2) UI 冒烟测试（离屏启动，验证遮罩、复制、显示 IP、IPv6 弹窗倒计时、WebView2 卡片与安装弹窗）
 powershell -ExecutionPolicy Bypass -STA -File .\tools\ui-smoke-test.ps1
 ```
 
-UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 23 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、IPv6 入站弹窗的「了解」按钮 3 秒倒计时、启动/停止/回环连接成功路径。
+UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 32 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、IPv6 入站弹窗的「了解」按钮 3 秒倒计时、启动/停止/回环连接成功路径，以及 WebView2 状态卡片、诊断复制和安装窗口。
 
 > 仓库已包含 `.github/workflows/build.yml`：推送到 GitHub 后会自动构建 Release、运行离线核心测试并上传构建产物。
 
@@ -98,6 +104,8 @@ ip-info/
 │  │  ├─ LocalAddressProvider.cs 本机地址枚举 + 主地址智能选择
 │  │  ├─ WindowsFirewallReader.cs Windows 防火墙状态读取（COM + 注册表降级）
 │  │  ├─ Ipv6InboundTestServer.cs IPv6 入站自检临时监听
+│  │  ├─ WebView2DetectionService.cs WebView2 注册表 / 安装目录检测
+│  │  ├─ WebView2InstallerService.cs WebView2 下载、签名校验与静默安装
 │  │  ├─ StunClient.cs           RFC 5389 STUN 客户端
 │  │  ├─ StunServers.cs          公共 STUN 服务器解析
 │  │  ├─ NatDetector.cs          NAT 映射 / 过滤行为检测
@@ -106,6 +114,7 @@ ip-info/
 │     ├─ App.xaml(.cs)
 │     ├─ MainWindow.xaml(.cs)
 │     ├─ InboundTestDialog.xaml(.cs)  IPv6 入站说明弹窗（3 秒倒计时）
+│     ├─ WebView2InstallDialog.xaml(.cs) WebView2 安装 / 修复窗口
 │     ├─ UiModels.cs
 │     ├─ app.config                   Per-Monitor V2 DPI 配置
 │     └─ app.ico
@@ -163,6 +172,20 @@ IPv6 没有 NAT，但光猫/路由器的 IPv6 防火墙和 Windows 防火墙仍�
 
 Windows 防火墙状态优先通过 `HNetCfg.FwPolicy2` COM 读取；普通用户权限不足时，降级读取注册表中的防火墙开关，并明确标注为“推断”（默认入站策略按 Windows 默认的“阻止”推断）。
 
+### WebView2 运行库检测
+
+- 从 `HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}` 与 `HKEY_CURRENT_USER\...` 读取 Evergreen 运行库版本和安装位置；
+- 同时扫描系统级 / 当前用户安装目录，检查 `msedgewebview2.exe` 是否真实存在，避免把注册表残留误判为“已安装”；
+- 注册表有记录但文件缺失 → 「安装异常」；没有记录且目录无有效版本 → 「未安装」；
+- 只检测 Evergreen 运行库；应用自带的 Fixed Version WebView2 位于应用私有目录，不在此检测范围内。
+
+安装 / 修复流程：
+
+1. 从 `https://go.microsoft.com/fwlink/p/?LinkId=2124703` 下载 Evergreen Bootstrapper；
+2. 使用 WinVerifyTrust 校验 Authenticode 签名，并要求签名主体为 Microsoft Corporation；
+3. 普通用户默认安装到当前用户；勾选「为所有用户安装」时通过 UAC 提权；
+4. 安装程序固定使用 `/silent /install`，15 分钟超时保护；支持选择本地安装包离线安装。
+
 ### 高分屏适配
 
 - `app.manifest` 声明 `PerMonitorV2, PerMonitor` DPI 感知；
@@ -180,6 +203,8 @@ Windows 防火墙状态优先通过 `HNetCfg.FwPolicy2` COM 读取；普通用�
 - 主地址按“物理网卡 > 系统选路接口 > 有网关 > 地址类型”综合选择，多网卡环境可能仍需结合网卡名称人工确认。
 - IPv6 入站自检需要另一台设备（建议手机移动网络）访问生成的地址；无法在不借助外部设备的情况下自动证明入站可达。
 - Windows 防火墙完整状态通常需要管理员权限；无权限时会显示注册表推断值，并明确标注「推断」。
+- WebView2 在线安装需要访问 Microsoft 官方服务器；无法联网时可以选择本地 Evergreen Standalone Installer。
+- WebView2 检测仅覆盖 Evergreen 运行库，不检测应用私有的 Fixed Version 目录。
 - 一台 Windows 出现多个 IPv6 地址属正常现象（临时地址、链路本地地址等）。
 - 部分公共 STUN 服务器可能临时不可用，程序会自动换下一台。
 - 仅支持 Windows（WPF / .NET Framework 4.8）。
@@ -187,8 +212,8 @@ Windows 防火墙状态优先通过 `HNetCfg.FwPolicy2` COM 读取；普通用�
 ## 作者与版本
 
 - 作者：BlackCat
-- 版本：1.3
-- v1.3：移除串流端口检测与外网端口测试；保留 IPv6 入站说明弹窗（3 秒倒计时 / 了解）与高分屏 Per-Monitor V2 适配。
+- 版本：1.4
+- v1.4：集成 WebView2 运行库检测、诊断复制、官方下载 / 本地包安装与修复功能。
 
 ## 许可证
 

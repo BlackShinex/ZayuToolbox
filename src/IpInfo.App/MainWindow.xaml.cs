@@ -39,6 +39,9 @@ namespace IpInfo.App
         private Ipv6InboundTestServer _inboundServer;
         private string _inboundPublicIpv6;
         private InboundTestDialog _inboundDialog;
+        private WebView2DetectionResult _webView2Result;
+        private bool _webView2Busy;
+        private WebView2InstallDialog _webView2InstallDialog;
 
         public MainWindow()
         {
@@ -151,6 +154,8 @@ namespace IpInfo.App
         private async Task RefreshAsync()
         {
             if (_busy) return;
+
+            await RefreshWebView2Async();
 
             if (_inboundServer != null)
             {
@@ -692,6 +697,210 @@ namespace IpInfo.App
         private void MainWindow_Closed(object sender, EventArgs e)
         {
             StopInboundTest(false);
+        }
+
+        private async Task RefreshWebView2Async()
+        {
+            if (_webView2Busy) return;
+
+            _webView2Busy = true;
+            WebView2RefreshButton.IsEnabled = false;
+            WebView2StatusChip.Background = UiPalette.GrayBg;
+            WebView2StatusText.Foreground = UiPalette.GrayFg;
+            WebView2StatusText.Text = "检测中…";
+
+            try
+            {
+                WebView2DetectionResult result = await Task.Run(delegate
+                {
+                    return WebView2Detector.Detect();
+                });
+
+                if (result == null) throw new InvalidOperationException("WebView2 检测返回了空结果。");
+                _webView2Result = result;
+                RenderWebView2(result);
+            }
+            catch (Exception ex)
+            {
+                WebView2HeadlineText.Text = "检测失败";
+                WebView2SummaryText.Text = ex.Message;
+                WebView2StatusText.Text = "检测失败";
+                WebView2StatusChip.Background = UiPalette.WarnBg;
+                WebView2StatusText.Foreground = UiPalette.WarnFg;
+                WebView2WarningBanner.Visibility = Visibility.Visible;
+                WebView2WarningText.Text = "无法读取 WebView2 状态：" + ex.Message;
+                WebView2InstallButton.IsEnabled = false;
+                WebView2CopyButton.IsEnabled = false;
+                WebView2FolderButton.IsEnabled = false;
+            }
+            finally
+            {
+                _webView2Busy = false;
+                WebView2RefreshButton.IsEnabled = true;
+            }
+        }
+
+        private void RenderWebView2(WebView2DetectionResult result)
+        {
+            WebView2Installation primary = result.Primary;
+
+            Brush statusBg;
+            Brush statusFg;
+            switch (result.Status)
+            {
+                case WebView2Status.Installed:
+                    statusBg = UiPalette.SuccessBg;
+                    statusFg = UiPalette.SuccessFg;
+                    break;
+                case WebView2Status.NotInstalled:
+                    statusBg = UiPalette.WarnBg;
+                    statusFg = UiPalette.WarnFg;
+                    break;
+                case WebView2Status.Broken:
+                    statusBg = UiPalette.Brush("#FEF2F2");
+                    statusFg = UiPalette.Brush("#B91C1C");
+                    break;
+                default:
+                    statusBg = UiPalette.GrayBg;
+                    statusFg = UiPalette.GrayFg;
+                    break;
+            }
+            WebView2StatusChip.Background = statusBg;
+            WebView2StatusText.Foreground = statusFg;
+            WebView2StatusText.Text = result.StatusText;
+
+            string version = primary == null ? string.Empty : primary.Version;
+            WebView2HeadlineText.Text = result.StatusText
+                + (string.IsNullOrEmpty(version) ? string.Empty : " · " + version);
+
+            if (result.Status == WebView2Status.Installed && primary != null)
+            {
+                WebView2SummaryText.Text = primary.Scope + " · " + result.OsArch + " · 文件完整";
+                WebView2InstallButton.Content = "修复 / 重新安装";
+                WebView2HintText.Text = "如应用仍提示缺少 WebView2，可尝试修复安装；安装包从 Microsoft 官方服务器下载并校验数字签名。";
+            }
+            else if (result.Status == WebView2Status.Broken && primary != null)
+            {
+                WebView2SummaryText.Text = "检测到安装记录，但 msedgewebview2.exe 缺失，建议修复安装。";
+                WebView2InstallButton.Content = "修复安装";
+                WebView2HintText.Text = "注册表存在安装记录但文件缺失，通常由手动删除目录或安装中断引起。";
+            }
+            else if (result.Status == WebView2Status.NotInstalled)
+            {
+                WebView2SummaryText.Text = "未检测到 Evergreen 运行库，可以从 Microsoft 官方服务器安装。";
+                WebView2InstallButton.Content = "立即安装 WebView2";
+                WebView2HintText.Text = "安装包从 Microsoft 官方服务器下载，并校验 Microsoft 数字签名后静默安装。";
+            }
+            else
+            {
+                WebView2SummaryText.Text = "当前状态未知，请点击「重新检测」。";
+                WebView2InstallButton.Content = "安装 / 修复 WebView2";
+                WebView2HintText.Text = "WebView2 检测用于排查应用启动时的运行库缺失问题。";
+            }
+
+            WebView2VersionText.Text = "版本：" + NullSafe(primary == null ? null : primary.Version);
+            WebView2ScopeText.Text = "范围：" + NullSafe(primary == null ? null : primary.Scope);
+            WebView2ArchText.Text = "架构：" + NullSafe(result.OsArch);
+            WebView2SourceText.Text = "来源：" + NullSafe(primary == null ? null : primary.Source);
+            WebView2PathText.Text = "路径：" + NullSafe(primary == null ? null : primary.Location);
+            WebView2EdgeText.Text = "Edge 浏览器：" + (string.IsNullOrEmpty(result.EdgeVersion) ? "未检测到" : result.EdgeVersion);
+            WebView2PermissionText.Text = "权限：" + (result.IsAdmin ? "管理员" : "普通用户");
+
+            WebView2InstallButton.IsEnabled = true;
+            WebView2CopyButton.IsEnabled = true;
+            WebView2FolderButton.IsEnabled = primary != null
+                && !string.IsNullOrEmpty(primary.Location)
+                && Directory.Exists(primary.Location);
+
+            List<string> warnings = new List<string>();
+            if (result.Warnings != null)
+            {
+                for (int i = 0; i < result.Warnings.Count; i++)
+                {
+                    if (!string.IsNullOrEmpty(result.Warnings[i])) warnings.Add(result.Warnings[i]);
+                }
+            }
+            if (warnings.Count > 0)
+            {
+                WebView2WarningBanner.Visibility = Visibility.Visible;
+                WebView2WarningText.Text = string.Join("  ·  ", warnings.ToArray());
+            }
+            else
+            {
+                WebView2WarningBanner.Visibility = Visibility.Collapsed;
+                WebView2WarningText.Text = string.Empty;
+            }
+        }
+
+        private async void WebView2RefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            await RefreshWebView2Async();
+        }
+
+        private void WebView2InstallButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_webView2Result == null) return;
+            if (_webView2InstallDialog != null)
+            {
+                _webView2InstallDialog.Activate();
+                return;
+            }
+
+            WebView2InstallDialog dialog = new WebView2InstallDialog(_webView2Result);
+            dialog.Owner = this;
+            _webView2InstallDialog = dialog;
+            WebView2InstallButton.IsEnabled = false;
+            dialog.Closed += async delegate
+            {
+                _webView2InstallDialog = null;
+                WebView2InstallButton.IsEnabled = true;
+                await RefreshWebView2Async();
+            };
+            dialog.Show();
+        }
+
+        private void WebView2CopyButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_webView2Result == null) return;
+            string text = _webView2Result.ToDiagnostics();
+            if (CopyToClipboard(text))
+            {
+                ShowCopyFeedback((Button)sender);
+            }
+            else
+            {
+                ShowError("复制失败：剪贴板可能被其他程序占用。");
+            }
+        }
+
+        private void WebView2FolderButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_webView2Result == null || _webView2Result.Primary == null) return;
+            try
+            {
+                WebView2InstallerService.OpenFolder(_webView2Result.Primary.Location);
+            }
+            catch (Exception ex)
+            {
+                ShowError("打开安装目录失败：" + ex.Message);
+            }
+        }
+
+        private void WebView2OfficialButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                WebView2InstallerService.OpenUrl(WebView2InstallerService.OfficialDownloadPage);
+            }
+            catch (Exception ex)
+            {
+                ShowError("打开官方下载页失败：" + ex.Message);
+            }
+        }
+
+        private static string NullSafe(string value)
+        {
+            return string.IsNullOrEmpty(value) ? "—" : value;
         }
 
         private void RevealToggle_Checked(object sender, RoutedEventArgs e)

@@ -69,6 +69,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="WebView2InstallDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -79,6 +83,10 @@
     </Compile>
     <Compile Include="InboundTestDialog.xaml.cs">
       <DependentUpon>InboundTestDialog.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="WebView2InstallDialog.xaml.cs">
+      <DependentUpon>WebView2InstallDialog.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="UiModels.cs" />

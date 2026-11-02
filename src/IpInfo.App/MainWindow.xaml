@@ -40,7 +40,7 @@
                     </Border>
                     <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="本机网络信息" FontSize="24" FontWeight="SemiBold" Foreground="White"/>
-                        <TextBlock Text="IP 地址 · 公网出口 · NAT 类型" FontSize="12" Foreground="#DCD9FF" Margin="0,3,0,0"/>
+                        <TextBlock Text="IP 地址 · 公网出口 · NAT 类型 · WebView2 检测" FontSize="12" Foreground="#DCD9FF" Margin="0,3,0,0"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -433,6 +433,99 @@
                         </Grid>
                     </StackPanel>
                 </Border>
+
+                <!-- WebView2 运行库 -->
+                <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="22">
+                    <StackPanel>
+                        <Grid>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="34" Height="34" CornerRadius="9" Background="#ECFEFF">
+                                    <TextBlock Text="W" FontSize="15" FontWeight="Bold" Foreground="#0891B2"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="WebView2 运行库" Style="{StaticResource SectionTitle}" FontSize="15.5"/>
+                                    <TextBlock Text="检测 Microsoft Edge WebView2 Evergreen 运行库，支持安装与修复"
+                                               Style="{StaticResource SectionSubtitle}"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Border x:Name="WebView2StatusChip" Background="#F1F5F9" CornerRadius="6"
+                                        Padding="8,3" VerticalAlignment="Center">
+                                    <TextBlock x:Name="WebView2StatusText" Text="检测中…" FontSize="11"
+                                               Foreground="#64748B"/>
+                                </Border>
+                                <Button x:Name="WebView2RefreshButton" Content="重新检测"
+                                        Style="{StaticResource CopyButton}" Margin="8,0,0,0"
+                                        Click="WebView2RefreshButton_Click"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.15*"/>
+                                <ColumnDefinition Width="14"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="WebView2HeadlineText" Text="正在检测 WebView2 运行库…"
+                                           FontSize="18" FontWeight="SemiBold" Foreground="#334155"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock x:Name="WebView2SummaryText" Text="读取注册表与安装目录…"
+                                           FontSize="11.5" Foreground="#64748B" TextWrapping="Wrap"
+                                           Margin="0,4,0,0"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <Button x:Name="WebView2InstallButton" Content="安装 WebView2"
+                                            Style="{StaticResource PrimaryButton}"
+                                            Click="WebView2InstallButton_Click" IsEnabled="False"/>
+                                    <Button x:Name="WebView2CopyButton" Content="复制诊断"
+                                            Style="{StaticResource CopyButton}" Margin="8,0,0,0"
+                                            Click="WebView2CopyButton_Click" IsEnabled="False"/>
+                                    <Button x:Name="WebView2FolderButton" Content="安装目录"
+                                            Style="{StaticResource CopyButton}" Margin="6,0,0,0"
+                                            Click="WebView2FolderButton_Click" IsEnabled="False"/>
+                                    <Button x:Name="WebView2OfficialButton" Content="官方下载页"
+                                            Style="{StaticResource CopyButton}" Margin="6,0,0,0"
+                                            Click="WebView2OfficialButton_Click"/>
+                                </StackPanel>
+                                <TextBlock x:Name="WebView2HintText"
+                                           Text="安装包从 Microsoft 官方服务器下载，并校验 Microsoft 数字签名后静默安装。"
+                                           FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap"
+                                           Margin="0,8,0,0"/>
+                            </StackPanel>
+
+                            <Border Grid.Column="2" Background="#F8FAFC" BorderBrush="#EEF2F7"
+                                    BorderThickness="1" CornerRadius="10" Padding="14,12">
+                                <StackPanel>
+                                    <TextBlock Text="运行库详情" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="#94A3B8"/>
+                                    <TextBlock x:Name="WebView2VersionText" Text="版本：--" FontSize="11"
+                                               Foreground="#475569" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                                    <TextBlock x:Name="WebView2ScopeText" Text="范围：--" FontSize="11"
+                                               Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                    <TextBlock x:Name="WebView2ArchText" Text="架构：--" FontSize="11"
+                                               Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                    <TextBlock x:Name="WebView2SourceText" Text="来源：--" FontSize="11"
+                                               Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                    <TextBlock x:Name="WebView2PathText" Text="路径：--" FontSize="10.5"
+                                               Foreground="#64748B" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                    <TextBlock x:Name="WebView2EdgeText" Text="Edge 浏览器：--" FontSize="10.5"
+                                               Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                    <TextBlock x:Name="WebView2PermissionText" Text="权限：--" FontSize="10.5"
+                                               Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Border x:Name="WebView2WarningBanner" Visibility="Collapsed" Background="#FFF7ED"
+                                BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" Padding="12,9"
+                                Margin="0,12,0,0">
+                            <TextBlock x:Name="WebView2WarningText" FontSize="11" Foreground="#B45309"
+                                       TextWrapping="Wrap"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 
@@ -441,7 +534,7 @@
             <Grid>
                 <TextBlock x:Name="TimestampText" Text="检测时间 --" FontSize="11.5" Foreground="#94A3B8"
                            VerticalAlignment="Center"/>
-                <TextBlock x:Name="VersionText" Text="IpInfo v1.3 · 作者 BlackCat · IP 数据仅在本机处理"
+                <TextBlock x:Name="VersionText" Text="IpInfo v1.4 · 作者 BlackCat · IP 数据仅在本机处理"
                            HorizontalAlignment="Right" FontSize="11.5" Foreground="#94A3B8"
                            VerticalAlignment="Center"/>
             </Grid>
