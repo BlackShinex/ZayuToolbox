@@ -135,10 +135,23 @@ try {
             [System.Windows.Automation.TreeScope]::Children, $condition)
         if ($window -ne $null) {
             $texts = Get-WindowTexts $window
-            if (($texts -join "`n") -match "公网出口 IP") { break }
+            if (($texts -join "`n") -match "Sunshine 版本自检") { break }
         }
     }
     if ($window -eq $null) { throw "没有找到应用窗口（离线启动失败）" }
+
+    $startTexts = (Get-WindowTexts $window) -join "`n"
+    Check "默认打开 Sunshine 版本页" ($startTexts -match "Sunshine 版本自检")
+
+    # 网络检测改为手动触发：切到该页应显示未检测状态
+    Check "切换到网络检测页" (Select-NavItem $window "网络检测")
+    Start-Sleep -Milliseconds 600
+    $idleTexts = (Get-WindowTexts $window) -join "`n"
+    Check "网络检测不再自动执行" (($idleTexts -match "尚未检测") -and ($idleTexts -notmatch "NAT 后"))
+
+    $refreshButton = Get-ElementByAutomationId $window "RefreshButton"
+    Check "网络检测页提供重新检测按钮" ($refreshButton -ne $null -and $refreshButton.Current.IsEnabled)
+    if ($refreshButton -ne $null -and $refreshButton.Current.IsEnabled) { Invoke-Element $refreshButton }
 
     # 等待检测完成：出现 NAT 结果（避免读到“检测中…”）
     $ready = $false
@@ -177,12 +190,16 @@ try {
     Check "切换到 NAT 跃点跟踪页" (Select-NavItem $window "NAT 跃点跟踪")
     $natTraceStart = Get-ElementByAutomationId $window "NatTraceStartButton"
     Check "显示多层 NAT 跃点跟踪卡片" ($natTraceStart -ne $null -and $natTraceStart.Current.IsEnabled)
+    $hopReveal = Get-ElementByAutomationId $window "HopRevealToggle"
+    $hopRefresh = Get-ElementByAutomationId $window "HopRefreshButton"
+    Check "跃点页提供显示 IP 与重新检测" ($hopReveal -ne $null -and $hopRefresh -ne $null)
 
     # Sunshine 版本页
     Check "切换到 Sunshine 版本页" (Select-NavItem $window "Sunshine 版本")
     $sunshineTexts = (Get-WindowTexts $window) -join "`n"
     $sunshineCopy = Get-ElementByAutomationId $window "SunshineCopyButton"
     Check "显示 Sunshine 版本自检卡片" (($sunshineTexts -match "Sunshine 版本自检") -and ($sunshineTexts -match "安装来源："))
+    Check "Sunshine 页不提供显示 IP" ($sunshineTexts -notmatch "显示 IP")
     Check "存在 Sunshine 诊断复制按钮" ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled)
     if ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled) {
         Invoke-Element $sunshineCopy
@@ -194,6 +211,7 @@ try {
     $webView2Texts = (Get-WindowTexts $window) -join "`n"
     Check "显示 WebView2 运行库卡片" (($webView2Texts -match "WebView2 运行库") -and ($webView2Texts -match "版本：") -and ($webView2Texts -match "路径："))
     Check "显示 WebView2 检测状态" (($webView2Texts -match "已安装") -or ($webView2Texts -match "未安装") -or ($webView2Texts -match "安装异常"))
+    Check "运行库页不提供显示 IP" ($webView2Texts -notmatch "显示 IP")
 
     # 返回网络检测页
     Check "返回网络检测页" (Select-NavItem $window "网络检测")

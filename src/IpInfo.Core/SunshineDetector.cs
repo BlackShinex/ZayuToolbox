@@ -513,7 +513,7 @@ namespace IpInfo.Core
             {
                 ReadVersionInfo(exePath, result, signature, result.Warnings);
             }
-            else
+            else if (entry != null)
             {
                 result.Warnings.Add("未找到 Sunshine.exe，只能根据安装记录判断。");
             }

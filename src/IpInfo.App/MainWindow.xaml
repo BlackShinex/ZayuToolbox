@@ -45,13 +45,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <ToggleButton x:Name="RevealToggle" Content="显示 IP" Style="{StaticResource HeaderToggle}"
-                                  Checked="RevealToggle_Checked" Unchecked="RevealToggle_Unchecked"
-                                  ToolTip="默认隐藏 IP 中间部分，点击显示完整地址"/>
-                    <Button x:Name="RefreshButton" Content="重新检测" Style="{StaticResource HeaderButton}"
-                            Click="RefreshButton_Click" Margin="10,0,0,0"/>
-                </StackPanel>
+
             </Grid>
         </Border>
 
@@ -97,18 +91,33 @@
                                 </Setter>
                             </Style>
                         </ListBox.ItemContainerStyle>
-                        <ListBoxItem Content="网络检测" IsSelected="True"/>
-                        <ListBoxItem Content="NAT 跃点跟踪"/>
-                        <ListBoxItem Content="Sunshine 版本"/>
+                        <ListBoxItem Content="Sunshine 版本" IsSelected="True"/>
                         <ListBoxItem Content="WebView2 运行库"/>
+                        <ListBoxItem Content="网络检测"/>
+                        <ListBoxItem Content="NAT 跃点跟踪"/>
                     </ListBox>
                 </DockPanel>
             </Border>
 
             <Grid Grid.Column="1">
-                <ScrollViewer x:Name="NetworkScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                <ScrollViewer x:Name="NetworkScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                               Padding="24,20,24,20">
             <StackPanel>
+                <Grid Margin="0,0,0,4">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="网络检测" FontSize="17" FontWeight="SemiBold" Foreground="#0F172A"/>
+                        <TextBlock Text="本机地址、公网出口、NAT 类型与 IPv6 入站可达性"
+                                   FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <ToggleButton x:Name="RevealToggle" Content="显示 IP" Style="{StaticResource ToolToggle}"
+                                      Checked="RevealToggle_Checked" Unchecked="RevealToggle_Unchecked"
+                                      ToolTip="默认隐藏 IP 中间部分，点击显示完整地址"/>
+                        <Button x:Name="RefreshButton" Content="重新检测" Style="{StaticResource ToolButton}"
+                                Click="RefreshButton_Click" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -492,6 +501,21 @@
                 <ScrollViewer x:Name="NatHopScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled" Padding="24,20,24,20">
                     <StackPanel>
+                <Grid Margin="0,0,0,4">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="NAT 跃点跟踪" FontSize="17" FontWeight="SemiBold" Foreground="#0F172A"/>
+                        <TextBlock Text="逐跳探测出口路径，判断是否存在多层 NAT"
+                                   FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <ToggleButton x:Name="HopRevealToggle" Content="显示 IP" Style="{StaticResource ToolToggle}"
+                                      Checked="HopRevealToggle_Checked" Unchecked="HopRevealToggle_Unchecked"
+                                      ToolTip="默认隐藏跃点地址中间部分，点击显示完整地址"/>
+                        <Button x:Name="HopRefreshButton" Content="重新检测" Style="{StaticResource ToolButton}"
+                                Click="HopRefreshButton_Click" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+
                 <!-- 多层 NAT 跃点跟踪 -->
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="22">
                     <StackPanel>
@@ -688,7 +712,7 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <ScrollViewer x:Name="SunshineScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                <ScrollViewer x:Name="SunshineScrollViewer" VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled" Padding="24,20,24,20">
                     <StackPanel>
                         <!-- Sunshine 版本自检 -->

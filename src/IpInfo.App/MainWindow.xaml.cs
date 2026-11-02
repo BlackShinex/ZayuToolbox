@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -33,6 +34,7 @@ namespace IpInfo.App
 
         private NetworkReport _report;
         private bool _revealed;
+        private bool _syncingReveal;
         private bool _busy;
         private readonly TaskCompletionSource<bool> _initialRefresh = new TaskCompletionSource<bool>();
         private CancellationTokenSource _cts;
@@ -53,7 +55,8 @@ namespace IpInfo.App
         {
             InitializeComponent();
             RevealToggle.Content = "显示 IP";
-            RevealToggle.Foreground = Brushes.White;
+            RevealToggle.Foreground = UiPalette.IndigoFg;
+            UpdatePageVisibility(NavList.SelectedIndex);
 
             Version appVersion = typeof(MainWindow).Assembly.GetName().Version;
             VersionText.Text = "杂鱼串流工具箱 v" + appVersion.Major + "." + appVersion.Minor
@@ -126,10 +129,10 @@ namespace IpInfo.App
                 return;
             }
 
-            NetworkScrollViewer.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
-            NatHopScrollViewer.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
-            SunshineScrollViewer.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
-            WebView2ScrollViewer.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
+            SunshineScrollViewer.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
+            WebView2ScrollViewer.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
+            NetworkScrollViewer.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
+            NatHopScrollViewer.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         /// <summary>在 125% / 150% 等高分屏缩放下，保证窗口不会超出当前屏幕可用区域。</summary>
@@ -212,7 +215,56 @@ namespace IpInfo.App
         {
             Loaded -= MainWindow_Loaded;
             FitToWorkArea();
-            await RefreshAsync();
+            ShowNetworkIdleState();
+            _initialRefresh.TrySetResult(true);
+            await RefreshWebView2Async();
+        }
+
+        /// <summary>网络检测改为手动触发，启动时只展示未检测状态。</summary>
+        private void ShowNetworkIdleState()
+        {
+            SummaryBanner.Background = UiPalette.GrayBg;
+            SummaryDot.Background = UiPalette.MutedFg;
+            SummaryText.Text = "尚未检测，点击「重新检测」开始";
+            SummaryText.Foreground = UiPalette.GrayFg;
+
+            Ipv4Summary.Text = "尚未检测";
+            Ipv6Summary.Text = "尚未检测";
+            Ipv4CountText.Text = "0 个";
+            Ipv6CountText.Text = "0 个";
+            Ipv4List.ItemsSource = null;
+            Ipv6List.ItemsSource = null;
+            Ipv4Empty.Visibility = Visibility.Collapsed;
+            Ipv6Empty.Visibility = Visibility.Collapsed;
+
+            ExternalIpv4Text.Text = "--";
+            ExternalIpv6Text.Text = "--";
+            Ipv4StatusText.Text = "未知";
+            Ipv6StatusText.Text = "未知";
+            Ipv4StatusChip.Background = UiPalette.GrayBg;
+            Ipv6StatusChip.Background = UiPalette.GrayBg;
+            Ipv4StatusText.Foreground = UiPalette.GrayFg;
+            Ipv6StatusText.Foreground = UiPalette.GrayFg;
+            ExternalIpv4CopyButton.IsEnabled = false;
+            ExternalIpv6CopyButton.IsEnabled = false;
+
+            NatTypeText.Text = "尚未检测";
+            NatTypeText.Foreground = UiPalette.MutedFg;
+            NatDescriptionText.Text = "点击「重新检测」后开始分析当前网络的 NAT 行为。";
+            NatDetailMappingText.Text = "映射行为：--";
+            NatDetailPortText.Text = "端口保持：--";
+            NatDetailServerText.Text = "STUN 服务器：--";
+            NatDetailExpander.Visibility = Visibility.Collapsed;
+            StepsList.ItemsSource = null;
+            HideError();
+
+            FirewallText.Text = "尚未检测";
+            InboundStatusText.Text = "尚未检测";
+            InboundStatusText.Foreground = UiPalette.MutedFg;
+            InboundStartButton.IsEnabled = false;
+            InboundUrlPanel.Visibility = Visibility.Collapsed;
+            InboundCopyButton.Visibility = Visibility.Collapsed;
+            TimestampText.Text = "检测时间 --";
         }
 
         private async void RefreshButton_Click(object sender, RoutedEventArgs e)
@@ -1125,20 +1177,55 @@ namespace IpInfo.App
 
         private void RevealToggle_Checked(object sender, RoutedEventArgs e)
         {
-            _revealed = true;
-            RevealToggle.Content = "隐藏 IP";
-            RevealToggle.Foreground = UiPalette.IndigoFg;
-            if (_report != null) RenderReport(_report);
-            if (_natTraceResult != null) RenderNatTrace(_natTraceResult);
+            if (_syncingReveal) return;
+            SetRevealed(true);
         }
 
         private void RevealToggle_Unchecked(object sender, RoutedEventArgs e)
         {
-            _revealed = false;
-            RevealToggle.Content = "显示 IP";
-            RevealToggle.Foreground = Brushes.White;
+            if (_syncingReveal) return;
+            SetRevealed(false);
+        }
+
+        private void HopRevealToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_syncingReveal) return;
+            SetRevealed(true);
+        }
+
+        private void HopRevealToggle_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (_syncingReveal) return;
+            SetRevealed(false);
+        }
+
+        private void SetRevealed(bool revealed)
+        {
+            _revealed = revealed;
+            SyncRevealToggle(RevealToggle, revealed);
+            SyncRevealToggle(HopRevealToggle, revealed);
             if (_report != null) RenderReport(_report);
             if (_natTraceResult != null) RenderNatTrace(_natTraceResult);
+        }
+
+        private void SyncRevealToggle(ToggleButton toggle, bool revealed)
+        {
+            if (toggle == null) return;
+
+            toggle.Content = revealed ? "隐藏 IP" : "显示 IP";
+            toggle.Foreground = UiPalette.IndigoFg;
+            if (toggle.IsChecked != revealed)
+            {
+                _syncingReveal = true;
+                toggle.IsChecked = revealed;
+                _syncingReveal = false;
+            }
+        }
+
+        private void HopRefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_natTraceRunning) return;
+            NatTraceStartButton_Click(NatTraceStartButton, new RoutedEventArgs());
         }
 
         private void CopyIpButton_Click(object sender, RoutedEventArgs e)
@@ -1262,6 +1349,13 @@ namespace IpInfo.App
             if (reveal && !_revealed) RevealToggle.IsChecked = true;
 
             await _initialRefresh.Task;
+
+            // 截图模式下网络检测不再自动执行，这里补跑一次，保证截图有数据。
+            if (_report == null)
+            {
+                await RefreshAsync();
+            }
+
             await Task.Delay(500);
 
             if (full)
