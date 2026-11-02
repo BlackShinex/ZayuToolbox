@@ -56,7 +56,6 @@ if ($Package) {
     if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $dist | Out-Null
     Copy-Item (Join-Path $appDir "杂鱼串流工具箱.exe") $dist
-    Copy-Item (Join-Path $appDir "IpInfo.Core.dll") $dist
     Copy-Item (Join-Path $appDir "杂鱼串流工具箱.exe.config") $dist -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $root "README.md") $dist -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $root "LICENSE") $dist -ErrorAction SilentlyContinue
