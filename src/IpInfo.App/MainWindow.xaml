@@ -149,8 +149,21 @@
                             <ItemsControl x:Name="Ipv4List" Margin="0,12,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#F8FAFC" BorderBrush="#EEF2F7" BorderThickness="1"
-                                                CornerRadius="10" Padding="12,9" Margin="0,0,0,8">
+                                        <Border Padding="12,9" Margin="0,0,0,8">
+                                            <Border.Style>
+                                                <Style TargetType="{x:Type Border}">
+                                                    <Setter Property="Background" Value="#F8FAFC"/>
+                                                    <Setter Property="BorderBrush" Value="#EEF2F7"/>
+                                                    <Setter Property="BorderThickness" Value="1"/>
+                                                    <Setter Property="CornerRadius" Value="10"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding PrimaryVisibility}" Value="Visible">
+                                                            <Setter Property="BorderBrush" Value="#22C55E"/>
+                                                            <Setter Property="BorderThickness" Value="2"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto"/>
@@ -230,8 +243,21 @@
                             <ItemsControl x:Name="Ipv6List" Margin="0,12,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#F8FAFC" BorderBrush="#EEF2F7" BorderThickness="1"
-                                                CornerRadius="10" Padding="12,9" Margin="0,0,0,8">
+                                        <Border Padding="12,9" Margin="0,0,0,8">
+                                            <Border.Style>
+                                                <Style TargetType="{x:Type Border}">
+                                                    <Setter Property="Background" Value="#F8FAFC"/>
+                                                    <Setter Property="BorderBrush" Value="#EEF2F7"/>
+                                                    <Setter Property="BorderThickness" Value="1"/>
+                                                    <Setter Property="CornerRadius" Value="10"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding PrimaryVisibility}" Value="Visible">
+                                                            <Setter Property="BorderBrush" Value="#22C55E"/>
+                                                            <Setter Property="BorderThickness" Value="2"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto"/>
