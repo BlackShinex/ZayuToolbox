@@ -392,52 +392,82 @@ namespace IpInfo.Core
             public uint dwUIContext;
         }
 
-        public async Task<int> RunInstallerAsync(string installerPath, bool systemWide, Action<string> status)
+        public async Task<int> RunInstallerAsync(string installerPath, bool systemWide, Action<string> status,
+            CancellationToken cancellationToken)
         {
             if (!File.Exists(installerPath))
                 throw new FileNotFoundException("安装程序不存在。", installerPath);
 
-            // Re-check immediately before execution to narrow the window between UX-level
-            // validation and launching the file (including the elevated launch path).
-            WebView2SignatureVerification verification = VerifySignature(installerPath);
-            if (!verification.Valid)
-                throw new InvalidOperationException("数字签名复校验失败：" + verification.Error);
-
-            string identityReason;
-            if (!LooksLikeWebView2Installer(installerPath, out identityReason))
-                throw new InvalidOperationException("该文件不是 WebView2 安装程序：" + identityReason);
-
-            bool elevated = systemWide && !IsAdministrator();
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = installerPath;
-            startInfo.Arguments = "/silent /install";
-            startInfo.WorkingDirectory = Path.GetDirectoryName(installerPath);
-            startInfo.UseShellExecute = elevated;
-            startInfo.CreateNoWindow = !elevated;
-
-            if (elevated)
-            {
-                startInfo.Verb = "runas";
-                if (status != null) status("正在请求管理员权限（UAC）…");
-            }
-            else
-            {
-                if (status != null) status(systemWide ? "正在以系统级静默安装…" : "正在以当前用户静默安装…");
-            }
-
-            if (status != null && !elevated) status("安装程序已启动，请稍候…");
+            cancellationToken.ThrowIfCancellationRequested();
 
             using (Process process = new Process())
             {
-                process.StartInfo = startInfo;
-                process.Start();
+                // Keep the verified file open with read-only sharing until the process has
+                // started. This prevents a local process from replacing the installer between
+                // signature verification and the elevated launch (TOCTOU).
+                using (FileStream guard = new FileStream(installerPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    // Re-check immediately before execution, including the elevated launch path.
+                    WebView2SignatureVerification verification = VerifySignature(installerPath);
+                    if (!verification.Valid)
+                        throw new InvalidOperationException("数字签名复校验失败：" + verification.Error);
+
+                    string identityReason;
+                    if (!LooksLikeWebView2Installer(installerPath, out identityReason))
+                        throw new InvalidOperationException("该文件不是 WebView2 安装程序：" + identityReason);
+
+                    bool elevated = systemWide && !IsAdministrator();
+                    ProcessStartInfo startInfo = new ProcessStartInfo();
+                    startInfo.FileName = installerPath;
+                    startInfo.Arguments = "/silent /install";
+                    // For elevated launches, avoid using the user-writable download directory
+                    // as the working directory so the DLL search path does not include it.
+                    startInfo.WorkingDirectory = elevated
+                        ? Environment.GetFolderPath(Environment.SpecialFolder.System)
+                        : Path.GetDirectoryName(installerPath);
+                    startInfo.UseShellExecute = elevated;
+                    startInfo.CreateNoWindow = !elevated;
+
+                    if (elevated)
+                    {
+                        startInfo.Verb = "runas";
+                        if (status != null) status("正在请求管理员权限（UAC）…");
+                    }
+                    else
+                    {
+                        if (status != null) status(systemWide ? "正在以系统级静默安装…" : "正在以当前用户静默安装…");
+                    }
+
+                    if (status != null && !elevated) status("安装程序已启动，请稍候…");
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                    process.StartInfo = startInfo;
+                    process.Start();
+                }
+
                 int exitCode = await Task.Run(delegate
                 {
-                    if (process.WaitForExit(15 * 60 * 1000)) return process.ExitCode;
-                    try { process.Kill(); }
-                    catch { }
-                    return -2;
+                    DateTime deadline = DateTime.UtcNow.AddMinutes(15);
+                    while (!process.WaitForExit(250))
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            try { process.Kill(); }
+                            catch { }
+                            return -3;
+                        }
+                        if (DateTime.UtcNow >= deadline)
+                        {
+                            try { process.Kill(); }
+                            catch { }
+                            return -2;
+                        }
+                    }
+                    return process.ExitCode;
                 }).ConfigureAwait(false);
+
+                if (exitCode == -3)
+                    return -3;
 
                 if (exitCode == -2)
                     throw new TimeoutException("安装程序在 15 分钟内未结束，已请求终止。请检查安全软件是否拦截了静默安装。");

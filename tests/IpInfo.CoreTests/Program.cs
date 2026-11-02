@@ -327,6 +327,30 @@ namespace IpInfo.CoreTests
             {
                 Console.WriteLine("    [跳过] 未找到 msedge.exe，跳过数字签名正向校验");
             }
+
+            string notepad = Path.Combine(Environment.SystemDirectory, "notepad.exe");
+            if (File.Exists(notepad))
+            {
+                bool canceled = false;
+                using (CancellationTokenSource cts = new CancellationTokenSource())
+                {
+                    cts.Cancel();
+                    try
+                    {
+                        new WebView2InstallerService().RunInstallerAsync(
+                            notepad, false, null, cts.Token).GetAwaiter().GetResult();
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        canceled = true;
+                    }
+                }
+                CheckTrue("WebView2 安装前取消会生效", canceled);
+            }
+            else
+            {
+                Console.WriteLine("    [跳过] 未找到 notepad.exe，跳过安装取消测试");
+            }
         }
 
         private static string DescribeFirewall(FirewallInfo info)
