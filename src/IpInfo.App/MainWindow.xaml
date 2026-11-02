@@ -41,7 +41,7 @@
                     </Border>
                     <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="杂鱼串流工具箱" FontSize="24" FontWeight="SemiBold" Foreground="White"/>
-                        <TextBlock Text="网络诊断 · IPv6 入站 · WebView2 运行库" FontSize="12" Foreground="#DCD9FF" Margin="0,3,0,0"/>
+                        <TextBlock Text="网络诊断 · Sunshine 版本 · WebView2 运行库" FontSize="12" Foreground="#DCD9FF" Margin="0,3,0,0"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -55,9 +55,59 @@
             </Grid>
         </Border>
 
-        <!-- 内容 -->
-        <ScrollViewer x:Name="MainScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                      Padding="24,20,24,20">
+        <!-- 内容：左侧菜单 + 右侧页面 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="190"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E8ECF4" BorderThickness="0,0,1,0">
+                <DockPanel Margin="12,18,12,12">
+                    <TextBlock DockPanel.Dock="Top" Text="功能" FontSize="11" FontWeight="SemiBold"
+                               Foreground="#94A3B8" Margin="10,0,0,8"/>
+                    <ListBox x:Name="NavList" BorderThickness="0" Background="Transparent"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             SelectionChanged="NavList_SelectionChanged">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="{x:Type ListBoxItem}">
+                                <Setter Property="Padding" Value="12,9"/>
+                                <Setter Property="Margin" Value="0,2"/>
+                                <Setter Property="FontSize" Value="12.5"/>
+                                <Setter Property="Foreground" Value="#475569"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                                            <Border x:Name="NavItemBorder" Background="Transparent"
+                                                    CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="NavItemBorder" Property="Background" Value="#F8FAFC"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="NavItemBorder" Property="Background" Value="#EEF2FF"/>
+                                                    <Setter Property="Foreground" Value="#4338CA"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBoxItem Content="网络检测" IsSelected="True"/>
+                        <ListBoxItem Content="NAT 跃点跟踪"/>
+                        <ListBoxItem Content="Sunshine 版本"/>
+                        <ListBoxItem Content="WebView2 运行库"/>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Column="1">
+                <ScrollViewer x:Name="NetworkScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="24,20,24,20">
             <StackPanel>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -436,6 +486,12 @@
                     </StackPanel>
                 </Border>
 
+            </StackPanel>
+        </ScrollViewer>
+
+                <ScrollViewer x:Name="NatHopScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Padding="24,20,24,20">
+                    <StackPanel>
                 <!-- 多层 NAT 跃点跟踪 -->
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="22">
                     <StackPanel>
@@ -530,6 +586,12 @@
                     </StackPanel>
                 </Border>
 
+                    </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="WebView2ScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Padding="24,20,24,20">
+                    <StackPanel>
                 <!-- WebView2 运行库 -->
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="22">
                     <StackPanel>
@@ -623,10 +685,18 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Sunshine 版本自检 -->
-                <views:SunshineCard/>
-            </StackPanel>
-        </ScrollViewer>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="SunshineScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Padding="24,20,24,20">
+                    <StackPanel>
+                        <!-- Sunshine 版本自检 -->
+                        <views:SunshineCard/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
 
         <!-- 底部状态栏 -->
         <Border x:Name="FooterBorder" Grid.Row="2" Background="#FFFFFF" BorderBrush="#E8ECF4" BorderThickness="0,1,0,0" Padding="24,10">

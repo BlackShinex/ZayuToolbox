@@ -100,6 +100,21 @@ function Wait-ClipboardTextMatch([string]$pattern, [int]$timeoutMs = 2500) {
     return $false
 }
 
+function Select-NavItem($window, [string]$name) {
+    $condition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::NameProperty, $name)
+    $item = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    if ($item -eq $null) { return $false }
+    try {
+        $pattern = $item.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern)
+        $pattern.Select()
+    } catch {
+        return $false
+    }
+    Start-Sleep -Milliseconds 600
+    return $true
+}
+
 $process = $null
 try {
     Write-Host "启动应用（离屏）…" -ForegroundColor Cyan
@@ -150,25 +165,38 @@ try {
     Check "默认状态不出现完整 IPv4" ($leak.Count -eq 0) ("发现未遮罩的 IP 文本：" + ($leak -join " / "))
     Check "默认状态显示 IPv6 遮罩" ($maskedIpv6.Count -gt 0) "没有找到形如 240e:****:…:865c 的文本"
 
-    # WebView2 运行库卡片
-    Check "显示 WebView2 运行库卡片" (($joined -match "WebView2 运行库") -and ($joined -match "版本：") -and ($joined -match "路径："))
-    Check "显示 WebView2 检测状态" (($joined -match "已安装") -or ($joined -match "未安装") -or ($joined -match "安装异常"))
+    # 左侧菜单
+    $hasNav = ($joined -match "网络检测") -and ($joined -match "NAT 跃点跟踪") -and ($joined -match "Sunshine 版本") -and ($joined -match "WebView2 运行库")
+    Check "显示左侧功能菜单" $hasNav
 
-    # Sunshine 版本自检
+    # 网络检测页：地址 / STUN / 入站
+    Check "网络检测页包含 STUN/NAT 结果" (($joined -match "公网出口 IP") -or ($joined -match "NAT 类型"))
+    Check "网络检测页包含 IPv6 入站自检" (($joined -match "IPv6 入站可达性") -and ($joined -match "启动入站自检"))
+
+    # NAT 跃点跟踪页
+    Check "切换到 NAT 跃点跟踪页" (Select-NavItem $window "NAT 跃点跟踪")
+    $natTraceStart = Get-ElementByAutomationId $window "NatTraceStartButton"
+    Check "显示多层 NAT 跃点跟踪卡片" ($natTraceStart -ne $null -and $natTraceStart.Current.IsEnabled)
+
+    # Sunshine 版本页
+    Check "切换到 Sunshine 版本页" (Select-NavItem $window "Sunshine 版本")
+    $sunshineTexts = (Get-WindowTexts $window) -join "`n"
     $sunshineCopy = Get-ElementByAutomationId $window "SunshineCopyButton"
-    Check "显示 Sunshine 版本自检卡片" (($joined -match "Sunshine 版本自检") -and ($joined -match "安装来源："))
+    Check "显示 Sunshine 版本自检卡片" (($sunshineTexts -match "Sunshine 版本自检") -and ($sunshineTexts -match "安装来源："))
     Check "存在 Sunshine 诊断复制按钮" ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled)
     if ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled) {
         Invoke-Element $sunshineCopy
         Check "Sunshine 诊断信息包含检测结论" (Wait-ClipboardTextMatch "(?s)Sunshine.*检测结果")
     }
 
-    # 多层 NAT 跃点跟踪
-    $natTraceStart = Get-ElementByAutomationId $window "NatTraceStartButton"
-    Check "显示多层 NAT 跃点跟踪卡片" ($natTraceStart -ne $null -and $natTraceStart.Current.IsEnabled)
+    # WebView2 运行库页
+    Check "切换到 WebView2 运行库页" (Select-NavItem $window "WebView2 运行库")
+    $webView2Texts = (Get-WindowTexts $window) -join "`n"
+    Check "显示 WebView2 运行库卡片" (($webView2Texts -match "WebView2 运行库") -and ($webView2Texts -match "版本：") -and ($webView2Texts -match "路径："))
+    Check "显示 WebView2 检测状态" (($webView2Texts -match "已安装") -or ($webView2Texts -match "未安装") -or ($webView2Texts -match "安装异常"))
 
-    # IPv6 入站自检
-    Check "显示 IPv6 入站自检" (($joined -match "IPv6 入站可达性") -and ($joined -match "启动入站自检"))
+    # 返回网络检测页
+    Check "返回网络检测页" (Select-NavItem $window "网络检测")
 
     # 复制按钮：应复制完整 IP（IPv4 与 IPv6 都覆盖）
     Write-Host "测试复制按钮…" -ForegroundColor Cyan
@@ -199,6 +227,7 @@ try {
 
     # WebView2 诊断复制与安装窗口
     Write-Host "测试 WebView2 诊断与安装窗口…" -ForegroundColor Cyan
+    Select-NavItem $window "WebView2 运行库" | Out-Null
     $webView2Copy = Get-ElementByAutomationId $window "WebView2CopyButton"
     Check "存在 WebView2 诊断复制按钮" ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled)
     if ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled) {
@@ -227,6 +256,8 @@ try {
             }
         }
     }
+
+    Select-NavItem $window "网络检测" | Out-Null
 
     # 显示 IP
     Write-Host "测试「显示 IP」按钮…" -ForegroundColor Cyan

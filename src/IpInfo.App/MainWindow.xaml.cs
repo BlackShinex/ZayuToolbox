@@ -82,17 +82,54 @@ namespace IpInfo.App
             bool canScrollDown = inner.VerticalOffset < inner.ScrollableHeight - 0.5;
             if ((e.Delta > 0 && !canScrollUp) || (e.Delta < 0 && !canScrollDown))
             {
+                ScrollViewer outer = FindAncestorScrollViewer(inner);
+                if (outer == null) return;
+
                 e.Handled = true;
-                double before = MainScrollViewer.VerticalOffset;
+                double before = outer.VerticalOffset;
                 MouseWheelEventArgs forwarded = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta);
                 forwarded.RoutedEvent = UIElement.MouseWheelEvent;
-                MainScrollViewer.RaiseEvent(forwarded);
-                if (Math.Abs(MainScrollViewer.VerticalOffset - before) < 0.5)
+                outer.RaiseEvent(forwarded);
+                if (Math.Abs(outer.VerticalOffset - before) < 0.5)
                 {
                     double offset = before + (e.Delta > 0 ? -48 : 48);
-                    MainScrollViewer.ScrollToVerticalOffset(Math.Max(0, offset));
+                    outer.ScrollToVerticalOffset(Math.Max(0, offset));
                 }
             }
+        }
+
+        private static ScrollViewer FindAncestorScrollViewer(DependencyObject element)
+        {
+            DependencyObject current = element;
+            while (current != null)
+            {
+                ScrollViewer viewer = current as ScrollViewer;
+                if (viewer != null) return viewer;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
+        private void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (NavList == null) return;
+            UpdatePageVisibility(NavList.SelectedIndex);
+        }
+
+        private void UpdatePageVisibility(int index)
+        {
+            if (NetworkScrollViewer == null
+                || NatHopScrollViewer == null
+                || SunshineScrollViewer == null
+                || WebView2ScrollViewer == null)
+            {
+                return;
+            }
+
+            NetworkScrollViewer.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
+            NatHopScrollViewer.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
+            SunshineScrollViewer.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
+            WebView2ScrollViewer.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         /// <summary>在 125% / 150% 等高分屏缩放下，保证窗口不会超出当前屏幕可用区域。</summary>
@@ -1247,7 +1284,7 @@ namespace IpInfo.App
         /// </summary>
         private void RenderFullPageToPng(string path)
         {
-            FrameworkElement contentElement = MainScrollViewer.Content as FrameworkElement;
+            FrameworkElement contentElement = NetworkScrollViewer.Content as FrameworkElement;
             if (contentElement == null)
             {
                 UpdateLayout();
@@ -1255,8 +1292,8 @@ namespace IpInfo.App
                 return;
             }
 
-            MainScrollViewer.ScrollToTop();
-            MainScrollViewer.ScrollToHorizontalOffset(0);
+            NetworkScrollViewer.ScrollToTop();
+            NetworkScrollViewer.ScrollToHorizontalOffset(0);
             UpdateLayout();
 
             const double dpi = 144.0;
@@ -1264,9 +1301,9 @@ namespace IpInfo.App
             double width = ActualWidth;
             double headerHeight = HeaderBorder.ActualHeight;
             double footerHeight = FooterBorder.ActualHeight;
-            double paddingTop = MainScrollViewer.Padding.Top;
-            double paddingBottom = MainScrollViewer.Padding.Bottom;
-            double paddingLeft = MainScrollViewer.Padding.Left;
+            double paddingTop = NetworkScrollViewer.Padding.Top;
+            double paddingBottom = NetworkScrollViewer.Padding.Bottom;
+            double paddingLeft = NetworkScrollViewer.Padding.Left;
             double contentWidth = contentElement.ActualWidth;
             double contentHeight = contentElement.ActualHeight;
             double pageHeight = headerHeight + paddingTop + contentHeight + paddingBottom + footerHeight;
