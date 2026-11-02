@@ -49,7 +49,7 @@ git branch -M main
 把 `<你的GitHub用户名>` 替换成实际用户名：
 
 ```powershell
-git remote add origin https://github.com/<你的GitHub用户名>/IpInfo.git
+git remote add origin https://github.com/<你的GitHub用户名>/ZayuToolbox.git
 git push -u origin main
 ```
 
@@ -57,7 +57,7 @@ git push -u origin main
 如果使用 PAT（Personal Access Token），把上面的 URL 换成：
 
 ```text
-https://<你的用户名>:<你的PAT>@github.com/<你的用户名>/IpInfo.git
+https://<你的用户名>:<你的PAT>@github.com/<你的用户名>/ZayuToolbox.git
 ```
 
 > 如果创建仓库时误勾选了 README，先执行 `git pull --rebase origin main` 再推送。
