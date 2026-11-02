@@ -16,6 +16,7 @@ namespace IpInfo.App
         private readonly WebView2InstallerService _installer = new WebView2InstallerService();
         private bool _busy;
         private string _localInstallerPath;
+        private CancellationTokenSource _cts;
 
         public WebView2InstallDialog(WebView2DetectionResult result)
         {
@@ -47,6 +48,7 @@ namespace IpInfo.App
                 : "开始安装";
 
             Closing += WebView2InstallDialog_Closing;
+            Closed += WebView2InstallDialog_Closed;
         }
 
         private void WebView2InstallDialog_Closing(object sender, CancelEventArgs e)
@@ -54,7 +56,20 @@ namespace IpInfo.App
             if (_busy)
             {
                 e.Cancel = true;
-                StatusText.Text = "正在安装，请等待安装结束或超时。";
+                if (_cts != null) _cts.Cancel();
+                StatusText.Text = "正在取消，请稍候…";
+            }
+        }
+
+        private void WebView2InstallDialog_Closed(object sender, EventArgs e)
+        {
+            if (_cts != null)
+            {
+                try { _cts.Cancel(); }
+                catch { }
+                try { _cts.Dispose(); }
+                catch { }
+                _cts = null;
             }
         }
 
@@ -63,8 +78,11 @@ namespace IpInfo.App
             if (_busy) return;
 
             _busy = true;
+            _cts = new CancellationTokenSource();
+            CancellationToken token = _cts.Token;
             SetBusy(true);
             AppendLog("开始安装 WebView2 运行库。");
+            bool completed = false;
 
             try
             {
@@ -76,7 +94,7 @@ namespace IpInfo.App
                     Progress<WebView2DownloadProgress> progress = new Progress<WebView2DownloadProgress>(
                         delegate(WebView2DownloadProgress p)
                         {
-                            if (p == null) return;
+                            if (p == null || token.IsCancellationRequested) return;
                             if (p.Percent >= 0)
                             {
                                 InstallProgressBar.IsIndeterminate = false;
@@ -89,7 +107,8 @@ namespace IpInfo.App
                                 StatusText.Text = p.Stage;
                             }
                         });
-                    await _installer.DownloadBootstrapperAsync(installerPath, progress, CancellationToken.None);
+                    await _installer.DownloadBootstrapperAsync(installerPath, progress, token);
+                    token.ThrowIfCancellationRequested();
                     InstallProgressBar.IsIndeterminate = false;
                     InstallProgressBar.Value = 100;
                     AppendLog("下载完成：" + installerPath);
@@ -99,6 +118,7 @@ namespace IpInfo.App
                     AppendLog("使用本地安装包：" + installerPath);
                 }
 
+                token.ThrowIfCancellationRequested();
                 StatusText.Text = "正在校验数字签名…";
                 WebView2SignatureVerification signature = WebView2InstallerService.VerifySignature(installerPath);
                 if (!signature.Valid)
@@ -118,12 +138,21 @@ namespace IpInfo.App
                 int exitCode = await _installer.RunInstallerAsync(installerPath, systemWide,
                     delegate(string message)
                     {
+                        if (token.IsCancellationRequested) return;
                         Dispatcher.BeginInvoke(new Action(delegate
                         {
                             StatusText.Text = message;
                             AppendLog(message);
                         }));
-                    });
+                    }, token);
+
+                if (exitCode == -3)
+                {
+                    AppendLog("已请求取消安装。若安装器已提权，可能仍在后台运行。");
+                    StatusText.Text = "已取消。";
+                    FooterHintText.Text = "可以关闭此窗口。";
+                    return;
+                }
 
                 if (exitCode != 0)
                 {
@@ -139,14 +168,28 @@ namespace IpInfo.App
                 StartButton.IsEnabled = false;
                 LocalInstallerButton.IsEnabled = false;
                 AllUsersCheck.IsEnabled = false;
-                _busy = false;
+                completed = true;
+            }
+            catch (OperationCanceledException)
+            {
+                AppendLog("操作已取消。");
+                StatusText.Text = "已取消。";
+                FooterHintText.Text = "可以关闭此窗口。";
             }
             catch (Exception ex)
             {
                 AppendLog("安装失败：" + ex.Message);
                 StatusText.Text = "安装失败：" + ex.Message;
+            }
+            finally
+            {
                 _busy = false;
-                SetBusy(false);
+                if (!completed) SetBusy(false);
+                if (_cts != null)
+                {
+                    _cts.Dispose();
+                    _cts = null;
+                }
             }
         }
 
@@ -187,7 +230,14 @@ namespace IpInfo.App
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!_busy) Close();
+            if (_busy)
+            {
+                if (_cts != null) _cts.Cancel();
+                StatusText.Text = "正在取消，请稍候…";
+                CloseButton.IsEnabled = false;
+                return;
+            }
+            Close();
         }
 
         private void SetBusy(bool busy)
@@ -196,13 +246,13 @@ namespace IpInfo.App
             StartButton.IsEnabled = !busy;
             LocalInstallerButton.IsEnabled = !busy;
             AllUsersCheck.IsEnabled = !busy && !WebView2InstallerService.IsAdministrator();
-            CloseButton.IsEnabled = !busy;
+            CloseButton.IsEnabled = true;
             if (busy)
             {
                 InstallProgressBar.IsIndeterminate = true;
                 InstallProgressBar.Value = 0;
                 StatusText.Text = "准备安装…";
-                CloseButton.Content = "安装中…";
+                CloseButton.Content = "取消";
             }
             else
             {
