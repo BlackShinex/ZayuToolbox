@@ -75,7 +75,7 @@ https://<你的用户名>:<你的PAT>@github.com/<你的用户名>/IpInfo.git
 本地已经生成了发布包：
 
 ```text
-dist\杂鱼串流工具箱-1.5-win-x64.zip
+dist\ZayuToolbox-1.5-win-x64.zip
 ```
 
 在 GitHub 仓库页面：
@@ -83,7 +83,7 @@ dist\杂鱼串流工具箱-1.5-win-x64.zip
 1. 点击右侧 **Releases** → **Draft a new release**；
 2. Tag 填 `v1.5`，Target 选 `main`；
 3. 标题填 `杂鱼串流工具箱 v1.5`；
-4. 把 `dist\杂鱼串流工具箱-1.5-win-x64.zip` 拖到附件区域；
+4. 把 `dist\ZayuToolbox-1.5-win-x64.zip` 拖到附件区域；
 5. 填写更新说明（可以把 `CHANGELOG.md` 中 v1.5 的内容复制进去）；
 6. 点击 **Publish release**。
 

@@ -4,7 +4,7 @@
 #   .\tools\build.ps1              # Debug 构建
 #   .\tools\build.ps1 -Release     # Release 构建
 #   .\tools\build.ps1 -Release -Package  # Release 构建并打包到 dist\
-#   .\tools\build.ps1 -Release -Package -Zip  # 再额外生成 dist\杂鱼串流工具箱-1.5-win-x64.zip
+#   .\tools\build.ps1 -Release -Package -Zip  # 再额外生成 dist\ZayuToolbox-1.5-win-x64.zip
 param(
     [switch]$Release,
     [switch]$Package,
@@ -74,7 +74,7 @@ if ($Package) {
         try {
             New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
             Copy-Item (Join-Path $dist "*") $packageRoot -Recurse
-            $zipPath = Join-Path $dist ("杂鱼串流工具箱-" + $version + "-win-x64.zip")
+            $zipPath = Join-Path $dist ("ZayuToolbox-" + $version + "-win-x64.zip")
             if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
             Compress-Archive -Path $packageRoot -DestinationPath $zipPath -CompressionLevel Optimal
             Write-Host "已生成压缩包：$zipPath" -ForegroundColor Green
