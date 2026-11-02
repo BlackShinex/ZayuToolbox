@@ -1,0 +1,36 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build, package and test
+        shell: pwsh
+        run: .\tools\build.ps1 -Release -Tests -Package -Zip
+
+      - name: Run offline core tests
+        shell: pwsh
+        run: |
+          $exe = ".\tests\IpInfo.CoreTests\bin\Release\IpInfo.CoreTests.exe"
+          & $exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: IpInfo-win-x64
+          path: dist/**
+          if-no-files-found: error
