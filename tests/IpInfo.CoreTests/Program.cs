@@ -431,6 +431,38 @@ namespace IpInfo.CoreTests
             CheckEqual("正常中文不被改写", SunshineDetector.NormalizeText("杂鱼"), "杂鱼");
             CheckEqual("纯英文版本号不被改写", SunshineDetector.NormalizeText("0.23.1"), "0.23.1");
 
+            SunshineSignature futureBase = new SunshineSignature();
+            futureBase.CompanyName = "LizardByte";
+            futureBase.FileVersion = "v2027.0203.091500.0badc0de.杂鱼";
+            SunshineVerdict futureBaseVerdict = SunshineDetector.Classify(futureBase);
+            CheckTrue("未来基地版本：仅凭中文版本后缀即可判定",
+                futureBaseVerdict.Kind == SunshineBuildKind.BaseEdition && futureBaseVerdict.Confidence == SunshineConfidence.Medium,
+                futureBaseVerdict.Kind + " / " + futureBaseVerdict.Confidence);
+
+            SunshineSignature namedBase = new SunshineSignature();
+            namedBase.UninstallDisplayName = "Foundation Sunshine 基地版 v3";
+            SunshineVerdict namedBaseVerdict = SunshineDetector.Classify(namedBase);
+            CheckTrue("基地版：卸载项名称命中", namedBaseVerdict.Kind == SunshineBuildKind.BaseEdition, namedBaseVerdict.Kind.ToString());
+
+            SunshineSignature axixiOld = new SunshineSignature();
+            axixiOld.CompanyName = "Third Party Publisher";
+            axixiOld.FileVersion = "1.0.0";
+            axixiOld.MatchedFiles.Add(@"drivers\sudovda\");
+            SunshineVerdict axixiOldVerdict = SunshineDetector.Classify(axixiOld);
+            CheckTrue("阿西西旧版：目录指纹生效", axixiOldVerdict.Kind == SunshineBuildKind.Axixi, axixiOldVerdict.Kind.ToString());
+            CheckTrue("阿西西旧版：高置信", axixiOldVerdict.Confidence == SunshineConfidence.High, axixiOldVerdict.Confidence.ToString());
+
+            SunshineSignature axixiNamed = new SunshineSignature();
+            axixiNamed.UninstallDisplayName = "阿西西 Sunshine";
+            SunshineVerdict axixiNamedVerdict = SunshineDetector.Classify(axixiNamed);
+            CheckTrue("阿西西版：卸载项名称命中", axixiNamedVerdict.Kind == SunshineBuildKind.Axixi, axixiNamedVerdict.Kind.ToString());
+
+            SunshineSignature futureOfficial = new SunshineSignature();
+            futureOfficial.CompanyName = "LizardByte";
+            futureOfficial.FileVersion = "1.0.0";
+            SunshineVerdict futureOfficialVerdict = SunshineDetector.Classify(futureOfficial);
+            CheckTrue("官方版升级到 1.x 仍判为官方", futureOfficialVerdict.Kind == SunshineBuildKind.Official, futureOfficialVerdict.Kind.ToString());
+
             SunshineSignature axixi = new SunshineSignature();
             axixi.CompanyName = "Third Party Publisher";
             axixi.FileVersion = "1.1.0";

@@ -121,6 +121,12 @@ namespace IpInfo.Core
 
         public DateTime DetectedAt { get; set; }
 
+        /// <summary>未知构建时才计算，便于把新版本登记进白名单。</summary>
+        public string ExeSha256 { get; set; }
+
+        /// <summary>未知构建时的安装目录顶层条目，用于人工判断渠道。</summary>
+        public List<string> TopLevelEntries { get; set; }
+
         /// <summary>检测过程中的致命错误，通常为空。</summary>
         public string Error { get; set; }
 
@@ -146,7 +152,9 @@ namespace IpInfo.Core
             MatchedMarkers = new List<string>();
             Evidence = new List<string>();
             Warnings = new List<string>();
+            TopLevelEntries = new List<string>();
             DetectedAt = DateTime.Now;
+            ExeSha256 = string.Empty;
             Error = string.Empty;
         }
 
@@ -221,6 +229,10 @@ namespace IpInfo.Core
                 sb.AppendLine("指纹文件：" + string.Join("、", MatchedFiles.ToArray()));
             if (MatchedMarkers.Count > 0)
                 sb.AppendLine("文本标记：" + string.Join("、", MatchedMarkers.ToArray()));
+            if (!string.IsNullOrEmpty(ExeSha256))
+                sb.AppendLine("EXE SHA256：" + ExeSha256);
+            if (TopLevelEntries.Count > 0)
+                sb.AppendLine("目录顶层：" + string.Join("、", TopLevelEntries.ToArray()));
             if (Evidence.Count > 0)
             {
                 sb.AppendLine("判断依据：");
@@ -251,22 +263,29 @@ namespace IpInfo.Core
         public const string DefaultInstallDirectory = @"C:\Program Files\Sunshine";
         public const string ServiceName = "SunshineService";
 
+        /// <summary>基地版各版本共有的组件。目录以反斜杠结尾，按前缀匹配。</summary>
         private static readonly string[] BaseEditionFiles = new string[]
         {
-            @"tools\vdd\ZakoVDD.inf",
-            @"tools\vmouse\ZakoVirtualMouse.inf",
             @"assets\gui\sunshine-gui.exe",
-            @"tools\qiin-tabtip.exe"
+            @"tools\qiin-tabtip.exe",
+            @"tools\device-toggler.exe",
+            @"tools\ddprobe.exe",
+            @"tools\vdd\",
+            @"tools\vmouse\",
+            @"tools\vdd\ZakoVDD.inf",
+            @"tools\vmouse\ZakoVirtualMouse.inf"
         };
 
+        /// <summary>阿西西版各版本共有的组件。目录以反斜杠结尾，按前缀匹配。</summary>
         private static readonly string[] AxixiFiles = new string[]
         {
+            @"drivers\sudovda\",
             @"drivers\sudovda\sudovda.inf",
             @"drivers\sudovda\install.bat",
             @"tools\sunshine-hidmaestro-host.exe"
         };
 
-        private static readonly string[] TextMarkers = new string[] { "axixi", "杂鱼" };
+        private static readonly string[] TextMarkers = new string[] { "axixi", "阿西西", "杂鱼" };
 
         /// <summary>检测本机安装的 Sunshine。</summary>
         public static SunshineDetectionResult Detect()
@@ -296,15 +315,21 @@ namespace IpInfo.Core
                 axixiSignals++;
                 verdict.Reasons.Add("版本资源 CompanyName=" + company);
             }
-            if (HasMarker(signature, "axixi"))
+            if (HasMarker(signature, "axixi") || HasMarker(signature, "阿西西"))
             {
                 axixiSignals++;
-                verdict.Reasons.Add("安装目录中的 Web 资源命中 axixi 专属地址");
+                verdict.Reasons.Add("安装目录中的文件内容命中 axixi / 阿西西 文案");
             }
             if (HasAnyFile(signature, AxixiFiles))
             {
                 axixiSignals++;
                 verdict.Reasons.Add("安装目录中存在阿西西专属组件（SudoVDA / HIDMaestro）");
+            }
+            if (ContainsIgnoreCase(NullToEmpty(signature.UninstallDisplayName), "axixi")
+                || ContainsIgnoreCase(NullToEmpty(signature.UninstallDisplayName), "阿西西"))
+            {
+                axixiSignals++;
+                verdict.Reasons.Add("卸载项名称=" + signature.UninstallDisplayName);
             }
             if (axixiSignals > 0)
             {
@@ -319,20 +344,26 @@ namespace IpInfo.Core
                 baseSignals++;
                 verdict.Reasons.Add("安装目录中的 Web 资源命中“杂鱼”文案");
             }
-            if (ContainsIgnoreCase(version, "杂鱼"))
+            if (ContainsIgnoreCase(version, "杂鱼") || ContainsIgnoreCase(version, "基地"))
             {
                 baseSignals++;
-                verdict.Reasons.Add("版本号带“杂鱼”后缀：" + version);
+                verdict.Reasons.Add("版本号带中文渠道后缀：" + version);
             }
             if (HasAnyFile(signature, BaseEditionFiles))
             {
                 baseSignals++;
-                verdict.Reasons.Add("安装目录中存在基地版专属组件（Zako 虚拟显示器 / sunshine-gui）");
+                verdict.Reasons.Add("安装目录中存在基地版专属组件（Zako 虚拟显示器 / sunshine-gui / 基地工具）");
             }
             if (ContainsIgnoreCase(NullToEmpty(signature.UninstallPublisher), "qiin"))
             {
                 baseSignals++;
                 verdict.Reasons.Add("安装包发布者=" + signature.UninstallPublisher);
+            }
+            if (ContainsIgnoreCase(NullToEmpty(signature.UninstallDisplayName), "杂鱼")
+                || ContainsIgnoreCase(NullToEmpty(signature.UninstallDisplayName), "基地"))
+            {
+                baseSignals++;
+                verdict.Reasons.Add("卸载项名称=" + signature.UninstallDisplayName);
             }
             if (baseSignals > 0)
             {
@@ -452,6 +483,12 @@ namespace IpInfo.Core
             result.Confidence = verdict.Confidence;
             for (int i = 0; i < verdict.Reasons.Count; i++) result.Evidence.Insert(0, verdict.Reasons[verdict.Reasons.Count - 1 - i]);
 
+            if (result.Kind == SunshineBuildKind.Unknown && !string.IsNullOrEmpty(exePath))
+            {
+                result.ExeSha256 = ComputeSha256(exePath);
+                result.TopLevelEntries = ListTopLevelEntries(root);
+            }
+
             if (service != null)
             {
                 result.ServiceName = service.Name;
@@ -559,7 +596,10 @@ namespace IpInfo.Core
         {
             try
             {
-                if (File.Exists(Path.Combine(root, relative))) signature.MatchedFiles.Add(relative);
+                bool isDirectory = relative.EndsWith("\\", StringComparison.Ordinal);
+                string path = Path.Combine(root, relative.TrimEnd('\\'));
+                bool exists = isDirectory ? Directory.Exists(path) : File.Exists(path);
+                if (exists && !signature.MatchedFiles.Contains(relative)) signature.MatchedFiles.Add(relative);
             }
             catch
             {
@@ -767,6 +807,49 @@ namespace IpInfo.Core
             {
             }
             return string.Empty;
+        }
+
+        private static string ComputeSha256(string path)
+        {
+            try
+            {
+                using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
+                using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    byte[] hash = sha.ComputeHash(stream);
+                    StringBuilder sb = new StringBuilder(hash.Length * 2);
+                    for (int i = 0; i < hash.Length; i++) sb.Append(hash[i].ToString("X2"));
+                    return sb.ToString();
+                }
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static List<string> ListTopLevelEntries(string root)
+        {
+            List<string> entries = new List<string>();
+            if (string.IsNullOrEmpty(root) || !Directory.Exists(root)) return entries;
+
+            try
+            {
+                foreach (string directory in Directory.GetDirectories(root))
+                {
+                    if (entries.Count >= 24) break;
+                    entries.Add(Path.GetFileName(directory) + @"\");
+                }
+                foreach (string file in Directory.GetFiles(root))
+                {
+                    if (entries.Count >= 24) break;
+                    entries.Add(Path.GetFileName(file));
+                }
+            }
+            catch
+            {
+            }
+            return entries;
         }
 
         /// <summary>
