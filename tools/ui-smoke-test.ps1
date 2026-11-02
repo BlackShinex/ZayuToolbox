@@ -88,6 +88,18 @@ function Invoke-Element($element) {
     $pattern.Invoke()
 }
 
+function Wait-ClipboardTextMatch([string]$pattern, [int]$timeoutMs = 2500) {
+    $deadline = (Get-Date).AddMilliseconds($timeoutMs)
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $text = [System.Windows.Forms.Clipboard]::GetText()
+            if (-not [string]::IsNullOrEmpty($text) -and $text -match $pattern) { return $true }
+        } catch { }
+        Start-Sleep -Milliseconds 150
+    }
+    return $false
+}
+
 $process = $null
 try {
     Write-Host "启动应用（离屏）…" -ForegroundColor Cyan
@@ -142,6 +154,15 @@ try {
     Check "显示 WebView2 运行库卡片" (($joined -match "WebView2 运行库") -and ($joined -match "版本：") -and ($joined -match "路径："))
     Check "显示 WebView2 检测状态" (($joined -match "已安装") -or ($joined -match "未安装") -or ($joined -match "安装异常"))
 
+    # Sunshine 版本自检
+    $sunshineCopy = Get-ElementByAutomationId $window "SunshineCopyButton"
+    Check "显示 Sunshine 版本自检卡片" (($joined -match "Sunshine 版本自检") -and ($joined -match "安装来源："))
+    Check "存在 Sunshine 诊断复制按钮" ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled)
+    if ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled) {
+        Invoke-Element $sunshineCopy
+        Check "Sunshine 诊断信息包含检测结论" (Wait-ClipboardTextMatch "(?s)Sunshine.*检测结果")
+    }
+
     # 多层 NAT 跃点跟踪
     $natTraceStart = Get-ElementByAutomationId $window "NatTraceStartButton"
     Check "显示多层 NAT 跃点跟踪卡片" ($natTraceStart -ne $null -and $natTraceStart.Current.IsEnabled)
@@ -182,10 +203,7 @@ try {
     Check "存在 WebView2 诊断复制按钮" ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled)
     if ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled) {
         Invoke-Element $webView2Copy
-        Start-Sleep -Milliseconds 500
-        $wvClipboard = $null
-        try { $wvClipboard = [System.Windows.Forms.Clipboard]::GetText() } catch { }
-        Check "WebView2 诊断信息包含版本和路径" ($wvClipboard -match "WebView2" -and $wvClipboard -match "检测结果")
+        Check "WebView2 诊断信息包含版本和路径" (Wait-ClipboardTextMatch "(?s)WebView2.*检测结果")
     }
 
     $webView2Install = Get-ElementByAutomationId $window "WebView2InstallButton"
