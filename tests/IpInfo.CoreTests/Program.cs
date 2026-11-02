@@ -11,8 +11,10 @@ namespace IpInfo.CoreTests
     /// <summary>
     /// 无界面的核心逻辑自测程序。用法：
     ///   IpInfo.CoreTests.exe [--live]
+    ///   IpInfo.CoreTests.exe --sunshine [安装目录]
     /// 默认只运行离线测试（隐私遮罩、地址分类、本机地址枚举）；
-    /// 加 --live 时额外执行一次真实的 STUN / NAT 探测。
+    /// 加 --live 时额外执行一次真实的 STUN / NAT 探测；
+    /// 加 --sunshine 时只输出 Sunshine 版本自检，可用于检查任意安装目录。
     /// </summary>
     internal static class Program
     {
@@ -26,6 +28,21 @@ namespace IpInfo.CoreTests
             Console.WriteLine("=== IpInfo.Core 核心逻辑自测 ===");
             Console.WriteLine();
 
+            int sunshineIndex = Array.IndexOf(args, "--sunshine");
+            if (sunshineIndex >= 0)
+            {
+                string root = sunshineIndex + 1 < args.Length && !args[sunshineIndex + 1].StartsWith("--", StringComparison.Ordinal)
+                    ? args[sunshineIndex + 1]
+                    : string.Empty;
+
+                SunshineDetectionResult single = string.IsNullOrEmpty(root)
+                    ? SunshineDetector.Detect()
+                    : SunshineDetector.Detect(root);
+
+                Console.WriteLine(single.ToDiagnostics());
+                return 0;
+            }
+
             TestPrivacyMask();
             TestClassifier();
             TestLocalAddresses();
@@ -34,6 +51,8 @@ namespace IpInfo.CoreTests
             TestIpv6InboundServer();
             TestWebView2();
             TestNatHopTracer();
+            TestSunshineClassifier();
+            TestSunshineDetection();
 
             if (live)
             {
@@ -368,6 +387,95 @@ namespace IpInfo.CoreTests
 
                 CheckTrue("取消后标记为已停止", result.Canceled);
                 CheckTrue("取消结果摘要非空", !string.IsNullOrEmpty(result.Summary));
+            }
+        }
+
+        private static void TestSunshineClassifier()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[9] Sunshine 版本判定（离线）");
+
+            SunshineSignature official = new SunshineSignature();
+            official.CompanyName = "LizardByte";
+            official.FileVersion = "0.23.1";
+            official.InstallerKind = "MSI";
+            SunshineVerdict officialVerdict = SunshineDetector.Classify(official);
+            CheckTrue("官方版：渠道判定", officialVerdict.Kind == SunshineBuildKind.Official, officialVerdict.Kind.ToString());
+            CheckTrue("官方版：高置信", officialVerdict.Confidence == SunshineConfidence.High, officialVerdict.Confidence.ToString());
+
+            SunshineSignature baseEdition = new SunshineSignature();
+            baseEdition.CompanyName = "LizardByte";
+            baseEdition.FileVersion = "v2026.1031.121458.杂鱼";
+            baseEdition.UninstallPublisher = "qiin2333";
+            baseEdition.MatchedMarkers.Add("杂鱼");
+            baseEdition.MatchedFiles.Add(@"tools\vdd\ZakoVDD.inf");
+            SunshineVerdict baseVerdict = SunshineDetector.Classify(baseEdition);
+            CheckTrue("基地版：渠道判定", baseVerdict.Kind == SunshineBuildKind.BaseEdition, baseVerdict.Kind.ToString());
+            CheckTrue("基地版：高置信", baseVerdict.Confidence == SunshineConfidence.High, baseVerdict.Confidence.ToString());
+
+            SunshineSignature axixi = new SunshineSignature();
+            axixi.CompanyName = "Third Party Publisher";
+            axixi.FileVersion = "1.1.0";
+            axixi.MatchedMarkers.Add("axixi");
+            axixi.MatchedFiles.Add(@"drivers\sudovda\sudovda.inf");
+            SunshineVerdict axixiVerdict = SunshineDetector.Classify(axixi);
+            CheckTrue("阿西西版：渠道判定", axixiVerdict.Kind == SunshineBuildKind.Axixi, axixiVerdict.Kind.ToString());
+            CheckTrue("阿西西版：高置信", axixiVerdict.Confidence == SunshineConfidence.High, axixiVerdict.Confidence.ToString());
+
+            SunshineSignature axixiWeak = new SunshineSignature();
+            axixiWeak.CompanyName = "Third Party Publisher";
+            axixiWeak.FileVersion = "1.0.0";
+            SunshineVerdict weakVerdict = SunshineDetector.Classify(axixiWeak);
+            CheckTrue("阿西西版：只有厂商字段时为中置信",
+                weakVerdict.Kind == SunshineBuildKind.Axixi && weakVerdict.Confidence == SunshineConfidence.Medium,
+                weakVerdict.Kind + " / " + weakVerdict.Confidence);
+
+            SunshineSignature baseOnly = new SunshineSignature();
+            baseOnly.CompanyName = "LizardByte";
+            baseOnly.FileVersion = "v2026.1031.121458.杂鱼";
+            SunshineVerdict baseOnlyVerdict = SunshineDetector.Classify(baseOnly);
+            CheckTrue("基地版不会被误判为阿西西", baseOnlyVerdict.Kind == SunshineBuildKind.BaseEdition, baseOnlyVerdict.Kind.ToString());
+
+            SunshineVerdict unknownVerdict = SunshineDetector.Classify(new SunshineSignature());
+            CheckTrue("无信息时为未知构建", unknownVerdict.Kind == SunshineBuildKind.Unknown, unknownVerdict.Kind.ToString());
+            CheckTrue("未知构建置信度为低", unknownVerdict.Confidence == SunshineConfidence.Low, unknownVerdict.Confidence.ToString());
+            CheckTrue("判定结果附带依据", officialVerdict.Reasons.Count > 0);
+        }
+
+        private static void TestSunshineDetection()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[10] Sunshine 版本自检（本机）");
+
+            SunshineDetectionResult result = SunshineDetector.Detect();
+            CheckTrue("返回 Sunshine 检测结果", result != null);
+            if (result == null) return;
+
+            CheckTrue("Sunshine 摘要非空", !string.IsNullOrEmpty(result.Summary));
+            CheckTrue("Sunshine 诊断信息包含标题",
+                result.ToDiagnostics().IndexOf("Sunshine", StringComparison.Ordinal) >= 0);
+            CheckTrue("Sunshine 渠道标签非空", !string.IsNullOrEmpty(result.KindLabel));
+            CheckTrue("Sunshine 判断依据非空", result.Evidence.Count > 0);
+
+            if (string.IsNullOrEmpty(result.ExePath))
+            {
+                Console.WriteLine("    [跳过] 本机未安装 Sunshine");
+                return;
+            }
+
+            CheckTrue("Sunshine 版本号非空", !string.IsNullOrEmpty(result.Version));
+            CheckTrue("Sunshine 渠道已识别", result.Kind != SunshineBuildKind.Unknown, result.Kind.ToString());
+            Console.WriteLine("    " + result.Summary + " | 安装路径 " + result.InstallPath);
+            if (!string.IsNullOrEmpty(result.ServicePath))
+                Console.WriteLine("    服务 " + result.ServiceName + " · " + result.ServiceStartMode + " · " + result.ServicePath);
+
+            if (!string.IsNullOrEmpty(result.InstallPath) && Directory.Exists(result.InstallPath))
+            {
+                SunshineDetectionResult byDirectory = SunshineDetector.Detect(result.InstallPath);
+                CheckTrue("按目录检测与整机检测渠道一致",
+                    byDirectory.Kind == result.Kind,
+                    "整机 " + result.Kind + "，目录 " + byDirectory.Kind);
+                CheckTrue("按目录检测能读到版本号", !string.IsNullOrEmpty(byDirectory.Version));
             }
         }
 
