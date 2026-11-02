@@ -618,6 +618,16 @@ namespace IpInfo.CoreTests
                 }
                 Console.WriteLine("    " + status.Summary + " | 设备数 " + status.Devices.Count
                     + " | 驱动 " + (status.Adapter == null ? "—" : status.Adapter.DriverVersion));
+
+                if (!string.IsNullOrEmpty(status.BundledDriverVersion))
+                {
+                    CheckTrue("读到安装包驱动版本", status.BundledDriverVersion.IndexOf('.') > 0, status.BundledDriverVersion);
+                    CheckTrue("安装包驱动与本机驱动已对照",
+                        status.DriverVersionMatch != ZakoDriverVersionMatch.Unknown,
+                        status.DriverVersionMatch.ToString());
+                    Console.WriteLine("    安装包驱动 " + status.BundledDriverVersion
+                        + " · " + status.DriverVersionMatchLabel);
+                }
             }
         }
 

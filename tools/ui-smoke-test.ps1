@@ -232,6 +232,7 @@ try {
     }
 
     Check "显示 Zako 虚拟显示器卡片" (($sunshineTexts -match "Zako 虚拟显示器") -and ($sunshineTexts -match "设备状态："))
+    Check "显示安装包驱动版本行" ($sunshineTexts -match "安装包驱动：")
     $zakoCopy = Get-ElementByAutomationId $window "ZakoCopyButton"
     Check "存在 Zako 诊断复制按钮" ($zakoCopy -ne $null)
     if ($baseLocked) {

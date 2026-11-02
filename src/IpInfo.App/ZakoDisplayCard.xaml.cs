@@ -56,9 +56,10 @@ namespace IpInfo.App
                     return;
                 }
 
+                string installPath = edition.InstallPath;
                 ZakoDisplayStatus status = await Task.Run(delegate
                 {
-                    return ZakoDisplayDetector.Detect();
+                    return ZakoDisplayDetector.Detect(installPath);
                 });
 
                 if (status == null) throw new InvalidOperationException("Zako 检测返回了空结果。");
@@ -101,6 +102,7 @@ namespace IpInfo.App
             ZakoAdapterText.Text = "适配器：—";
             ZakoProblemText.Text = "设备状态：—";
             ZakoDriverText.Text = "驱动版本：—";
+            ZakoBundledText.Text = "安装包驱动：—";
             ZakoDeviceCountText.Text = "Zako 设备数：—";
             ZakoDeviceListText.Text = string.Empty;
 
@@ -141,11 +143,26 @@ namespace IpInfo.App
             ZakoSummaryText.Text = string.IsNullOrEmpty(status.OsDisplay) ? "系统版本未知" : status.OsDisplay;
 
             if (status.State == ZakoDisplayState.NotInstalled)
-                ZakoHintText.Text = "未找到 Zako 显示适配器。基地版安装包会在安装时注册虚拟显示器驱动。";
+            {
+                ZakoHintText.Text = string.IsNullOrEmpty(status.BundledDriverVersion)
+                    ? "未找到 Zako 显示适配器，安装包目录里也没有驱动文件。"
+                    : "未找到 Zako 显示适配器，但安装包自带驱动 " + status.BundledDriverVersion + "，重新安装基地版即可恢复。";
+            }
+            else if (status.DriverVersionMatch == ZakoDriverVersionMatch.Mismatch)
+            {
+                ZakoHintText.Text = "已安装驱动 " + NullSafe(status.Adapter == null ? null : status.Adapter.DriverVersion)
+                    + " 与安装包 " + status.BundledDriverVersion + " 不一致，建议重新安装基地版对齐驱动。";
+            }
             else if (status.State == ZakoDisplayState.Healthy)
-                ZakoHintText.Text = "设备工作正常。设备管理器里出现「未连接」（Code 45）的显示器通常属于空闲状态。";
+            {
+                ZakoHintText.Text = status.DriverVersionMatch == ZakoDriverVersionMatch.Match
+                    ? "设备工作正常，驱动版本与安装包一致。设备管理器里出现「未连接」（Code 45）的显示器通常属于空闲状态。"
+                    : "设备工作正常。设备管理器里出现「未连接」（Code 45）的显示器通常属于空闲状态。";
+            }
             else
+            {
                 ZakoHintText.Text = "设备异常时先尝试重新安装基地版；不要手动卸载驱动，以免影响串流。";
+            }
 
             ZakoOsText.Text = "系统：" + NullSafe(status.OsDisplay);
 
@@ -162,6 +179,7 @@ namespace IpInfo.App
             }
 
             ZakoDriverText.Text = "驱动版本：" + BuildDriverText(status.Adapter);
+            ZakoBundledText.Text = "安装包驱动：" + BuildBundledDriverText(status);
 
             ZakoDeviceCountText.Text = "Zako 设备数：" + status.Devices.Count;
 
@@ -194,6 +212,15 @@ namespace IpInfo.App
                 ZakoWarningBanner.Visibility = Visibility.Collapsed;
                 ZakoWarningText.Text = string.Empty;
             }
+        }
+
+        private static string BuildBundledDriverText(ZakoDisplayStatus status)
+        {
+            if (string.IsNullOrEmpty(status.BundledDriverVersion)) return "未找到";
+
+            string text = status.BundledDriverVersion;
+            if (!string.IsNullOrEmpty(status.BundledDriverDate)) text += "（" + status.BundledDriverDate + "）";
+            return text + " · " + status.DriverVersionMatchLabel;
         }
 
         private static string BuildDriverText(ZakoDeviceInfo adapter)

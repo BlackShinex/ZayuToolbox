@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Management;
+using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
 namespace IpInfo.Core
@@ -19,6 +22,16 @@ namespace IpInfo.Core
         DriverMissing,
         /// <summary>其他设备错误。</summary>
         Error
+    }
+
+    /// <summary>安装包内驱动版本与本机已安装驱动的对照结果。</summary>
+    public enum ZakoDriverVersionMatch
+    {
+        Unknown = 0,
+        /// <summary>安装包版本与已安装版本一致。</summary>
+        Match,
+        /// <summary>安装包版本与已安装版本不一致。</summary>
+        Mismatch
     }
 
     /// <summary>一个 Zako 相关设备节点。</summary>
@@ -65,6 +78,13 @@ namespace IpInfo.Core
         /// <summary>显示适配器节点；未安装时为空。</summary>
         public ZakoDeviceInfo Adapter { get; set; }
 
+        /// <summary>安装包自带驱动（tools\vdd\ZakoVDD.inf）的版本与日期。</summary>
+        public string BundledDriverVersion { get; set; }
+        public string BundledDriverDate { get; set; }
+        public string BundledInfPath { get; set; }
+
+        public ZakoDriverVersionMatch DriverVersionMatch { get; set; }
+
         public List<ZakoDeviceInfo> Devices { get; set; }
         public List<string> Warnings { get; set; }
 
@@ -77,6 +97,10 @@ namespace IpInfo.Core
             OsDisplay = string.Empty;
             OsArch = string.Empty;
             State = ZakoDisplayState.Unknown;
+            BundledDriverVersion = string.Empty;
+            BundledDriverDate = string.Empty;
+            BundledInfPath = string.Empty;
+            DriverVersionMatch = ZakoDriverVersionMatch.Unknown;
             Devices = new List<ZakoDeviceInfo>();
             Warnings = new List<string>();
             Error = string.Empty;
@@ -100,6 +124,19 @@ namespace IpInfo.Core
                     case ZakoDisplayState.DriverMissing: return "驱动缺失";
                     case ZakoDisplayState.Error: return "异常";
                     default: return "未知";
+                }
+            }
+        }
+
+        public string DriverVersionMatchLabel
+        {
+            get
+            {
+                switch (DriverVersionMatch)
+                {
+                    case ZakoDriverVersionMatch.Match: return "与已安装一致";
+                    case ZakoDriverVersionMatch.Mismatch: return "与已安装不一致";
+                    default: return "无法比较";
                 }
             }
         }
@@ -134,7 +171,15 @@ namespace IpInfo.Core
                         + (string.IsNullOrEmpty(Adapter.DriverDate) ? string.Empty : "（" + Adapter.DriverDate + "）")
                         + (string.IsNullOrEmpty(Adapter.DriverProvider) ? string.Empty : " · " + Adapter.DriverProvider));
                 }
+
                 if (!string.IsNullOrEmpty(Adapter.DeviceId)) sb.AppendLine("设备 ID：" + Adapter.DeviceId);
+            }
+
+            if (!string.IsNullOrEmpty(BundledDriverVersion))
+            {
+                sb.AppendLine("安装包驱动：" + BundledDriverVersion
+                    + (string.IsNullOrEmpty(BundledDriverDate) ? string.Empty : "（" + BundledDriverDate + "）")
+                    + " · " + DriverVersionMatchLabel);
             }
 
             if (Devices.Count > 0)
@@ -171,6 +216,17 @@ namespace IpInfo.Core
     {
         public static ZakoDisplayStatus Detect()
         {
+            return DetectCore(string.Empty);
+        }
+
+        /// <summary>已知 Sunshine 安装目录时可直接传入，省一次安装检测。</summary>
+        public static ZakoDisplayStatus Detect(string sunshineInstallPath)
+        {
+            return DetectCore(sunshineInstallPath);
+        }
+
+        private static ZakoDisplayStatus DetectCore(string sunshineInstallPath)
+        {
             ZakoDisplayStatus status = new ZakoDisplayStatus();
 
             try
@@ -191,7 +247,106 @@ namespace IpInfo.Core
                 status.Error = "读取设备信息失败：" + ex.Message;
             }
 
+            try
+            {
+                ReadBundledDriverInfo(status, sunshineInstallPath);
+            }
+            catch (Exception ex)
+            {
+                status.Warnings.Add("读取安装包驱动版本失败：" + ex.Message);
+            }
+
             return status;
+        }
+
+        /// <summary>读取安装包里自带的 Zako 驱动版本，并与本机已安装驱动对照。</summary>
+        private static void ReadBundledDriverInfo(ZakoDisplayStatus status, string sunshineInstallPath)
+        {
+            string installPath = sunshineInstallPath;
+            if (string.IsNullOrEmpty(installPath))
+            {
+                try
+                {
+                    installPath = SunshineDetector.Detect().InstallPath;
+                }
+                catch
+                {
+                }
+            }
+
+            if (string.IsNullOrEmpty(installPath)) return;
+
+            string infPath = Path.Combine(installPath, @"tools\vdd\ZakoVDD.inf");
+            if (!File.Exists(infPath))
+            {
+                status.Warnings.Add("安装包目录里没有找到 Zako 驱动（tools\\vdd\\ZakoVDD.inf），该版本可能未内置虚拟显示器。");
+                return;
+            }
+
+            status.BundledInfPath = infPath;
+            string text = ReadTextFile(infPath);
+            if (string.IsNullOrEmpty(text)) return;
+
+            Match match = Regex.Match(text,
+                @"DriverVer\s*=\s*(\d{1,2}/\d{1,2}/\d{4})\s*,\s*([0-9A-Za-z\.\-]+)",
+                RegexOptions.IgnoreCase);
+            if (!match.Success)
+            {
+                status.Warnings.Add("Zako 驱动 INF 里没有可识别的 DriverVer。");
+                return;
+            }
+
+            status.BundledDriverDate = NormalizeDriverDate(match.Groups[1].Value);
+            status.BundledDriverVersion = match.Groups[2].Value.Trim();
+
+            if (status.Adapter != null && !string.IsNullOrEmpty(status.Adapter.DriverVersion))
+            {
+                status.DriverVersionMatch =
+                    string.Equals(status.Adapter.DriverVersion, status.BundledDriverVersion, StringComparison.OrdinalIgnoreCase)
+                        ? ZakoDriverVersionMatch.Match
+                        : ZakoDriverVersionMatch.Mismatch;
+            }
+        }
+
+        private static string NormalizeDriverDate(string text)
+        {
+            string[] parts = text.Split('/');
+            if (parts.Length != 3) return text;
+
+            int month;
+            int day;
+            int year;
+            if (!int.TryParse(parts[0], out month) || !int.TryParse(parts[1], out day) || !int.TryParse(parts[2], out year))
+                return text;
+
+            return year.ToString("0000") + "-" + month.ToString("00") + "-" + day.ToString("00");
+        }
+
+        private static string ReadTextFile(string path)
+        {
+            byte[] data;
+            using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                int length = (int)Math.Min(stream.Length, 64 * 1024);
+                data = new byte[length];
+                int read = stream.Read(data, 0, length);
+                if (read < length) Array.Resize(ref data, read);
+            }
+
+            if (data.Length >= 2 && data[0] == 0xFF && data[1] == 0xFE)
+                return Encoding.Unicode.GetString(data, 2, data.Length - 2);
+
+            string utf8 = new UTF8Encoding(false, false).GetString(data);
+            if (utf8.IndexOf("DriverVer", StringComparison.OrdinalIgnoreCase) >= 0) return utf8;
+
+            try
+            {
+                return Encoding.GetEncoding(936).GetString(data);
+            }
+            catch
+            {
+                return utf8;
+            }
         }
 
         private static void ReadOperatingSystem(ZakoDisplayStatus status)
