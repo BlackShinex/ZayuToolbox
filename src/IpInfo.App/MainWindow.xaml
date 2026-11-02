@@ -534,7 +534,7 @@
             <Grid>
                 <TextBlock x:Name="TimestampText" Text="检测时间 --" FontSize="11.5" Foreground="#94A3B8"
                            VerticalAlignment="Center"/>
-                <TextBlock x:Name="VersionText" Text="杂鱼串流工具箱 v1.5 · 作者 BlackCat · 数据仅在本机处理"
+                <TextBlock x:Name="VersionText" Text="杂鱼串流工具箱 v1.6 · 作者 BlackCat · 数据仅在本机处理"
                            HorizontalAlignment="Right" FontSize="11.5" Foreground="#94A3B8"
                            VerticalAlignment="Center"/>
             </Grid>

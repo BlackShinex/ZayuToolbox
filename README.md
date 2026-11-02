@@ -1,6 +1,6 @@
 # 杂鱼串流工具箱
 
-> 作者：**BlackCat** · 版本：**1.5**
+> 作者：**BlackCat** · 版本：**1.6**
 
 **杂鱼串流工具箱**是一个面向串流与网络排障的 Windows 工具箱：查看本机 IPv4 / IPv6 地址、公网出口，检测当前网络是否在公网、属于哪种 NAT 类型，提供 **IPv6 入站可达性自检**，并集成 **WebView2 运行库检测与安装修复**。默认对 IP 中间部分打码，支持一键显示和逐条复制。
 
@@ -39,6 +39,8 @@
   - 支持复制完整诊断信息、打开安装目录、访问 Microsoft 官方下载页
   - 「安装 / 修复」会从 Microsoft 官方短链下载 Evergreen Bootstrapper，校验 Microsoft Authenticode 数字签名后静默安装
   - 普通用户可以安装到当前用户，也可以勾选「为所有用户安装」触发 UAC；也支持选择本地 WebView2 安装包离线安装
+- **单文件发布**
+  - `IpInfo.Core` 的源码在构建时直接编译进主程序，发布包只需要 exe 与配置文件
 - **高分屏适配**
   - 清单启用 Per-Monitor V2 DPI 感知，并配置 WPF `DoNotScaleForDpiChanges=false`
   - 窗口启动/跨屏移动时自动限制在当前屏幕可用区域内，125% / 150% 缩放下不会超出屏幕；内容用 ScrollViewer 兜底
@@ -53,7 +55,7 @@
 
 ## 下载发布版
 
-从 GitHub **Releases** 下载 `ZayuToolbox-1.5-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.5\杂鱼串流工具箱.exe` 运行。  
+从 GitHub **Releases** 下载 `ZayuToolbox-1.6-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.6\杂鱼串流工具箱.exe` 运行。  
 压缩包内含 `杂鱼串流工具箱.exe`、`杂鱼串流工具箱.exe.config`（高分屏配置）和 README。`IpInfo.Core` 的源码在构建时直接编译进 exe，不再单独分发 DLL。
 
 也可以按下一节从源码自行构建。
@@ -68,13 +70,13 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zi
 
 - 构建产物：`src\IpInfo.App\bin\Release\杂鱼串流工具箱.exe` 和 `杂鱼串流工具箱.exe.config`（Core 源码已编译进 exe，不再生成独立 DLL）
 - `-Package` 会把可运行文件复制到 `dist\`
-- `-Zip` 会额外生成 `dist\ZayuToolbox-1.5-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.5\杂鱼串流工具箱.exe` 即可运行
+- `-Zip` 会额外生成 `dist\ZayuToolbox-1.6-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.6\杂鱼串流工具箱.exe` 即可运行
 - 也可以使用 Visual Studio 2019/2022 打开 `IpInfo.sln`（经典 .NET Framework WPF 项目）直接构建、调试
 
 ## 测试
 
 ```powershell
-# 1) 核心逻辑 + 真实网络探测（63 项离线检查；--live 额外 5 项联网检查）
+# 1) 核心逻辑 + 真实网络探测（64 项离线检查；--live 额外 5 项联网检查）
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 .\tests\IpInfo.CoreTests\bin\Debug\IpInfo.CoreTests.exe --live
 
@@ -212,7 +214,8 @@ Windows 防火墙状态优先通过 `HNetCfg.FwPolicy2` COM 读取；普通用�
 ## 作者与版本
 
 - 作者：BlackCat
-- 版本：1.5
+- 版本：1.6
+- v1.6：将 Core 源码编译进单文件 exe；WebView2 安装支持取消，并加固签名校验与启动之间的 TOCTOU；核心测试增至 64 项。
 - v1.5：软件正式更名为「杂鱼串流工具箱」，同步更新窗口标题、程序名、图标文字、exe 文件名、发布包与文档。
 
 ## 许可证
