@@ -608,7 +608,16 @@ namespace IpInfo.CoreTests
             else
             {
                 CheckTrue("已安装时能找到适配器", status.Adapter != null, "适配器为空");
-                Console.WriteLine("    " + status.Summary + " | 设备数 " + status.Devices.Count);
+                if (status.Adapter != null && !string.IsNullOrEmpty(status.Adapter.DriverVersion))
+                {
+                    CheckTrue("读到驱动版本", !string.IsNullOrEmpty(status.Adapter.DriverVersion));
+                    CheckTrue("驱动日期格式规范",
+                        string.IsNullOrEmpty(status.Adapter.DriverDate)
+                            || (status.Adapter.DriverDate.Length == 10 && status.Adapter.DriverDate[4] == '-'),
+                        status.Adapter.DriverDate);
+                }
+                Console.WriteLine("    " + status.Summary + " | 设备数 " + status.Devices.Count
+                    + " | 驱动 " + (status.Adapter == null ? "—" : status.Adapter.DriverVersion));
             }
         }
 

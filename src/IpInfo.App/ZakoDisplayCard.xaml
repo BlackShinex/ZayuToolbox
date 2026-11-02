@@ -64,6 +64,8 @@
                                    Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
                         <TextBlock x:Name="ZakoProblemText" Text="设备状态：--" FontSize="11"
                                    Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                        <TextBlock x:Name="ZakoDriverText" Text="驱动版本：--" FontSize="11"
+                                   Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
                         <TextBlock x:Name="ZakoDeviceCountText" Text="Zako 设备数：--" FontSize="10.5"
                                    Foreground="#64748B" TextWrapping="Wrap" Margin="0,3,0,0"/>
                         <TextBlock x:Name="ZakoDeviceListText" Text="" FontSize="10.5"

@@ -714,13 +714,13 @@
                               HorizontalScrollBarVisibility="Disabled" Padding="24,20,24,20">
                     <StackPanel>
                         <!-- Sunshine 版本自检 -->
-                        <views:SunshineCard/>
+                        <views:SunshineCard x:Name="VersionCardView"/>
 
                         <!-- Sunshine 服务状态 -->
-                        <views:SunshineServiceCard/>
+                        <views:SunshineServiceCard x:Name="ServiceCardView"/>
 
                         <!-- Zako 虚拟显示器 -->
-                        <views:ZakoDisplayCard/>
+                        <views:ZakoDisplayCard x:Name="ZakoCardView"/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

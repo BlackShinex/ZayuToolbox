@@ -58,6 +58,8 @@ namespace IpInfo.App
             RevealToggle.Foreground = UiPalette.IndigoFg;
             UpdatePageVisibility(NavList.SelectedIndex);
 
+            if (VersionCardView != null) VersionCardView.Detected += SunshineVersionCard_Detected;
+
             Version appVersion = typeof(MainWindow).Assembly.GetName().Version;
             VersionText.Text = "杂鱼串流工具箱 v" + appVersion.Major + "." + appVersion.Minor
                 + " · 作者 BlackCat · 数据仅在本机处理";
@@ -70,6 +72,12 @@ namespace IpInfo.App
         private void MainWindow_DpiChanged(object sender, DpiChangedEventArgs e)
         {
             FitToWorkArea();
+        }
+
+        /// <summary>版本自检刷新后，服务与虚拟显示器卡片跟着刷新（含基地版门槛变化）。</summary>
+        private async void SunshineVersionCard_Detected(object sender, EventArgs e)
+        {
+            await Task.WhenAll(ServiceCardView.RefreshAsync(), ZakoCardView.RefreshAsync());
         }
 
         /// <summary>

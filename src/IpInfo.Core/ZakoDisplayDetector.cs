@@ -32,6 +32,12 @@ namespace IpInfo.Core
         public string ProblemText { get; set; }
         public string Summary { get; set; }
 
+        /// <summary>驱动版本，来自 Win32_PnPSignedDriver。</summary>
+        public string DriverVersion { get; set; }
+        public string DriverDate { get; set; }
+        public string DriverProvider { get; set; }
+        public string InfName { get; set; }
+
         public ZakoDeviceInfo()
         {
             Name = string.Empty;
@@ -40,6 +46,10 @@ namespace IpInfo.Core
             DeviceId = string.Empty;
             ProblemText = string.Empty;
             Summary = string.Empty;
+            DriverVersion = string.Empty;
+            DriverDate = string.Empty;
+            DriverProvider = string.Empty;
+            InfName = string.Empty;
         }
     }
 
@@ -118,6 +128,12 @@ namespace IpInfo.Core
             {
                 sb.AppendLine("显示适配器：" + NullSafe(Adapter.Name));
                 sb.AppendLine("设备状态：" + NullSafe(Adapter.Status) + " · " + NullSafe(Adapter.ProblemText));
+                if (!string.IsNullOrEmpty(Adapter.DriverVersion))
+                {
+                    sb.AppendLine("驱动版本：" + Adapter.DriverVersion
+                        + (string.IsNullOrEmpty(Adapter.DriverDate) ? string.Empty : "（" + Adapter.DriverDate + "）")
+                        + (string.IsNullOrEmpty(Adapter.DriverProvider) ? string.Empty : " · " + Adapter.DriverProvider));
+                }
                 if (!string.IsNullOrEmpty(Adapter.DeviceId)) sb.AppendLine("设备 ID：" + Adapter.DeviceId);
             }
 
@@ -245,6 +261,8 @@ namespace IpInfo.Core
                 return;
             }
 
+            ReadDriverInfo(status);
+
             ZakoDeviceInfo adapter = null;
             for (int i = 0; i < status.Devices.Count; i++)
             {
@@ -287,6 +305,60 @@ namespace IpInfo.Core
                 if (device.ProblemCode == 45)
                 {
                     status.Warnings.Add("设备「" + device.Name + "」当前未连接（Code 45），虚拟显示器空闲时属于正常现象。");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 驱动信息从注册表读：设备的 Driver 值指向 Control\Class 下的键，
+        /// 比 WMI 的 Win32_PnPSignedDriver 快一个数量级（后者要十几秒）。
+        /// </summary>
+        private static void ReadDriverInfo(ZakoDisplayStatus status)
+        {
+            for (int i = 0; i < status.Devices.Count; i++)
+            {
+                ZakoDeviceInfo device = status.Devices[i];
+                if (string.IsNullOrEmpty(device.DeviceId)) continue;
+
+                try
+                {
+                    ReadDriverInfo(device);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        private static void ReadDriverInfo(ZakoDeviceInfo device)
+        {
+            string driverKey;
+            using (RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+            using (RegistryKey deviceKey = baseKey.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\" + device.DeviceId))
+            {
+                if (deviceKey == null) return;
+                driverKey = deviceKey.GetValue("Driver") as string;
+            }
+
+            if (string.IsNullOrEmpty(driverKey)) return;
+
+            using (RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+            using (RegistryKey classKey = baseKey.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Class\" + driverKey))
+            {
+                if (classKey == null) return;
+
+                device.DriverVersion = (classKey.GetValue("DriverVersion") as string) ?? string.Empty;
+                device.DriverProvider = (classKey.GetValue("ProviderName") as string) ?? string.Empty;
+                device.InfName = (classKey.GetValue("InfPath") as string) ?? string.Empty;
+
+                byte[] dateData = classKey.GetValue("DriverDateData") as byte[];
+                if (dateData != null && dateData.Length == 8)
+                {
+                    long fileTime = BitConverter.ToInt64(dateData, 0);
+                    if (fileTime > 0)
+                    {
+                        device.DriverDate = DateTime.FromFileTimeUtc(fileTime).ToLocalTime().ToString("yyyy-MM-dd");
+                    }
                 }
             }
         }

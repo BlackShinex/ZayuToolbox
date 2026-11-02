@@ -37,7 +37,8 @@ namespace IpInfo.App
             await RefreshAsync();
         }
 
-        private async Task RefreshAsync()
+        /// <summary>重新检测；供版本自检卡片联动调用。</summary>
+        public async Task RefreshAsync()
         {
             if (_busy) return;
 

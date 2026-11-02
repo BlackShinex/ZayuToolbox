@@ -31,7 +31,8 @@ namespace IpInfo.App
             await RefreshAsync();
         }
 
-        private async Task RefreshAsync()
+        /// <summary>重新检测；供版本自检卡片联动调用。</summary>
+        public async Task RefreshAsync()
         {
             if (_busy) return;
 
@@ -99,6 +100,7 @@ namespace IpInfo.App
             ZakoOsText.Text = "系统：—";
             ZakoAdapterText.Text = "适配器：—";
             ZakoProblemText.Text = "设备状态：—";
+            ZakoDriverText.Text = "驱动版本：—";
             ZakoDeviceCountText.Text = "Zako 设备数：—";
             ZakoDeviceListText.Text = string.Empty;
 
@@ -159,6 +161,8 @@ namespace IpInfo.App
                 ZakoProblemText.Text = "设备状态：—";
             }
 
+            ZakoDriverText.Text = "驱动版本：" + BuildDriverText(status.Adapter);
+
             ZakoDeviceCountText.Text = "Zako 设备数：" + status.Devices.Count;
 
             List<string> names = new List<string>();
@@ -190,6 +194,16 @@ namespace IpInfo.App
                 ZakoWarningBanner.Visibility = Visibility.Collapsed;
                 ZakoWarningText.Text = string.Empty;
             }
+        }
+
+        private static string BuildDriverText(ZakoDeviceInfo adapter)
+        {
+            if (adapter == null || string.IsNullOrEmpty(adapter.DriverVersion)) return "—";
+
+            string text = adapter.DriverVersion;
+            if (!string.IsNullOrEmpty(adapter.DriverDate)) text += "（" + adapter.DriverDate + "）";
+            if (!string.IsNullOrEmpty(adapter.DriverProvider)) text += " · " + adapter.DriverProvider;
+            return text;
         }
 
         private async void ZakoRefreshButton_Click(object sender, RoutedEventArgs e)

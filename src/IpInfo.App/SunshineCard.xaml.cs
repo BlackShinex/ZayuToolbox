@@ -17,6 +17,9 @@ namespace IpInfo.App
     {
         private SunshineDetectionResult _result;
         private bool _busy;
+
+        /// <summary>版本检测完成后触发，用于联动服务与虚拟显示器卡片。</summary>
+        public event EventHandler Detected;
         private DispatcherTimer _copyFeedbackTimer;
         private Button _copyFeedbackButton;
         private object _copyFeedbackContent;
@@ -53,6 +56,8 @@ namespace IpInfo.App
                 if (result == null) throw new InvalidOperationException("Sunshine 检测返回了空结果。");
                 _result = result;
                 Render(result);
+
+                if (Detected != null) Detected(this, EventArgs.Empty);
             }
             catch (Exception ex)
             {
