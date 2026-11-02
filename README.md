@@ -54,7 +54,7 @@
 ## 下载发布版
 
 从 GitHub **Releases** 下载 `ZayuToolbox-1.5-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.5\杂鱼串流工具箱.exe` 运行。  
-压缩包内含 `杂鱼串流工具箱.exe`、`IpInfo.Core.dll`、`杂鱼串流工具箱.exe.config`（高分屏配置）和 README。
+压缩包内含 `杂鱼串流工具箱.exe`、`杂鱼串流工具箱.exe.config`（高分屏配置）和 README。`IpInfo.Core` 的源码在构建时直接编译进 exe，不再单独分发 DLL。
 
 也可以按下一节从源码自行构建。
 
@@ -66,7 +66,7 @@
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zip
 ```
 
-- 构建产物：`src\IpInfo.App\bin\Release\杂鱼串流工具箱.exe`、`IpInfo.Core.dll`、`杂鱼串流工具箱.exe.config`
+- 构建产物：`src\IpInfo.App\bin\Release\杂鱼串流工具箱.exe` 和 `杂鱼串流工具箱.exe.config`（Core 源码已编译进 exe，不再生成独立 DLL）
 - `-Package` 会把可运行文件复制到 `dist\`
 - `-Zip` 会额外生成 `dist\ZayuToolbox-1.5-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.5\杂鱼串流工具箱.exe` 即可运行
 - 也可以使用 Visual Studio 2019/2022 打开 `IpInfo.sln`（经典 .NET Framework WPF 项目）直接构建、调试

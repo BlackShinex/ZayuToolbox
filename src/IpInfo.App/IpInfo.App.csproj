@@ -40,6 +40,9 @@
     <Reference Include="System.Core">
       <Private>False</Private>
     </Reference>
+    <Reference Include="System.Net.Http">
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System.Xml">
       <Private>False</Private>
     </Reference>
@@ -96,10 +99,10 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\IpInfo.Core\IpInfo.Core.csproj">
-      <Project>{A1B2C3D4-0001-4E5F-8A9B-000000000001}</Project>
-      <Name>IpInfo.Core</Name>
-    </ProjectReference>
+    <!-- 直接编译 Core 源码，发布时只生成单个 IpInfo.exe，不再输出 IpInfo.Core.dll。 -->
+    <Compile Include="..\IpInfo.Core\*.cs" Exclude="..\IpInfo.Core\AssemblyInfo.cs">
+      <Link>Core\%(Filename)%(Extension)</Link>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
