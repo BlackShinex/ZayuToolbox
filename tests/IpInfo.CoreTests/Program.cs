@@ -601,6 +601,28 @@ namespace IpInfo.CoreTests
             CheckTrue("Zako 诊断信息包含标题",
                 status.ToDiagnostics().IndexOf("Zako", StringComparison.Ordinal) >= 0);
 
+            List<ZakoDeviceInfo> one = new List<ZakoDeviceInfo>();
+            ZakoDeviceInfo healthy = new ZakoDeviceInfo();
+            healthy.DeviceClass = "Display";
+            healthy.ProblemCode = 0;
+            one.Add(healthy);
+            CheckTrue("单适配器正常判定",
+                ZakoDisplayDetector.EvaluateState(one) == ZakoDisplayState.Healthy);
+
+            ZakoDeviceInfo disabled = new ZakoDeviceInfo();
+            disabled.DeviceClass = "Display";
+            disabled.ProblemCode = 22;
+            CheckTrue("单适配器禁用判定",
+                ZakoDisplayDetector.EvaluateState(new List<ZakoDeviceInfo> { disabled }) == ZakoDisplayState.Disabled);
+
+            List<ZakoDeviceInfo> two = new List<ZakoDeviceInfo>();
+            two.Add(healthy);
+            two.Add(healthy);
+            CheckTrue("两个适配器判为异常",
+                ZakoDisplayDetector.EvaluateState(two) == ZakoDisplayState.MultipleAdapters);
+            CheckTrue("空列表判为未安装",
+                ZakoDisplayDetector.EvaluateState(new List<ZakoDeviceInfo>()) == ZakoDisplayState.NotInstalled);
+
             if (status.State == ZakoDisplayState.NotInstalled)
             {
                 Console.WriteLine("    [跳过] 本机未安装 Zako 虚拟显示器");

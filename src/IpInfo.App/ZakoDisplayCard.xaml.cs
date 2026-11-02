@@ -148,6 +148,10 @@ namespace IpInfo.App
                     ? "未找到 Zako 显示适配器，安装包目录里也没有驱动文件。"
                     : "未找到 Zako 显示适配器，但安装包自带驱动 " + status.BundledDriverVersion + "，重新安装基地版即可恢复。";
             }
+            else if (status.State == ZakoDisplayState.MultipleAdapters)
+            {
+                ZakoHintText.Text = "检测到多个 Zako 显示适配器，通常由重复安装或旧驱动残留导致，建议卸载后重新安装基地版。";
+            }
             else if (status.DriverVersionMatch == ZakoDriverVersionMatch.Mismatch)
             {
                 ZakoHintText.Text = "已安装驱动 " + NullSafe(status.Adapter == null ? null : status.Adapter.DriverVersion)

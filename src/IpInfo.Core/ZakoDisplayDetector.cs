@@ -21,7 +21,9 @@ namespace IpInfo.Core
         /// <summary>驱动缺失或安装失败。</summary>
         DriverMissing,
         /// <summary>其他设备错误。</summary>
-        Error
+        Error,
+        /// <summary>存在多个 Zako 显示适配器，通常是重复安装或旧驱动残留。</summary>
+        MultipleAdapters
     }
 
     /// <summary>安装包内驱动版本与本机已安装驱动的对照结果。</summary>
@@ -123,6 +125,7 @@ namespace IpInfo.Core
                     case ZakoDisplayState.Disabled: return "已禁用";
                     case ZakoDisplayState.DriverMissing: return "驱动缺失";
                     case ZakoDisplayState.Error: return "异常";
+                    case ZakoDisplayState.MultipleAdapters: return "多个适配器";
                     default: return "未知";
                 }
             }
@@ -147,6 +150,9 @@ namespace IpInfo.Core
             {
                 if (State == ZakoDisplayState.NotInstalled)
                     return "未检测到 Zako 虚拟显示器";
+
+                if (State == ZakoDisplayState.MultipleAdapters)
+                    return "存在 " + CountAdapters() + " 个 Zako 显示适配器";
 
                 string adapter = Adapter == null || string.IsNullOrEmpty(Adapter.Name) ? "Zako 显示适配器" : Adapter.Name;
                 return StateLabel + " · " + adapter;
@@ -200,6 +206,16 @@ namespace IpInfo.Core
             }
             if (!string.IsNullOrEmpty(Error)) sb.AppendLine("错误：" + Error);
             return sb.ToString();
+        }
+
+        private int CountAdapters()
+        {
+            int count = 0;
+            for (int i = 0; i < Devices.Count; i++)
+            {
+                if (string.Equals(Devices[i].DeviceClass, "Display", StringComparison.OrdinalIgnoreCase)) count++;
+            }
+            return count;
         }
 
         private static string NullSafe(string value)
@@ -418,40 +434,37 @@ namespace IpInfo.Core
 
             ReadDriverInfo(status);
 
-            ZakoDeviceInfo adapter = null;
+            List<ZakoDeviceInfo> adapters = new List<ZakoDeviceInfo>();
             for (int i = 0; i < status.Devices.Count; i++)
             {
                 ZakoDeviceInfo device = status.Devices[i];
                 if (string.Equals(device.DeviceClass, "Display", StringComparison.OrdinalIgnoreCase))
-                {
-                    adapter = device;
-                    break;
-                }
+                    adapters.Add(device);
             }
 
-            status.Adapter = adapter;
-            if (adapter == null)
+            if (adapters.Count == 0)
             {
                 status.State = ZakoDisplayState.NotInstalled;
                 return;
             }
 
-            switch (adapter.ProblemCode)
+            ZakoDeviceInfo primary = adapters[0];
+            for (int i = 0; i < adapters.Count; i++)
             {
-                case 0:
-                    status.State = ZakoDisplayState.Healthy;
+                if (adapters[i].ProblemCode != 0)
+                {
+                    primary = adapters[i];
                     break;
-                case 22:
-                    status.State = ZakoDisplayState.Disabled;
-                    break;
-                case 28:
-                case 18:
-                case 31:
-                    status.State = ZakoDisplayState.DriverMissing;
-                    break;
-                default:
-                    status.State = ZakoDisplayState.Error;
-                    break;
+                }
+            }
+
+            status.Adapter = primary;
+            status.State = EvaluateState(adapters);
+
+            if (adapters.Count > 1)
+            {
+                status.Warnings.Add("检测到 " + adapters.Count
+                    + " 个 Zako 显示适配器，通常是重复安装或旧版本驱动残留；建议卸载后重新安装基地版。");
             }
 
             for (int i = 0; i < status.Devices.Count; i++)
@@ -461,6 +474,25 @@ namespace IpInfo.Core
                 {
                     status.Warnings.Add("设备「" + device.Name + "」当前未连接（Code 45），虚拟显示器空闲时属于正常现象。");
                 }
+            }
+        }
+
+        /// <summary>
+        /// 只有单个显示适配器时才逐一看问题码；多于一个直接判为异常（重复安装或残留）。
+        /// </summary>
+        public static ZakoDisplayState EvaluateState(IList<ZakoDeviceInfo> adapters)
+        {
+            if (adapters == null || adapters.Count == 0) return ZakoDisplayState.NotInstalled;
+            if (adapters.Count > 1) return ZakoDisplayState.MultipleAdapters;
+
+            switch (adapters[0].ProblemCode)
+            {
+                case 0: return ZakoDisplayState.Healthy;
+                case 22: return ZakoDisplayState.Disabled;
+                case 18:
+                case 28:
+                case 31: return ZakoDisplayState.DriverMissing;
+                default: return ZakoDisplayState.Error;
             }
         }
 
