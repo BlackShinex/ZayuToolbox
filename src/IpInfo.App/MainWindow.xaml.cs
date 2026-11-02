@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -66,6 +67,32 @@ namespace IpInfo.App
         private void MainWindow_DpiChanged(object sender, DpiChangedEventArgs e)
         {
             FitToWorkArea();
+        }
+
+        /// <summary>
+        /// 内层 ScrollViewer 到达顶部/底部后，把滚轮事件交给外层页面，
+        /// 避免鼠标停在跃点列表或检测详情上时整页滚动“卡住”。
+        /// </summary>
+        private void NestedScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            ScrollViewer inner = sender as ScrollViewer;
+            if (inner == null) return;
+
+            bool canScrollUp = inner.VerticalOffset > 0.5;
+            bool canScrollDown = inner.VerticalOffset < inner.ScrollableHeight - 0.5;
+            if ((e.Delta > 0 && !canScrollUp) || (e.Delta < 0 && !canScrollDown))
+            {
+                e.Handled = true;
+                double before = MainScrollViewer.VerticalOffset;
+                MouseWheelEventArgs forwarded = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta);
+                forwarded.RoutedEvent = UIElement.MouseWheelEvent;
+                MainScrollViewer.RaiseEvent(forwarded);
+                if (Math.Abs(MainScrollViewer.VerticalOffset - before) < 0.5)
+                {
+                    double offset = before + (e.Delta > 0 ? -48 : 48);
+                    MainScrollViewer.ScrollToVerticalOffset(Math.Max(0, offset));
+                }
+            }
         }
 
         /// <summary>在 125% / 150% 等高分屏缩放下，保证窗口不会超出当前屏幕可用区域。</summary>
