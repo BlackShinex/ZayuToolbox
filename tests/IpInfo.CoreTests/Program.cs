@@ -210,8 +210,19 @@ namespace IpInfo.CoreTests
                 if (v4[i].IsPrimary) { primary4 = v4[i]; break; }
             }
             CheckTrue("IPv4 主地址存在", primary4 != null);
-            CheckTrue("IPv4 主地址不是虚拟网卡", primary4 == null || !primary4.IsVirtual,
-                primary4 == null ? "" : primary4.InterfaceName);
+
+            bool hasPhysicalCandidate = false;
+            for (int i = 0; i < v4.Count; i++)
+            {
+                if (!v4[i].IsVirtual && v4[i].Scope != IpAddressScope.LinkLocal)
+                {
+                    hasPhysicalCandidate = true;
+                    break;
+                }
+            }
+            CheckTrue("IPv4 主地址不是虚拟网卡（存在物理候选时）",
+                !hasPhysicalCandidate || primary4 == null || !primary4.IsVirtual,
+                primary4 == null ? "" : primary4.InterfaceName + "（CI/VM 环境可能只有虚拟网卡）");
             CheckTrue("IPv4 主地址有接口索引", primary4 == null || primary4.InterfaceIndex >= 0);
         }
 
