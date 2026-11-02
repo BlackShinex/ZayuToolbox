@@ -113,7 +113,7 @@
                         <ToggleButton x:Name="RevealToggle" Content="显示 IP" Style="{StaticResource ToolToggle}"
                                       Checked="RevealToggle_Checked" Unchecked="RevealToggle_Unchecked"
                                       ToolTip="默认隐藏 IP 中间部分，点击显示完整地址"/>
-                        <Button x:Name="RefreshButton" Content="重新检测" Style="{StaticResource ToolButton}"
+                        <Button x:Name="RefreshButton" Content="开始检测" Style="{StaticResource ToolButton}"
                                 Click="RefreshButton_Click" Margin="8,0,0,0"/>
                     </StackPanel>
                 </Grid>
@@ -511,7 +511,7 @@
                         <ToggleButton x:Name="HopRevealToggle" Content="显示 IP" Style="{StaticResource ToolToggle}"
                                       Checked="HopRevealToggle_Checked" Unchecked="HopRevealToggle_Unchecked"
                                       ToolTip="默认隐藏跃点地址中间部分，点击显示完整地址"/>
-                        <Button x:Name="HopRefreshButton" Content="重新检测" Style="{StaticResource ToolButton}"
+                        <Button x:Name="HopRefreshButton" Content="开始检测" Style="{StaticResource ToolButton}"
                                 Click="HopRefreshButton_Click" Margin="8,0,0,0"/>
                     </StackPanel>
                 </Grid>
@@ -532,8 +532,6 @@
                                 </StackPanel>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                <Button x:Name="NatTraceStartButton" Content="开始跟踪"
-                                        Style="{StaticResource CopyButton}" Click="NatTraceStartButton_Click"/>
                                 <Button x:Name="NatTraceStopButton" Content="停止" Visibility="Collapsed"
                                         Style="{StaticResource CopyButton}" Click="NatTraceStopButton_Click"
                                         Margin="6,0,0,0"/>
@@ -547,7 +545,7 @@
                         <Border x:Name="NatTraceSummaryBanner" Background="#EEF2FF" CornerRadius="10"
                                 Padding="14,11" Margin="0,12,0,0">
                             <TextBlock x:Name="NatTraceSummaryText"
-                                       Text="尚未开始。点击「开始跟踪」逐跳探测到公网出口。"
+                                       Text="尚未开始。点击右上「开始检测」逐跳探测到公网出口。"
                                        FontSize="12" Foreground="#3730A3" TextWrapping="Wrap"/>
                         </Border>
 

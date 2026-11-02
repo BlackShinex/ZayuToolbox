@@ -150,7 +150,8 @@ try {
     Check "网络检测不再自动执行" (($idleTexts -match "尚未检测") -and ($idleTexts -notmatch "NAT 后"))
 
     $refreshButton = Get-ElementByAutomationId $window "RefreshButton"
-    Check "网络检测页提供重新检测按钮" ($refreshButton -ne $null -and $refreshButton.Current.IsEnabled)
+    Check "网络检测页提供检测按钮" ($refreshButton -ne $null -and $refreshButton.Current.IsEnabled)
+    Check "网络检测初始按钮为开始检测" ($refreshButton -ne $null -and $refreshButton.Current.Name -eq "开始检测") ("实际为 " + $refreshButton.Current.Name)
     if ($refreshButton -ne $null -and $refreshButton.Current.IsEnabled) { Invoke-Element $refreshButton }
 
     # 等待检测完成：出现 NAT 结果（避免读到“检测中…”）
@@ -164,6 +165,9 @@ try {
     }
     Start-Sleep -Milliseconds 800
     Check "检测已完成" $ready "30 秒内未出现 NAT 结果"
+
+    $refreshAfter = Get-ElementByAutomationId $window "RefreshButton"
+    Check "检测完成后按钮变为重新检测" ($refreshAfter -ne $null -and $refreshAfter.Current.Name -eq "重新检测") ("实际为 " + $refreshAfter.Current.Name)
 
     $texts = Get-WindowTexts $window
     $joined = $texts -join "`n"
@@ -188,11 +192,23 @@ try {
 
     # NAT 跃点跟踪页
     Check "切换到 NAT 跃点跟踪页" (Select-NavItem $window "NAT 跃点跟踪")
-    $natTraceStart = Get-ElementByAutomationId $window "NatTraceStartButton"
-    Check "显示多层 NAT 跃点跟踪卡片" ($natTraceStart -ne $null -and $natTraceStart.Current.IsEnabled)
     $hopReveal = Get-ElementByAutomationId $window "HopRevealToggle"
     $hopRefresh = Get-ElementByAutomationId $window "HopRefreshButton"
-    Check "跃点页提供显示 IP 与重新检测" ($hopReveal -ne $null -and $hopRefresh -ne $null)
+    Check "跃点页提供显示 IP 与检测按钮" ($hopReveal -ne $null -and $hopRefresh -ne $null)
+    Check "跃点页初始按钮为开始检测" ($hopRefresh -ne $null -and $hopRefresh.Current.Name -eq "开始检测") ("实际为 " + $hopRefresh.Current.Name)
+    $hopCardStart = Get-ElementByAutomationId $window "NatTraceStartButton"
+    Check "跃点卡片内不再重复开始按钮" ($hopCardStart -eq $null)
+
+    if ($hopRefresh -ne $null) {
+        Invoke-Element $hopRefresh
+        $hopReady = $false
+        for ($i = 0; $i -lt 40; $i++) {
+            Start-Sleep -Milliseconds 500
+            $hopRefresh = Get-ElementByAutomationId $window "HopRefreshButton"
+            if ($hopRefresh -ne $null -and $hopRefresh.Current.Name -eq "重新检测") { $hopReady = $true; break }
+        }
+        Check "跃点检测完成后按钮变为重新检测" $hopReady
+    }
 
     # Sunshine 版本页
     Check "切换到 Sunshine 版本页" (Select-NavItem $window "Sunshine 版本")

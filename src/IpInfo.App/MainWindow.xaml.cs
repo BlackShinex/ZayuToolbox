@@ -225,8 +225,9 @@ namespace IpInfo.App
         {
             SummaryBanner.Background = UiPalette.GrayBg;
             SummaryDot.Background = UiPalette.MutedFg;
-            SummaryText.Text = "尚未检测，点击「重新检测」开始";
+            SummaryText.Text = "尚未检测，点击「开始检测」开始";
             SummaryText.Foreground = UiPalette.GrayFg;
+            RefreshButton.Content = "开始检测";
 
             Ipv4Summary.Text = "尚未检测";
             Ipv6Summary.Text = "尚未检测";
@@ -333,6 +334,7 @@ namespace IpInfo.App
             {
                 _busy = false;
                 RefreshButton.IsEnabled = true;
+                RefreshButton.Content = "重新检测";
                 DetectProgressBar.Visibility = Visibility.Collapsed;
                 ProgressText.Visibility = Visibility.Collapsed;
                 _initialRefresh.TrySetResult(true);
@@ -420,7 +422,7 @@ namespace IpInfo.App
                 + "  ·  耗时 " + report.Elapsed.TotalSeconds.ToString("0.0") + " 秒";
         }
 
-        private async void NatTraceStartButton_Click(object sender, RoutedEventArgs e)
+        private async void HopRefreshButton_Click(object sender, RoutedEventArgs e)
         {
             if (_natTraceRunning) return;
 
@@ -429,8 +431,8 @@ namespace IpInfo.App
             CancellationToken token = _natTraceCts.Token;
             _natTraceResult = null;
             NatHopList.ItemsSource = null;
-            NatTraceStartButton.IsEnabled = false;
-            NatTraceStartButton.Content = "跟踪中…";
+            HopRefreshButton.IsEnabled = false;
+            HopRefreshButton.Content = "跟踪中…";
             NatTraceStopButton.IsEnabled = true;
             NatTraceStopButton.Visibility = Visibility.Visible;
             NatTraceProgressBar.Visibility = Visibility.Visible;
@@ -468,8 +470,8 @@ namespace IpInfo.App
                 NatTraceProgressBar.Visibility = Visibility.Collapsed;
                 NatTraceStopButton.Visibility = Visibility.Collapsed;
                 NatTraceStopButton.IsEnabled = true;
-                NatTraceStartButton.IsEnabled = true;
-                NatTraceStartButton.Content = _natTraceResult != null ? "重新跟踪" : "开始跟踪";
+                HopRefreshButton.IsEnabled = true;
+                HopRefreshButton.Content = "重新检测";
                 if (_natTraceCts != null)
                 {
                     _natTraceCts.Dispose();
@@ -1220,12 +1222,6 @@ namespace IpInfo.App
                 toggle.IsChecked = revealed;
                 _syncingReveal = false;
             }
-        }
-
-        private void HopRefreshButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_natTraceRunning) return;
-            NatTraceStartButton_Click(NatTraceStartButton, new RoutedEventArgs());
         }
 
         private void CopyIpButton_Click(object sender, RoutedEventArgs e)
