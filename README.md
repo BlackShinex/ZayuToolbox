@@ -4,7 +4,7 @@
 
 杂鱼串流工具箱把「查看 IP、判断 NAT、测试 P2P 连通性、检查 Sunshine 环境和组件、一键自检」放在一个界面里，专门解决串流前的网络与环境排查。
 
-![界面预览](docs/ui-preview-v1.8.png)
+![界面预览](docs/ui-preview-v1.8-window.png)
 
 ## 主要功能
 
