@@ -88,7 +88,7 @@ function Invoke-Element($element) {
     $pattern.Invoke()
 }
 
-function Wait-ClipboardTextMatch([string]$pattern, [int]$timeoutMs = 2500) {
+function Wait-ClipboardTextMatch([string]$pattern, [int]$timeoutMs = 5000) {
     $deadline = (Get-Date).AddMilliseconds($timeoutMs)
     while ((Get-Date) -lt $deadline) {
         try {

@@ -213,6 +213,24 @@ namespace IpInfo.Core
             }
         }
 
+        /// <summary>
+        /// 渠道维护者。基地版由 AlkaidLab 维护，不能直接沿用 exe 里上游的 CompanyName=LizardByte。
+        /// </summary>
+        public string AuthorName
+        {
+            get
+            {
+                switch (Kind)
+                {
+                    case SunshineBuildKind.BaseEdition: return "AlkaidLab";
+                    case SunshineBuildKind.Official: return "LizardByte";
+                    case SunshineBuildKind.Axixi: return "Axixi";
+                    default:
+                        return string.IsNullOrEmpty(CompanyName) ? "未知" : CompanyName;
+                }
+            }
+        }
+
         /// <summary>是否为第三方二次分发版本。</summary>
         public bool IsUnofficial
         {
@@ -252,7 +270,8 @@ namespace IpInfo.Core
             sb.AppendLine("版本号：" + NullSafe(Version));
             if (!string.IsNullOrEmpty(ProductVersion) && !string.Equals(ProductVersion, Version, StringComparison.OrdinalIgnoreCase))
                 sb.AppendLine("产品版本：" + ProductVersion);
-            sb.AppendLine("发布者：" + NullSafe(CompanyName));
+            sb.AppendLine("作者：" + NullSafe(AuthorName));
+            sb.AppendLine("版本资源 CompanyName：" + NullSafe(CompanyName));
             sb.AppendLine("安装来源：" + NullSafe(InstallerKind));
             if (!string.IsNullOrEmpty(UninstallDisplayName))
                 sb.AppendLine("卸载项：" + UninstallDisplayName);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -151,13 +151,13 @@ namespace IpInfo.App
 
                 string summary = "置信度 " + result.ConfidenceLabel;
                 if (!string.IsNullOrEmpty(result.InstallerKind)) summary += " · " + result.InstallerKind;
-                if (!string.IsNullOrEmpty(result.CompanyName)) summary += " · " + result.CompanyName;
+                if (!string.IsNullOrEmpty(result.AuthorName)) summary += " · " + result.AuthorName;
                 SunshineSummaryText.Text = summary;
                 SunshineHintText.Text = BuildHint(result);
             }
 
             SunshineVersionText.Text = (leftover ? "残留版本：" : "版本：") + NullSafe(result.Version);
-            SunshinePublisherText.Text = "发布者：" + NullSafe(result.CompanyName);
+            SunshinePublisherText.Text = "作者：" + NullSafe(result.AuthorName);
             SunshineInstallerText.Text = "安装来源：" + NullSafe(result.InstallerKind);
             SunshineServiceText.Text = "服务：" + (string.IsNullOrEmpty(result.ServiceName)
                 ? "未检测到"
@@ -220,8 +220,7 @@ namespace IpInfo.App
             }
             else
             {
-                MessageBox.Show("复制失败：剪贴板可能被其他程序占用。", "复制诊断",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                ClipboardHelper.ShowCopyFailure((Button)sender);
             }
         }
 
@@ -243,19 +242,7 @@ namespace IpInfo.App
 
         private static bool CopyToClipboard(string text)
         {
-            for (int attempt = 0; attempt < 3; attempt++)
-            {
-                try
-                {
-                    Clipboard.SetText(text);
-                    return true;
-                }
-                catch (Exception)
-                {
-                    Thread.Sleep(30);
-                }
-            }
-            return false;
+            return ClipboardHelper.TrySetText(text);
         }
 
         private void ShowCopyFeedback(Button button)

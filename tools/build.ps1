@@ -4,7 +4,7 @@
 #   .\tools\build.ps1              # Debug 构建
 #   .\tools\build.ps1 -Release     # Release 构建
 #   .\tools\build.ps1 -Release -Package  # Release 构建并打包到 dist\
-#   .\tools\build.ps1 -Release -Package -Zip  # 再额外生成 dist\ZayuToolbox-1.6-win-x64.zip
+#   .\tools\build.ps1 -Release -Package -Zip  # 再额外生成 dist\ZayuToolbox-1.7-win-x64.zip
 param(
     [switch]$Release,
     [switch]$Package,
@@ -17,7 +17,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $msbuild = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe"
 $config = if ($Release) { "Release" } else { "Debug" }
-$version = "1.6"
+$version = "1.7"
 
 if (-not (Test-Path $msbuild)) {
     throw "找不到 MSBuild：$msbuild"

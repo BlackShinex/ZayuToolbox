@@ -12,6 +12,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using IpInfo.Core;
@@ -141,6 +142,36 @@ namespace IpInfo.App
             WebView2ScrollViewer.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
             NetworkScrollViewer.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
             NatHopScrollViewer.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
+
+            ScrollViewer selected = index == 0 ? SunshineScrollViewer
+                : index == 1 ? WebView2ScrollViewer
+                : index == 2 ? NetworkScrollViewer
+                : NatHopScrollViewer;
+            if (selected != null)
+            {
+                selected.Opacity = 1;
+                if (IsLoaded)
+                {
+                    DoubleAnimation fade = new DoubleAnimation(0.35, 1, TimeSpan.FromMilliseconds(180));
+                    fade.EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+                    selected.BeginAnimation(UIElement.OpacityProperty, fade);
+                }
+            }
+        }
+
+        /// <summary>选择左侧导航页面，供截图模式与自动化使用。</summary>
+        public void SelectPage(string pageKey)
+        {
+            if (NavList == null || string.IsNullOrEmpty(pageKey)) return;
+            int index = 0;
+            switch (pageKey.ToLowerInvariant())
+            {
+                case "webview2": index = 1; break;
+                case "network": index = 2; break;
+                case "nathop": index = 3; break;
+                default: index = 0; break;
+            }
+            NavList.SelectedIndex = index;
         }
 
         /// <summary>在 125% / 150% 等高分屏缩放下，保证窗口不会超出当前屏幕可用区域。</summary>
@@ -898,7 +929,7 @@ namespace IpInfo.App
             }
             else
             {
-                ShowError("复制失败：剪贴板可能被其他程序占用。");
+                ClipboardHelper.ShowCopyFailure((Button)sender);
             }
         }
 
@@ -1151,7 +1182,7 @@ namespace IpInfo.App
             }
             else
             {
-                ShowError("复制失败：剪贴板可能被其他程序占用。");
+                ClipboardHelper.ShowCopyFailure((Button)sender);
             }
         }
 
@@ -1250,25 +1281,13 @@ namespace IpInfo.App
             }
             else
             {
-                ShowError("复制失败：剪贴板可能被其他程序占用，请稍后重试。");
+                ClipboardHelper.ShowCopyFailure(button);
             }
         }
 
         private static bool CopyToClipboard(string text)
         {
-            for (int attempt = 0; attempt < 3; attempt++)
-            {
-                try
-                {
-                    Clipboard.SetText(text);
-                    return true;
-                }
-                catch
-                {
-                    Thread.Sleep(40);
-                }
-            }
-            return false;
+            return ClipboardHelper.TrySetText(text);
         }
 
         private void ShowCopyFeedback(Button button)

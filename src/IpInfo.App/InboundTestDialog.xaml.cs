@@ -46,24 +46,21 @@ namespace IpInfo.App
 
         private void CopyButton_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (!ClipboardHelper.TrySetText(UrlBox.Text))
             {
-                Clipboard.SetText(UrlBox.Text);
-                CopyButton.Content = "已复制";
-                DispatcherTimer reset = new DispatcherTimer();
-                reset.Interval = TimeSpan.FromMilliseconds(1200);
-                reset.Tick += delegate
-                {
-                    reset.Stop();
-                    CopyButton.Content = "复制地址";
-                };
-                reset.Start();
+                ClipboardHelper.ShowCopyFailure(CopyButton);
+                return;
             }
-            catch
+
+            CopyButton.Content = "已复制";
+            DispatcherTimer reset = new DispatcherTimer();
+            reset.Interval = TimeSpan.FromMilliseconds(1200);
+            reset.Tick += delegate
             {
-                MessageBox.Show(this, "复制失败：剪贴板可能被其他程序占用。", "IPv6 入站自检",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
+                reset.Stop();
+                CopyButton.Content = "复制地址";
+            };
+            reset.Start();
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)

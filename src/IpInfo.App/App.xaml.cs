@@ -28,6 +28,7 @@ namespace IpInfo.App
             bool offscreen = false;
             bool full = false;
             string serviceStartMode = null;
+            string pageKey = null;
             for (int i = 0; i < e.Args.Length; i++)
             {
                 if (string.Equals(e.Args[i], "--render", StringComparison.OrdinalIgnoreCase) && i + 1 < e.Args.Length)
@@ -47,6 +48,12 @@ namespace IpInfo.App
                 {
                     full = true;
                 }
+                else if (string.Equals(e.Args[i], "--page", StringComparison.OrdinalIgnoreCase)
+                    && i + 1 < e.Args.Length)
+                {
+                    pageKey = e.Args[i + 1];
+                    i++;
+                }
                 else if (string.Equals(e.Args[i], "--service-start", StringComparison.OrdinalIgnoreCase)
                     && i + 1 < e.Args.Length)
                 {
@@ -64,6 +71,7 @@ namespace IpInfo.App
 
             MainWindow window = new MainWindow();
             MainWindow = window;
+            if (!string.IsNullOrEmpty(pageKey)) window.SelectPage(pageKey);
 
             if (!string.IsNullOrEmpty(renderPath) || offscreen)
             {

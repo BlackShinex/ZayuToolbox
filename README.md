@@ -1,6 +1,6 @@
-# 杂鱼串流工具箱
+﻿# 杂鱼串流工具箱
 
-> 作者：**BlackCat** · 版本：**1.6**
+> 作者：**BlackCat** · 版本：**1.7**
 
 **杂鱼串流工具箱**是一个面向串流与网络排障的 Windows 工具箱：查看本机 IPv4 / IPv6 地址、公网出口，检测当前网络是否在公网、属于哪种 NAT 类型，提供 **多层 NAT 跃点跟踪**、**IPv6 入站可达性自检**，并集成 **WebView2 运行库检测与安装修复**。默认对 IP 中间部分打码，支持一键显示和逐条复制。
 
@@ -59,7 +59,7 @@
 
 ## 下载发布版
 
-从 GitHub **Releases** 下载 `ZayuToolbox-1.6-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.6\杂鱼串流工具箱.exe` 运行。  
+从 GitHub **Releases** 下载 `ZayuToolbox-1.7-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.7\杂鱼串流工具箱.exe` 运行。  
 压缩包内含 `杂鱼串流工具箱.exe`、`杂鱼串流工具箱.exe.config`（高分屏配置）和 README。`IpInfo.Core` 的源码在构建时直接编译进 exe，不再单独分发 DLL。
 
 也可以按下一节从源码自行构建。
@@ -74,13 +74,13 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zi
 
 - 构建产物：`src\IpInfo.App\bin\Release\杂鱼串流工具箱.exe` 和 `杂鱼串流工具箱.exe.config`（Core 源码已编译进 exe，不再生成独立 DLL）
 - `-Package` 会把可运行文件复制到 `dist\`
-- `-Zip` 会额外生成 `dist\ZayuToolbox-1.6-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.6\杂鱼串流工具箱.exe` 即可运行
+- `-Zip` 会额外生成 `dist\ZayuToolbox-1.7-win-x64.zip`，解压后双击 `杂鱼串流工具箱-1.7\杂鱼串流工具箱.exe` 即可运行
 - 也可以使用 Visual Studio 2019/2022 打开 `IpInfo.sln`（经典 .NET Framework WPF 项目）直接构建、调试
 
 ## 测试
 
 ```powershell
-# 1) 核心逻辑 + 真实网络探测（67 项离线检查；--live 额外 5 项联网检查）
+# 1) 核心逻辑 + 真实网络探测（134 项离线检查；--live 额外 5 项联网检查）
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 .\tests\IpInfo.CoreTests\bin\Debug\IpInfo.CoreTests.exe --live
 
@@ -88,7 +88,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 powershell -ExecutionPolicy Bypass -STA -File .\tools\ui-smoke-test.ps1
 ```
 
-UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 33 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、IPv6 入站弹窗的「了解」按钮 3 秒倒计时、启动/停止/回环连接成功路径、多层 NAT 跃点跟踪卡片，以及 WebView2 状态卡片、诊断复制和安装窗口。
+UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 61 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、IPv6 入站弹窗的「了解」按钮 3 秒倒计时、启动/停止/回环连接成功路径、多层 NAT 跃点跟踪卡片，以及 WebView2 状态卡片、诊断复制和安装窗口。
 
 > 仓库已包含 `.github/workflows/build.yml`：推送到 GitHub 后会自动构建 Release、运行离线核心测试并上传构建产物。
 
@@ -226,7 +226,8 @@ Windows 防火墙状态优先通过 `HNetCfg.FwPolicy2` COM 读取；普通用�
 ## 作者与版本
 
 - 作者：BlackCat
-- 版本：1.6
+- 版本：1.7
+- v1.7：全新玻璃拟态侧边栏与分页 UI；恢复微软雅黑字体；更新 Sunshine 图标；新增 Sunshine 版本/服务/Zako 检测、多层 NAT 跃点跟踪；开机自启开关；修复基地版作者与剪贴板占用提示。
 - v1.6：将 Core 源码编译进单文件 exe；WebView2 安装支持取消，并加固签名校验与启动之间的 TOCTOU；核心测试增至 64 项。
 - v1.5：软件正式更名为「杂鱼串流工具箱」，同步更新窗口标题、程序名、图标文字、exe 文件名、发布包与文档。
 

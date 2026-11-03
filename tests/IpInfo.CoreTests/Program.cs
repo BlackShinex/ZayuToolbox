@@ -415,6 +415,15 @@ namespace IpInfo.CoreTests
             CheckTrue("基地版：渠道判定", baseVerdict.Kind == SunshineBuildKind.BaseEdition, baseVerdict.Kind.ToString());
             CheckTrue("基地版：高置信", baseVerdict.Confidence == SunshineConfidence.High, baseVerdict.Confidence.ToString());
 
+            SunshineDetectionResult baseAuthor = new SunshineDetectionResult();
+            baseAuthor.Kind = SunshineBuildKind.BaseEdition;
+            baseAuthor.CompanyName = "LizardByte";
+            CheckEqual("基地版：作者显示为 AlkaidLab", baseAuthor.AuthorName, "AlkaidLab");
+            SunshineDetectionResult officialAuthor = new SunshineDetectionResult();
+            officialAuthor.Kind = SunshineBuildKind.Official;
+            officialAuthor.CompanyName = "LizardByte";
+            CheckEqual("官方版：作者显示为 LizardByte", officialAuthor.AuthorName, "LizardByte");
+
             SunshineSignature earlyBase = new SunshineSignature();
             earlyBase.CompanyName = "LizardByte";
             earlyBase.FileVersion = "2024.0715.211805.7ff3168e.杂鱼";

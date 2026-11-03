@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
 using IpInfo.Core;
 
@@ -39,12 +39,12 @@ namespace IpInfo.App
         public static readonly Brush OrangeBg = Brush("#FFEDD5");
         public static readonly Brush OrangeFg = Brush("#C2410C");
         public static readonly Brush GrayBg = Brush("#F1F5F9");
-        public static readonly Brush GrayFg = Brush("#64748B");
+        public static readonly Brush GrayFg = Brush("#58536A");
         public static readonly Brush IndigoBg = Brush("#E0E7FF");
         public static readonly Brush IndigoFg = Brush("#4338CA");
         public static readonly Brush BlueFg = Brush("#2563EB");
         public static readonly Brush AmberFg = Brush("#B45309");
-        public static readonly Brush MutedFg = Brush("#94A3B8");
+        public static readonly Brush MutedFg = Brush("#6E687F");
 
         public static Brush Brush(string hex)
         {

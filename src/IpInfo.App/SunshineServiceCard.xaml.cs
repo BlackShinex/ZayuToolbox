@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -177,6 +177,21 @@ namespace IpInfo.App
             _syncingToggle = true;
             ServiceAutoStartToggle.IsChecked = status.IsAutoStart;
             _syncingToggle = false;
+            if (!status.IsFound)
+            {
+                ServiceAutoStartStateText.Text = "不可用";
+                ServiceAutoStartStateText.Foreground = UiPalette.MutedFg;
+            }
+            else if (status.IsAutoStart)
+            {
+                ServiceAutoStartStateText.Text = "已开启";
+                ServiceAutoStartStateText.Foreground = UiPalette.SuccessFg;
+            }
+            else
+            {
+                ServiceAutoStartStateText.Text = "已关闭";
+                ServiceAutoStartStateText.Foreground = UiPalette.MutedFg;
+            }
 
             List<string> warnings = new List<string>();
             if (status.Warnings != null)
@@ -325,26 +340,13 @@ namespace IpInfo.App
             }
             else
             {
-                MessageBox.Show("复制失败：剪贴板可能被其他程序占用。", "复制诊断",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                ClipboardHelper.ShowCopyFailure((Button)sender);
             }
         }
 
         private static bool CopyToClipboard(string text)
         {
-            for (int attempt = 0; attempt < 3; attempt++)
-            {
-                try
-                {
-                    Clipboard.SetText(text);
-                    return true;
-                }
-                catch (Exception)
-                {
-                    Thread.Sleep(30);
-                }
-            }
-            return false;
+            return ClipboardHelper.TrySetText(text);
         }
 
         private void ShowCopyFeedback(Button button)
