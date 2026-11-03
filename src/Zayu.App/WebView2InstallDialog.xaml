@@ -20,14 +20,14 @@
                 <TextBlock Text="安装 / 修复 WebView2 运行库" FontSize="21" FontWeight="SemiBold"
                            Foreground="#0F172A" TextWrapping="Wrap"/>
                 <TextBlock Text="从 Microsoft 官方服务器下载 Evergreen Bootstrapper，校验数字签名后静默安装。"
-                           FontSize="12.5" Foreground="#58536A" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                           FontSize="13" Foreground="#58536A" TextWrapping="Wrap" Margin="0,6,0,0"/>
 
                 <Border Background="#F8FAFC" BorderBrush="#EEF2F7" BorderThickness="1" CornerRadius="9"
                         Padding="12,10" Margin="0,12,0,0">
                     <StackPanel>
                         <TextBlock x:Name="CurrentStatusText" Text="当前状态：检测中…" FontSize="13"
                                    FontWeight="SemiBold" Foreground="#334155" TextWrapping="Wrap"/>
-                        <TextBlock x:Name="CurrentDetailText" Text="—" FontSize="11.5" Foreground="#58536A"
+                        <TextBlock x:Name="CurrentDetailText" Text="—" FontSize="12" Foreground="#58536A"
                                    TextWrapping="Wrap" Margin="0,3,0,0"/>
                     </StackPanel>
                 </Border>
@@ -37,7 +37,7 @@
                 <CheckBox x:Name="AllUsersCheck" FocusVisualStyle="{x:Null}" Content="为所有用户安装（会请求管理员权限）"
                           FontSize="13" Foreground="#334155" Margin="0,10,0,0"/>
                 <TextBlock x:Name="AllUsersHintText" Text="取消勾选则只安装到当前用户，不需要管理员权限。"
-                           FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                           FontSize="13" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
                 <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
                     <Button x:Name="LocalInstallerButton" Content="选择本地安装包…"
@@ -66,7 +66,7 @@
 
                 <TextBlock x:Name="FooterHintText"
                            Text="安装包仅从 Microsoft 官方短链下载；下载完成后会校验 Microsoft Authenticode 数字签名，校验失败不会运行。"
-                           FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                           FontSize="13" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,10,0,0"/>
             </StackPanel>
         </ScrollViewer>
     </Border>

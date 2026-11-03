@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -89,6 +89,29 @@ namespace Zayu.App
             Closed += MainWindow_Closed;
             DpiChanged += MainWindow_DpiChanged;
             StateChanged += MainWindow_StateChanged;
+            SourceInitialized += MainWindow_SourceInitialized;
+        }
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+        private void MainWindow_SourceInitialized(object sender, EventArgs e)
+        {
+            ApplyRoundedWindowCorners();
+        }
+
+        private void ApplyRoundedWindowCorners()
+        {
+            try
+            {
+                IntPtr hwnd = new WindowInteropHelper(this).Handle;
+                if (hwnd == IntPtr.Zero) return;
+                int preference = 2; // DWMWCP_ROUND
+                DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
+            }
+            catch
+            {
+            }
         }
 
         private void HeaderBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -155,26 +178,8 @@ namespace Zayu.App
             if (WindowShell != null)
             {
                 WindowShell.CornerRadius = maximized ? new CornerRadius(0) : new CornerRadius(18);
-                UpdateWindowShellClip();
             }
-        }
-
-        private void WindowShell_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            UpdateWindowShellClip();
-        }
-
-        private void UpdateWindowShellClip()
-        {
-            if (WindowShell == null) return;
-            if (WindowState == WindowState.Maximized
-                || WindowShell.ActualWidth <= 1 || WindowShell.ActualHeight <= 1)
-            {
-                WindowShell.Clip = null;
-                return;
-            }
-            WindowShell.Clip = new RectangleGeometry(
-                new Rect(0, 0, WindowShell.ActualWidth, WindowShell.ActualHeight), 18, 18);
+            ApplyRoundedWindowCorners();
         }
 
         private void MainWindow_DpiChanged(object sender, DpiChangedEventArgs e)
@@ -2076,7 +2081,7 @@ namespace Zayu.App
                 row.ScopeLabel = entry.ScopeLabel;
                 row.TagBackground = tagBackground;
                 row.TagForeground = tagForeground;
-                row.AddressFontSize = ipv6 ? 14.5 : 17.5;
+                row.AddressFontSize = ipv6 ? 14 : 16;
                 row.PrimaryVisibility = entry.IsPrimary ? Visibility.Visible : Visibility.Collapsed;
                 rows.Add(row);
             }

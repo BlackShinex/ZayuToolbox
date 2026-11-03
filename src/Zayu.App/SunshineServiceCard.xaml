@@ -11,7 +11,7 @@
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Sunshine 服务" Style="{StaticResource SectionTitle}" FontSize="16.5"/>
+                        <TextBlock Text="Sunshine 服务" Style="{StaticResource SectionTitle}" FontSize="17"/>
                         <TextBlock Text="检测服务是否存在、是否运行，以及开机自启状态"
                                    Style="{StaticResource SectionSubtitle}"/>
                     </StackPanel>
@@ -40,14 +40,14 @@
                                FontSize="19" FontWeight="SemiBold" Foreground="#334155"
                                TextWrapping="Wrap"/>
                     <TextBlock x:Name="ServiceSummaryText" Text="读取服务管理器与注册表…"
-                               FontSize="12.5" Foreground="#58536A" TextWrapping="Wrap"
+                               FontSize="13" Foreground="#58536A" TextWrapping="Wrap"
                                Margin="0,4,0,0"/>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                         <ToggleButton x:Name="ServiceAutoStartToggle"
                                       AutomationProperties.Name="开机自启"
                                       Style="{StaticResource SwitchToggle}"
                                       Click="ServiceAutoStartToggle_Click" IsEnabled="False"/>
-                        <TextBlock Text="开机自启" FontSize="12.5" Foreground="#475569"
+                        <TextBlock Text="开机自启" FontSize="13" Foreground="#475569"
                                    VerticalAlignment="Center" Margin="8,0,0,0"/>
                         <Button x:Name="ServiceCopyButton" Content="复制诊断"
                                 Style="{StaticResource CopyButton}" Margin="12,0,0,0"
@@ -55,7 +55,7 @@
                     </StackPanel>
                     <TextBlock x:Name="ServiceHintText"
                                Text="修改启动类型需要管理员权限，点击后会单独弹出 UAC 确认，不会自动提权。"
-                               FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap"
+                               FontSize="13" Foreground="#6E687F" TextWrapping="Wrap"
                                Margin="0,8,0,0"/>
                 </StackPanel>
 
@@ -66,11 +66,11 @@
                                    Foreground="#6E687F"/>
                         <TextBlock x:Name="ServiceNameText" Text="服务名：--" FontSize="12"
                                    Foreground="#475569" TextWrapping="Wrap" Margin="0,7,0,0"/>
-                        <TextBlock x:Name="ServiceAccountText" Text="运行账户：--" FontSize="11.5"
+                        <TextBlock x:Name="ServiceAccountText" Text="运行账户：--" FontSize="12"
                                    Foreground="#58536A" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                        <TextBlock x:Name="ServiceProcessText" Text="进程 PID：--" FontSize="11.5"
+                        <TextBlock x:Name="ServiceProcessText" Text="进程 PID：--" FontSize="12"
                                    Foreground="#58536A" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                        <TextBlock x:Name="ServicePathText" Text="可执行文件：--" FontSize="11.5"
+                        <TextBlock x:Name="ServicePathText" Text="可执行文件：--" FontSize="12"
                                    Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
                     </StackPanel>
                 </Border>
