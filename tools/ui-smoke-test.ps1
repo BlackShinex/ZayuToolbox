@@ -88,6 +88,33 @@ function Invoke-Element($element) {
     $pattern.Invoke()
 }
 
+function Wait-ClipboardTextMatch([string]$pattern, [int]$timeoutMs = 2500) {
+    $deadline = (Get-Date).AddMilliseconds($timeoutMs)
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $text = [System.Windows.Forms.Clipboard]::GetText()
+            if (-not [string]::IsNullOrEmpty($text) -and $text -match $pattern) { return $true }
+        } catch { }
+        Start-Sleep -Milliseconds 150
+    }
+    return $false
+}
+
+function Select-NavItem($window, [string]$name) {
+    $condition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::NameProperty, $name)
+    $item = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    if ($item -eq $null) { return $false }
+    try {
+        $pattern = $item.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern)
+        $pattern.Select()
+    } catch {
+        return $false
+    }
+    Start-Sleep -Milliseconds 600
+    return $true
+}
+
 $process = $null
 try {
     Write-Host "启动应用（离屏）…" -ForegroundColor Cyan
@@ -108,10 +135,24 @@ try {
             [System.Windows.Automation.TreeScope]::Children, $condition)
         if ($window -ne $null) {
             $texts = Get-WindowTexts $window
-            if (($texts -join "`n") -match "公网出口 IP") { break }
+            if (($texts -join "`n") -match "Sunshine 版本自检") { break }
         }
     }
     if ($window -eq $null) { throw "没有找到应用窗口（离线启动失败）" }
+
+    $startTexts = (Get-WindowTexts $window) -join "`n"
+    Check "默认打开 Sunshine 版本页" ($startTexts -match "Sunshine 版本自检")
+
+    # 网络检测改为手动触发：切到该页应显示未检测状态
+    Check "切换到网络检测页" (Select-NavItem $window "网络检测")
+    Start-Sleep -Milliseconds 600
+    $idleTexts = (Get-WindowTexts $window) -join "`n"
+    Check "网络检测不再自动执行" (($idleTexts -match "尚未检测") -and ($idleTexts -notmatch "NAT 后"))
+
+    $refreshButton = Get-ElementByAutomationId $window "RefreshButton"
+    Check "网络检测页提供检测按钮" ($refreshButton -ne $null -and $refreshButton.Current.IsEnabled)
+    Check "网络检测初始按钮为开始检测" ($refreshButton -ne $null -and $refreshButton.Current.Name -eq "开始检测") ("实际为 " + $refreshButton.Current.Name)
+    if ($refreshButton -ne $null -and $refreshButton.Current.IsEnabled) { Invoke-Element $refreshButton }
 
     # 等待检测完成：出现 NAT 结果（避免读到“检测中…”）
     $ready = $false
@@ -124,6 +165,9 @@ try {
     }
     Start-Sleep -Milliseconds 800
     Check "检测已完成" $ready "30 秒内未出现 NAT 结果"
+
+    $refreshAfter = Get-ElementByAutomationId $window "RefreshButton"
+    Check "检测完成后按钮变为重新检测" ($refreshAfter -ne $null -and $refreshAfter.Current.Name -eq "重新检测") ("实际为 " + $refreshAfter.Current.Name)
 
     $texts = Get-WindowTexts $window
     $joined = $texts -join "`n"
@@ -138,12 +182,80 @@ try {
     Check "默认状态不出现完整 IPv4" ($leak.Count -eq 0) ("发现未遮罩的 IP 文本：" + ($leak -join " / "))
     Check "默认状态显示 IPv6 遮罩" ($maskedIpv6.Count -gt 0) "没有找到形如 240e:****:…:865c 的文本"
 
-    # WebView2 运行库卡片
-    Check "显示 WebView2 运行库卡片" (($joined -match "WebView2 运行库") -and ($joined -match "版本：") -and ($joined -match "路径："))
-    Check "显示 WebView2 检测状态" (($joined -match "已安装") -or ($joined -match "未安装") -or ($joined -match "安装异常"))
+    # 左侧菜单
+    $hasNav = ($joined -match "网络检测") -and ($joined -match "NAT 跃点跟踪") -and ($joined -match "Sunshine 版本") -and ($joined -match "WebView2 运行库")
+    Check "显示左侧功能菜单" $hasNav
 
-    # IPv6 入站自检
-    Check "显示 IPv6 入站自检" (($joined -match "IPv6 入站可达性") -and ($joined -match "启动入站自检"))
+    # 网络检测页：地址 / STUN / 入站
+    Check "网络检测页包含 STUN/NAT 结果" (($joined -match "公网出口 IP") -or ($joined -match "NAT 类型"))
+    Check "网络检测页包含 IPv6 入站自检" (($joined -match "IPv6 入站可达性") -and ($joined -match "启动入站自检"))
+
+    # NAT 跃点跟踪页
+    Check "切换到 NAT 跃点跟踪页" (Select-NavItem $window "NAT 跃点跟踪")
+    $hopReveal = Get-ElementByAutomationId $window "HopRevealToggle"
+    $hopRefresh = Get-ElementByAutomationId $window "HopRefreshButton"
+    Check "跃点页提供显示 IP 与检测按钮" ($hopReveal -ne $null -and $hopRefresh -ne $null)
+    Check "跃点页初始按钮为开始检测" ($hopRefresh -ne $null -and $hopRefresh.Current.Name -eq "开始检测") ("实际为 " + $hopRefresh.Current.Name)
+    $hopCardStart = Get-ElementByAutomationId $window "NatTraceStartButton"
+    Check "跃点卡片内不再重复开始按钮" ($hopCardStart -eq $null)
+
+    if ($hopRefresh -ne $null) {
+        Invoke-Element $hopRefresh
+        $hopReady = $false
+        for ($i = 0; $i -lt 40; $i++) {
+            Start-Sleep -Milliseconds 500
+            $hopRefresh = Get-ElementByAutomationId $window "HopRefreshButton"
+            if ($hopRefresh -ne $null -and $hopRefresh.Current.Name -eq "重新检测") { $hopReady = $true; break }
+        }
+        Check "跃点检测完成后按钮变为重新检测" $hopReady
+    }
+
+    # Sunshine 版本页
+    Check "切换到 Sunshine 版本页" (Select-NavItem $window "Sunshine 版本")
+    $sunshineTexts = (Get-WindowTexts $window) -join "`n"
+    $sunshineCopy = Get-ElementByAutomationId $window "SunshineCopyButton"
+    Check "显示 Sunshine 版本自检卡片" (($sunshineTexts -match "Sunshine 版本自检") -and ($sunshineTexts -match "安装来源："))
+    Check "Sunshine 页不提供显示 IP" ($sunshineTexts -notmatch "显示 IP")
+    Check "显示 Sunshine 服务卡片" (($sunshineTexts -match "Sunshine 服务") -and ($sunshineTexts -match "启动类型："))
+    $serviceToggle = Get-ElementByAutomationId $window "ServiceAutoStartToggle"
+    Check "存在开机自启开关" ($serviceToggle -ne $null)
+    $serviceCopy = Get-ElementByAutomationId $window "ServiceCopyButton"
+    Check "存在服务诊断复制按钮" ($serviceCopy -ne $null)
+
+    $baseLocked = $sunshineTexts -match "仅基地版可用"
+    if ($baseLocked) {
+        Check "非基地版时服务卡片被锁定" ($serviceCopy -ne $null -and -not $serviceCopy.Current.IsEnabled)
+        Check "非基地版时开机自启被锁定" ($serviceToggle -ne $null -and -not $serviceToggle.Current.IsEnabled)
+    } elseif ($serviceCopy -ne $null -and $serviceCopy.Current.IsEnabled) {
+        Invoke-Element $serviceCopy
+        Check "服务诊断信息包含服务状态" (Wait-ClipboardTextMatch "(?s)Sunshine 服务.*检测结果")
+    }
+
+    Check "显示 Zako 虚拟显示器卡片" (($sunshineTexts -match "Zako 虚拟显示器") -and ($sunshineTexts -match "设备状态："))
+    Check "显示安装包驱动版本行" ($sunshineTexts -match "安装包驱动：")
+    $zakoCopy = Get-ElementByAutomationId $window "ZakoCopyButton"
+    Check "存在 Zako 诊断复制按钮" ($zakoCopy -ne $null)
+    if ($baseLocked) {
+        Check "非基地版时 Zako 卡片被锁定" ($zakoCopy -ne $null -and -not $zakoCopy.Current.IsEnabled)
+    } elseif ($zakoCopy -ne $null -and $zakoCopy.Current.IsEnabled) {
+        Invoke-Element $zakoCopy
+        Check "Zako 诊断信息包含系统版本" (Wait-ClipboardTextMatch "(?s)Zako.*操作系统")
+    }
+    Check "存在 Sunshine 诊断复制按钮" ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled)
+    if ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled) {
+        Invoke-Element $sunshineCopy
+        Check "Sunshine 诊断信息包含检测结论" (Wait-ClipboardTextMatch "(?s)Sunshine.*检测结果")
+    }
+
+    # WebView2 运行库页
+    Check "切换到 WebView2 运行库页" (Select-NavItem $window "WebView2 运行库")
+    $webView2Texts = (Get-WindowTexts $window) -join "`n"
+    Check "显示 WebView2 运行库卡片" (($webView2Texts -match "WebView2 运行库") -and ($webView2Texts -match "版本：") -and ($webView2Texts -match "路径："))
+    Check "显示 WebView2 检测状态" (($webView2Texts -match "已安装") -or ($webView2Texts -match "未安装") -or ($webView2Texts -match "安装异常"))
+    Check "运行库页不提供显示 IP" ($webView2Texts -notmatch "显示 IP")
+
+    # 返回网络检测页
+    Check "返回网络检测页" (Select-NavItem $window "网络检测")
 
     # 复制按钮：应复制完整 IP（IPv4 与 IPv6 都覆盖）
     Write-Host "测试复制按钮…" -ForegroundColor Cyan
@@ -174,14 +286,12 @@ try {
 
     # WebView2 诊断复制与安装窗口
     Write-Host "测试 WebView2 诊断与安装窗口…" -ForegroundColor Cyan
+    Select-NavItem $window "WebView2 运行库" | Out-Null
     $webView2Copy = Get-ElementByAutomationId $window "WebView2CopyButton"
     Check "存在 WebView2 诊断复制按钮" ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled)
     if ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled) {
         Invoke-Element $webView2Copy
-        Start-Sleep -Milliseconds 500
-        $wvClipboard = $null
-        try { $wvClipboard = [System.Windows.Forms.Clipboard]::GetText() } catch { }
-        Check "WebView2 诊断信息包含版本和路径" ($wvClipboard -match "WebView2" -and $wvClipboard -match "检测结果")
+        Check "WebView2 诊断信息包含版本和路径" (Wait-ClipboardTextMatch "(?s)WebView2.*检测结果")
     }
 
     $webView2Install = Get-ElementByAutomationId $window "WebView2InstallButton"
@@ -205,6 +315,8 @@ try {
             }
         }
     }
+
+    Select-NavItem $window "网络检测" | Out-Null
 
     # 显示 IP
     Write-Host "测试「显示 IP」按钮…" -ForegroundColor Cyan

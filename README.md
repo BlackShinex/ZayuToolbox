@@ -2,7 +2,7 @@
 
 > 作者：**BlackCat** · 版本：**1.6**
 
-**杂鱼串流工具箱**是一个面向串流与网络排障的 Windows 工具箱：查看本机 IPv4 / IPv6 地址、公网出口，检测当前网络是否在公网、属于哪种 NAT 类型，提供 **IPv6 入站可达性自检**，并集成 **WebView2 运行库检测与安装修复**。默认对 IP 中间部分打码，支持一键显示和逐条复制。
+**杂鱼串流工具箱**是一个面向串流与网络排障的 Windows 工具箱：查看本机 IPv4 / IPv6 地址、公网出口，检测当前网络是否在公网、属于哪种 NAT 类型，提供 **多层 NAT 跃点跟踪**、**IPv6 入站可达性自检**，并集成 **WebView2 运行库检测与安装修复**。默认对 IP 中间部分打码，支持一键显示和逐条复制。
 
 ![界面预览](docs/ui-preview-full.png)
 
@@ -25,6 +25,10 @@
   - 输出：映射行为（端点无关 / 端点相关）、端口是否保持、NAT 类型
   - 支持识别：公网直连（无 NAT）、对称型 NAT、锥型 NAT
   - 全锥 / 限制锥的进一步细分依赖 RFC 3489 的 CHANGE-REQUEST 过滤测试，公共 STUN 服务器基本不支持，因此通常显示「锥型 NAT（端点无关映射）」，并在「查看检测详情」中明确标注过滤行为未知
+- **多层 NAT 跃点跟踪**
+  - 使用 Windows `IcmpSendEcho` 按 TTL 逐跳探测 IPv4 路径，普通用户权限即可运行
+  - 标记每一跳的私网 / CGNAT / 公网类型，遇到首个公网地址或目标主机就停止
+  - 适合排查“接了很多路由器、层层 NAT 导致无法串流”的场景；结果默认按 IP 遮罩规则显示
 - **主地址智能选择**
   - 优先使用系统实际选路的物理网卡（`GetBestInterface` + 网关 + 地址类型综合判断）
   - 自动识别 VMware / VirtualBox / Hyper-V / WSL / Docker / VPN / Tailscale / 蓝牙等虚拟网卡，避免它们抢走「主地址」；虚拟网卡仍会列出并标注
@@ -76,15 +80,15 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zi
 ## 测试
 
 ```powershell
-# 1) 核心逻辑 + 真实网络探测（64 项离线检查；--live 额外 5 项联网检查）
+# 1) 核心逻辑 + 真实网络探测（67 项离线检查；--live 额外 5 项联网检查）
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 .\tests\IpInfo.CoreTests\bin\Debug\IpInfo.CoreTests.exe --live
 
-# 2) UI 冒烟测试（离屏启动，验证遮罩、复制、显示 IP、IPv6 弹窗倒计时、WebView2 卡片与安装弹窗）
+# 2) UI 冒烟测试（离屏启动，验证遮罩、复制、显示 IP、IPv6 弹窗倒计时、多层 NAT 卡片、WebView2 卡片与安装弹窗）
 powershell -ExecutionPolicy Bypass -STA -File .\tools\ui-smoke-test.ps1
 ```
 
-UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 32 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、IPv6 入站弹窗的「了解」按钮 3 秒倒计时、启动/停止/回环连接成功路径，以及 WebView2 状态卡片、诊断复制和安装窗口。
+UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 33 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、IPv6 入站弹窗的「了解」按钮 3 秒倒计时、启动/停止/回环连接成功路径、多层 NAT 跃点跟踪卡片，以及 WebView2 状态卡片、诊断复制和安装窗口。
 
 > 仓库已包含 `.github/workflows/build.yml`：推送到 GitHub 后会自动构建 Release、运行离线核心测试并上传构建产物。
 
@@ -111,6 +115,7 @@ ip-info/
 │  │  ├─ StunClient.cs           RFC 5389 STUN 客户端
 │  │  ├─ StunServers.cs          公共 STUN 服务器解析
 │  │  ├─ NatDetector.cs          NAT 映射 / 过滤行为检测
+│  │  ├─ NatHopTracer.cs         多层 NAT 跃点跟踪（IcmpSendEcho + TTL）
 │  │  └─ NetworkProbe.cs         组合完整探测报告
 │  └─ IpInfo.App/                WPF 界面
 │     ├─ App.xaml(.cs)
@@ -152,6 +157,13 @@ ip-info/
 4. 尝试 CHANGE-REQUEST（改 IP/改端口）判断过滤行为。公共 STUN 基本不支持该属性，若服务器忽略请求，代码会检查响应来源是否真的变化，避免误报“全锥型”。
 
 因此本工具能可靠区分「无 NAT / 锥型 NAT / 对称型 NAT」，并给出端口保持情况；全锥、限制锥、端口限制锥的细分受公共服务器能力限制，显示为「锥型 NAT」并注明过滤行为未知。
+
+### 多层 NAT 跃点跟踪
+
+- 使用 Windows `IcmpSendEcho` + TTL 逐跳探测 IPv4 路径，不需要管理员权限或原始套接字。
+- 默认目标为 `223.5.5.5`（阿里公共 DNS，国内多数网络可正常 ICMP 到达），最多 30 跳，每跳超时 1 秒；遇到首个公网地址或目标主机后停止。
+- 每一跳会标注私网 / CGNAT / 公网类型。私网和 CGNAT 跃点提示可能存在 NAT 层，但 ICMP 跃点只代表三层路径，实际 NAT 设备数量仍需结合家庭/机房拓扑确认。
+- 某些路由器会过滤 ICMP 或 TTL 响应，因此路径中可能出现“无响应”跳点；这不代表该跳不存在。
 
 ### 主地址判定
 

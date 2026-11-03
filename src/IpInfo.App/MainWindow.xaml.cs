@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -27,9 +29,12 @@ namespace IpInfo.App
         private static readonly Brush BannerIndigoBg = UiPalette.Brush("#EEF2FF");
         private static readonly Brush BannerIndigoFg = UiPalette.Brush("#3730A3");
         private static readonly Brush BannerIndigoDot = UiPalette.Brush("#6366F1");
+        private static readonly Brush BannerRedBg = UiPalette.Brush("#FEF2F2");
+        private static readonly Brush BannerRedFg = UiPalette.Brush("#B91C1C");
 
         private NetworkReport _report;
         private bool _revealed;
+        private bool _syncingReveal;
         private bool _busy;
         private readonly TaskCompletionSource<bool> _initialRefresh = new TaskCompletionSource<bool>();
         private CancellationTokenSource _cts;
@@ -42,12 +47,18 @@ namespace IpInfo.App
         private WebView2DetectionResult _webView2Result;
         private bool _webView2Busy;
         private WebView2InstallDialog _webView2InstallDialog;
+        private NatHopTraceResult _natTraceResult;
+        private CancellationTokenSource _natTraceCts;
+        private bool _natTraceRunning;
 
         public MainWindow()
         {
             InitializeComponent();
             RevealToggle.Content = "显示 IP";
-            RevealToggle.Foreground = Brushes.White;
+            RevealToggle.Foreground = UiPalette.IndigoFg;
+            UpdatePageVisibility(NavList.SelectedIndex);
+
+            if (VersionCardView != null) VersionCardView.Detected += SunshineVersionCard_Detected;
 
             Version appVersion = typeof(MainWindow).Assembly.GetName().Version;
             VersionText.Text = "杂鱼串流工具箱 v" + appVersion.Major + "." + appVersion.Minor
@@ -61,6 +72,75 @@ namespace IpInfo.App
         private void MainWindow_DpiChanged(object sender, DpiChangedEventArgs e)
         {
             FitToWorkArea();
+        }
+
+        /// <summary>版本自检刷新后，服务与虚拟显示器卡片跟着刷新（含基地版门槛变化）。</summary>
+        private async void SunshineVersionCard_Detected(object sender, EventArgs e)
+        {
+            await Task.WhenAll(ServiceCardView.RefreshAsync(), ZakoCardView.RefreshAsync());
+        }
+
+        /// <summary>
+        /// 内层 ScrollViewer 到达顶部/底部后，把滚轮事件交给外层页面，
+        /// 避免鼠标停在跃点列表或检测详情上时整页滚动“卡住”。
+        /// </summary>
+        private void NestedScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            ScrollViewer inner = sender as ScrollViewer;
+            if (inner == null) return;
+
+            bool canScrollUp = inner.VerticalOffset > 0.5;
+            bool canScrollDown = inner.VerticalOffset < inner.ScrollableHeight - 0.5;
+            if ((e.Delta > 0 && !canScrollUp) || (e.Delta < 0 && !canScrollDown))
+            {
+                ScrollViewer outer = FindAncestorScrollViewer(inner);
+                if (outer == null) return;
+
+                e.Handled = true;
+                double before = outer.VerticalOffset;
+                MouseWheelEventArgs forwarded = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta);
+                forwarded.RoutedEvent = UIElement.MouseWheelEvent;
+                outer.RaiseEvent(forwarded);
+                if (Math.Abs(outer.VerticalOffset - before) < 0.5)
+                {
+                    double offset = before + (e.Delta > 0 ? -48 : 48);
+                    outer.ScrollToVerticalOffset(Math.Max(0, offset));
+                }
+            }
+        }
+
+        private static ScrollViewer FindAncestorScrollViewer(DependencyObject element)
+        {
+            DependencyObject current = element;
+            while (current != null)
+            {
+                ScrollViewer viewer = current as ScrollViewer;
+                if (viewer != null) return viewer;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
+        private void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (NavList == null) return;
+            UpdatePageVisibility(NavList.SelectedIndex);
+        }
+
+        private void UpdatePageVisibility(int index)
+        {
+            if (NetworkScrollViewer == null
+                || NatHopScrollViewer == null
+                || SunshineScrollViewer == null
+                || WebView2ScrollViewer == null)
+            {
+                return;
+            }
+
+            SunshineScrollViewer.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
+            WebView2ScrollViewer.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
+            NetworkScrollViewer.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
+            NatHopScrollViewer.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         /// <summary>在 125% / 150% 等高分屏缩放下，保证窗口不会超出当前屏幕可用区域。</summary>
@@ -143,7 +223,57 @@ namespace IpInfo.App
         {
             Loaded -= MainWindow_Loaded;
             FitToWorkArea();
-            await RefreshAsync();
+            ShowNetworkIdleState();
+            _initialRefresh.TrySetResult(true);
+            await RefreshWebView2Async();
+        }
+
+        /// <summary>网络检测改为手动触发，启动时只展示未检测状态。</summary>
+        private void ShowNetworkIdleState()
+        {
+            SummaryBanner.Background = UiPalette.GrayBg;
+            SummaryDot.Background = UiPalette.MutedFg;
+            SummaryText.Text = "尚未检测，点击「开始检测」开始";
+            SummaryText.Foreground = UiPalette.GrayFg;
+            RefreshButton.Content = "开始检测";
+
+            Ipv4Summary.Text = "尚未检测";
+            Ipv6Summary.Text = "尚未检测";
+            Ipv4CountText.Text = "0 个";
+            Ipv6CountText.Text = "0 个";
+            Ipv4List.ItemsSource = null;
+            Ipv6List.ItemsSource = null;
+            Ipv4Empty.Visibility = Visibility.Collapsed;
+            Ipv6Empty.Visibility = Visibility.Collapsed;
+
+            ExternalIpv4Text.Text = "--";
+            ExternalIpv6Text.Text = "--";
+            Ipv4StatusText.Text = "未知";
+            Ipv6StatusText.Text = "未知";
+            Ipv4StatusChip.Background = UiPalette.GrayBg;
+            Ipv6StatusChip.Background = UiPalette.GrayBg;
+            Ipv4StatusText.Foreground = UiPalette.GrayFg;
+            Ipv6StatusText.Foreground = UiPalette.GrayFg;
+            ExternalIpv4CopyButton.IsEnabled = false;
+            ExternalIpv6CopyButton.IsEnabled = false;
+
+            NatTypeText.Text = "尚未检测";
+            NatTypeText.Foreground = UiPalette.MutedFg;
+            NatDescriptionText.Text = "点击「重新检测」后开始分析当前网络的 NAT 行为。";
+            NatDetailMappingText.Text = "映射行为：--";
+            NatDetailPortText.Text = "端口保持：--";
+            NatDetailServerText.Text = "STUN 服务器：--";
+            NatDetailExpander.Visibility = Visibility.Collapsed;
+            StepsList.ItemsSource = null;
+            HideError();
+
+            FirewallText.Text = "尚未检测";
+            InboundStatusText.Text = "尚未检测";
+            InboundStatusText.Foreground = UiPalette.MutedFg;
+            InboundStartButton.IsEnabled = false;
+            InboundUrlPanel.Visibility = Visibility.Collapsed;
+            InboundCopyButton.Visibility = Visibility.Collapsed;
+            TimestampText.Text = "检测时间 --";
         }
 
         private async void RefreshButton_Click(object sender, RoutedEventArgs e)
@@ -161,6 +291,7 @@ namespace IpInfo.App
             {
                 StopInboundTest(false);
             }
+            CancelNatTrace();
 
             _busy = true;
             RefreshButton.IsEnabled = false;
@@ -211,6 +342,7 @@ namespace IpInfo.App
             {
                 _busy = false;
                 RefreshButton.IsEnabled = true;
+                RefreshButton.Content = "重新检测";
                 DetectProgressBar.Visibility = Visibility.Collapsed;
                 ProgressText.Visibility = Visibility.Collapsed;
                 _initialRefresh.TrySetResult(true);
@@ -296,6 +428,155 @@ namespace IpInfo.App
 
             TimestampText.Text = "检测时间 " + report.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")
                 + "  ·  耗时 " + report.Elapsed.TotalSeconds.ToString("0.0") + " 秒";
+        }
+
+        private async void HopRefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_natTraceRunning) return;
+
+            _natTraceRunning = true;
+            _natTraceCts = new CancellationTokenSource();
+            CancellationToken token = _natTraceCts.Token;
+            _natTraceResult = null;
+            NatHopList.ItemsSource = null;
+            HopRefreshButton.IsEnabled = false;
+            HopRefreshButton.Content = "跟踪中…";
+            NatTraceStopButton.IsEnabled = true;
+            NatTraceStopButton.Visibility = Visibility.Visible;
+            NatTraceProgressBar.Visibility = Visibility.Visible;
+            SetNatTraceBanner(BannerIndigoBg, BannerIndigoFg);
+            NatTraceSummaryText.Text = "正在准备跃点跟踪…";
+
+            try
+            {
+                IProgress<string> progress = new Progress<string>(delegate(string message)
+                {
+                    NatTraceSummaryText.Text = MaskNatTraceText(message);
+                });
+                NatHopTraceResult result = await Task.Run(delegate
+                {
+                    return NatHopTracer.Trace(new Action<string>(progress.Report), token);
+                }, token);
+
+                if (result == null) throw new InvalidOperationException("跃点跟踪返回了空结果。");
+                _natTraceResult = result;
+                RenderNatTrace(result);
+            }
+            catch (OperationCanceledException)
+            {
+                NatTraceSummaryText.Text = "跃点跟踪已停止。";
+                SetNatTraceBanner(BannerIndigoBg, BannerIndigoFg);
+            }
+            catch (Exception ex)
+            {
+                NatTraceSummaryText.Text = "跃点跟踪失败：" + ex.Message;
+                SetNatTraceBanner(BannerRedBg, BannerRedFg);
+            }
+            finally
+            {
+                _natTraceRunning = false;
+                NatTraceProgressBar.Visibility = Visibility.Collapsed;
+                NatTraceStopButton.Visibility = Visibility.Collapsed;
+                NatTraceStopButton.IsEnabled = true;
+                HopRefreshButton.IsEnabled = true;
+                HopRefreshButton.Content = "重新检测";
+                if (_natTraceCts != null)
+                {
+                    _natTraceCts.Dispose();
+                    _natTraceCts = null;
+                }
+            }
+        }
+
+        private void NatTraceStopButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_natTraceCts != null)
+            {
+                _natTraceCts.Cancel();
+                NatTraceStopButton.IsEnabled = false;
+                NatTraceSummaryText.Text = "正在停止跃点跟踪…";
+            }
+        }
+
+        private void RenderNatTrace(NatHopTraceResult result)
+        {
+            List<NatHopRow> rows = new List<NatHopRow>();
+            if (result.Hops != null)
+            {
+                for (int i = 0; i < result.Hops.Count; i++)
+                {
+                    NatHop hop = result.Hops[i];
+                    NatHopRow row = new NatHopRow();
+                    row.TtlText = hop.Ttl.ToString();
+                    row.AddressText = hop.TimedOut
+                        ? "无响应"
+                        : (_revealed ? hop.Address : IpPrivacy.Mask(hop.Address));
+                    row.ScopeLabel = hop.TimedOut
+                        ? "超时"
+                        : (string.IsNullOrEmpty(hop.ScopeLabel) ? "未知" : hop.ScopeLabel);
+                    row.RoundTripText = hop.TimedOut ? "—" : hop.RoundTripMilliseconds + " ms";
+                    row.Note = hop.Note;
+                    if (hop.TimedOut)
+                    {
+                        row.TagBackground = UiPalette.GrayBg;
+                        row.TagForeground = UiPalette.GrayFg;
+                    }
+                    else
+                    {
+                        Brush background;
+                        Brush foreground;
+                        UiPalette.GetScopeColors(hop.Scope, out background, out foreground);
+                        row.TagBackground = background;
+                        row.TagForeground = foreground;
+                    }
+                    rows.Add(row);
+                }
+            }
+            NatHopList.ItemsSource = rows;
+
+            if (!string.IsNullOrEmpty(result.Error))
+            {
+                NatTraceSummaryText.Text = MaskNatTraceText(result.Error);
+                SetNatTraceBanner(BannerRedBg, BannerRedFg);
+            }
+            else if (result.Canceled)
+            {
+                NatTraceSummaryText.Text = MaskNatTraceText(string.IsNullOrEmpty(result.Summary)
+                    ? "跃点跟踪已停止。"
+                    : result.Summary);
+                SetNatTraceBanner(BannerIndigoBg, BannerIndigoFg);
+            }
+            else if (result.ReachedInternet)
+            {
+                NatTraceSummaryText.Text = MaskNatTraceText(result.Summary);
+                SetNatTraceBanner(BannerGreenBg, BannerGreenFg);
+            }
+            else
+            {
+                NatTraceSummaryText.Text = MaskNatTraceText(result.Summary);
+                SetNatTraceBanner(BannerAmberBg, BannerAmberFg);
+            }
+        }
+
+        private void SetNatTraceBanner(Brush background, Brush foreground)
+        {
+            NatTraceSummaryBanner.Background = background;
+            NatTraceSummaryText.Foreground = foreground;
+        }
+
+        private string MaskNatTraceText(string text)
+        {
+            if (_revealed || string.IsNullOrEmpty(text)) return text;
+            return Regex.Replace(text, @"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+                delegate(Match match) { return IpPrivacy.Mask(match.Value); });
+        }
+
+        private void CancelNatTrace()
+        {
+            if (_natTraceCts != null)
+            {
+                _natTraceCts.Cancel();
+            }
         }
 
         private List<IpRow> BuildRows(List<IpAddressEntry> entries, bool ipv6)
@@ -696,6 +977,7 @@ namespace IpInfo.App
 
         private void MainWindow_Closed(object sender, EventArgs e)
         {
+            CancelNatTrace();
             StopInboundTest(false);
         }
 
@@ -905,18 +1187,49 @@ namespace IpInfo.App
 
         private void RevealToggle_Checked(object sender, RoutedEventArgs e)
         {
-            _revealed = true;
-            RevealToggle.Content = "隐藏 IP";
-            RevealToggle.Foreground = UiPalette.IndigoFg;
-            if (_report != null) RenderReport(_report);
+            if (_syncingReveal) return;
+            SetRevealed(true);
         }
 
         private void RevealToggle_Unchecked(object sender, RoutedEventArgs e)
         {
-            _revealed = false;
-            RevealToggle.Content = "显示 IP";
-            RevealToggle.Foreground = Brushes.White;
+            if (_syncingReveal) return;
+            SetRevealed(false);
+        }
+
+        private void HopRevealToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_syncingReveal) return;
+            SetRevealed(true);
+        }
+
+        private void HopRevealToggle_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (_syncingReveal) return;
+            SetRevealed(false);
+        }
+
+        private void SetRevealed(bool revealed)
+        {
+            _revealed = revealed;
+            SyncRevealToggle(RevealToggle, revealed);
+            SyncRevealToggle(HopRevealToggle, revealed);
             if (_report != null) RenderReport(_report);
+            if (_natTraceResult != null) RenderNatTrace(_natTraceResult);
+        }
+
+        private void SyncRevealToggle(ToggleButton toggle, bool revealed)
+        {
+            if (toggle == null) return;
+
+            toggle.Content = revealed ? "隐藏 IP" : "显示 IP";
+            toggle.Foreground = UiPalette.IndigoFg;
+            if (toggle.IsChecked != revealed)
+            {
+                _syncingReveal = true;
+                toggle.IsChecked = revealed;
+                _syncingReveal = false;
+            }
         }
 
         private void CopyIpButton_Click(object sender, RoutedEventArgs e)
@@ -1040,6 +1353,13 @@ namespace IpInfo.App
             if (reveal && !_revealed) RevealToggle.IsChecked = true;
 
             await _initialRefresh.Task;
+
+            // 截图模式下网络检测不再自动执行，这里补跑一次，保证截图有数据。
+            if (_report == null)
+            {
+                await RefreshAsync();
+            }
+
             await Task.Delay(500);
 
             if (full)
@@ -1062,7 +1382,7 @@ namespace IpInfo.App
         /// </summary>
         private void RenderFullPageToPng(string path)
         {
-            FrameworkElement contentElement = MainScrollViewer.Content as FrameworkElement;
+            FrameworkElement contentElement = NetworkScrollViewer.Content as FrameworkElement;
             if (contentElement == null)
             {
                 UpdateLayout();
@@ -1070,8 +1390,8 @@ namespace IpInfo.App
                 return;
             }
 
-            MainScrollViewer.ScrollToTop();
-            MainScrollViewer.ScrollToHorizontalOffset(0);
+            NetworkScrollViewer.ScrollToTop();
+            NetworkScrollViewer.ScrollToHorizontalOffset(0);
             UpdateLayout();
 
             const double dpi = 144.0;
@@ -1079,9 +1399,9 @@ namespace IpInfo.App
             double width = ActualWidth;
             double headerHeight = HeaderBorder.ActualHeight;
             double footerHeight = FooterBorder.ActualHeight;
-            double paddingTop = MainScrollViewer.Padding.Top;
-            double paddingBottom = MainScrollViewer.Padding.Bottom;
-            double paddingLeft = MainScrollViewer.Padding.Left;
+            double paddingTop = NetworkScrollViewer.Padding.Top;
+            double paddingBottom = NetworkScrollViewer.Padding.Bottom;
+            double paddingLeft = NetworkScrollViewer.Padding.Left;
             double contentWidth = contentElement.ActualWidth;
             double contentHeight = contentElement.ActualHeight;
             double pageHeight = headerHeight + paddingTop + contentHeight + paddingBottom + footerHeight;

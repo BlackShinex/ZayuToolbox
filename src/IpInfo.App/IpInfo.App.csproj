@@ -46,6 +46,9 @@
     <Reference Include="System.Xml">
       <Private>False</Private>
     </Reference>
+    <Reference Include="System.Management">
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System.Xaml">
       <Private>False</Private>
     </Reference>
@@ -76,6 +79,18 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="SunshineCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="SunshineServiceCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="ZakoDisplayCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -92,11 +107,26 @@
       <DependentUpon>WebView2InstallDialog.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="SunshineCard.xaml.cs">
+      <DependentUpon>SunshineCard.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="SunshineServiceCard.xaml.cs">
+      <DependentUpon>SunshineServiceCard.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ZakoDisplayCard.xaml.cs">
+      <DependentUpon>ZakoDisplayCard.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="UiModels.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <None Include="app.manifest" />
     <None Include="app.ico" />
     <None Include="app.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\sunshine-logo.png" />
   </ItemGroup>
   <ItemGroup>
     <!-- 直接编译 Core 源码，发布时只生成单个 杂鱼串流工具箱.exe，不再输出 IpInfo.Core.dll。 -->

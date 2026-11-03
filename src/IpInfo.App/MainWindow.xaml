@@ -1,6 +1,7 @@
 <Window x:Class="IpInfo.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:IpInfo.App"
         Title="杂鱼串流工具箱"
         Width="1000" Height="940"
         MinWidth="820" MinHeight="620"
@@ -35,29 +36,87 @@
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Width="44" Height="44" CornerRadius="12" Background="#33FFFFFF">
-                        <TextBlock Text="杂" FontSize="16" FontWeight="Bold" Foreground="White"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image Source="/Assets/sunshine-logo.png" Stretch="Uniform" Margin="2"/>
                     </Border>
                     <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="杂鱼串流工具箱" FontSize="24" FontWeight="SemiBold" Foreground="White"/>
-                        <TextBlock Text="网络诊断 · IPv6 入站 · WebView2 运行库" FontSize="12" Foreground="#DCD9FF" Margin="0,3,0,0"/>
+                        <TextBlock Text="网络诊断 · Sunshine 版本 · WebView2 运行库" FontSize="12" Foreground="#DCD9FF" Margin="0,3,0,0"/>
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <ToggleButton x:Name="RevealToggle" Content="显示 IP" Style="{StaticResource HeaderToggle}"
-                                  Checked="RevealToggle_Checked" Unchecked="RevealToggle_Unchecked"
-                                  ToolTip="默认隐藏 IP 中间部分，点击显示完整地址"/>
-                    <Button x:Name="RefreshButton" Content="重新检测" Style="{StaticResource HeaderButton}"
-                            Click="RefreshButton_Click" Margin="10,0,0,0"/>
-                </StackPanel>
+
             </Grid>
         </Border>
 
-        <!-- 内容 -->
-        <ScrollViewer x:Name="MainScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                      Padding="24,20,24,20">
+        <!-- 内容：左侧菜单 + 右侧页面 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="190"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E8ECF4" BorderThickness="0,0,1,0">
+                <DockPanel Margin="12,18,12,12">
+                    <TextBlock DockPanel.Dock="Top" Text="功能" FontSize="11" FontWeight="SemiBold"
+                               Foreground="#94A3B8" Margin="10,0,0,8"/>
+                    <ListBox x:Name="NavList" BorderThickness="0" Background="Transparent"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             SelectionChanged="NavList_SelectionChanged">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="{x:Type ListBoxItem}">
+                                <Setter Property="Padding" Value="12,9"/>
+                                <Setter Property="Margin" Value="0,2"/>
+                                <Setter Property="FontSize" Value="12.5"/>
+                                <Setter Property="Foreground" Value="#475569"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                                            <Border x:Name="NavItemBorder" Background="Transparent"
+                                                    CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="NavItemBorder" Property="Background" Value="#F8FAFC"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="NavItemBorder" Property="Background" Value="#EEF2FF"/>
+                                                    <Setter Property="Foreground" Value="#4338CA"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBoxItem Content="Sunshine 版本" IsSelected="True"/>
+                        <ListBoxItem Content="WebView2 运行库"/>
+                        <ListBoxItem Content="网络检测"/>
+                        <ListBoxItem Content="NAT 跃点跟踪"/>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Column="1">
+                <ScrollViewer x:Name="NetworkScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="24,20,24,20">
             <StackPanel>
+                <Grid Margin="0,0,0,4">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="网络检测" FontSize="17" FontWeight="SemiBold" Foreground="#0F172A"/>
+                        <TextBlock Text="本机地址、公网出口、NAT 类型与 IPv6 入站可达性"
+                                   FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <ToggleButton x:Name="RevealToggle" Content="显示 IP" Style="{StaticResource ToolToggle}"
+                                      Checked="RevealToggle_Checked" Unchecked="RevealToggle_Unchecked"
+                                      ToolTip="默认隐藏 IP 中间部分，点击显示完整地址"/>
+                        <Button x:Name="RefreshButton" Content="开始检测" Style="{StaticResource ToolButton}"
+                                Click="RefreshButton_Click" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -89,8 +148,21 @@
                             <ItemsControl x:Name="Ipv4List" Margin="0,12,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#F8FAFC" BorderBrush="#EEF2F7" BorderThickness="1"
-                                                CornerRadius="10" Padding="12,9" Margin="0,0,0,8">
+                                        <Border Padding="12,9" Margin="0,0,0,8">
+                                            <Border.Style>
+                                                <Style TargetType="{x:Type Border}">
+                                                    <Setter Property="Background" Value="#F8FAFC"/>
+                                                    <Setter Property="BorderBrush" Value="#EEF2F7"/>
+                                                    <Setter Property="BorderThickness" Value="1"/>
+                                                    <Setter Property="CornerRadius" Value="10"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding PrimaryVisibility}" Value="Visible">
+                                                            <Setter Property="BorderBrush" Value="#22C55E"/>
+                                                            <Setter Property="BorderThickness" Value="2"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto"/>
@@ -136,13 +208,13 @@
                             <StackPanel>
                                 <TextBlock Text="小提示" FontSize="12" FontWeight="SemiBold" Foreground="#475569"/>
                                 <TextBlock Text="· 默认隐藏 IP 中间部分，点击右上角「显示 IP」查看完整地址。"
-                                           FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,6,0,0"/>
                                 <TextBlock Text="· 每个地址右侧的「复制」按钮复制完整 IP。"
-                                           FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 <TextBlock Text="· IPv6 出现多个地址是正常现象：除主地址外，Windows 还会生成临时地址和链路本地地址。"
-                                           FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 <TextBlock Text="· 公网出口与 NAT 类型通过公共 STUN 服务器（UDP）检测，不经过第三方 HTTP 服务。"
-                                           FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,3,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -170,8 +242,21 @@
                             <ItemsControl x:Name="Ipv6List" Margin="0,12,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#F8FAFC" BorderBrush="#EEF2F7" BorderThickness="1"
-                                                CornerRadius="10" Padding="12,9" Margin="0,0,0,8">
+                                        <Border Padding="12,9" Margin="0,0,0,8">
+                                            <Border.Style>
+                                                <Style TargetType="{x:Type Border}">
+                                                    <Setter Property="Background" Value="#F8FAFC"/>
+                                                    <Setter Property="BorderBrush" Value="#EEF2F7"/>
+                                                    <Setter Property="BorderThickness" Value="1"/>
+                                                    <Setter Property="CornerRadius" Value="10"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding PrimaryVisibility}" Value="Visible">
+                                                            <Setter Property="BorderBrush" Value="#22C55E"/>
+                                                            <Setter Property="BorderThickness" Value="2"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto"/>
@@ -347,7 +432,8 @@
                         <Expander x:Name="NatDetailExpander" Grid.Row="4" Margin="0,10,0,0" FontSize="11.5"
                                   Foreground="#64748B" Header="查看检测详情" Visibility="Collapsed">
                             <Border Background="#F8FAFC" CornerRadius="8" Padding="10,8" Margin="0,6,0,0">
-                                <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto">
+                                <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto"
+                                              PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel">
                                     <ItemsControl x:Name="StepsList">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -412,7 +498,7 @@
                                             Margin="6,0,0,0"/>
                                 </StackPanel>
                                 <TextBlock x:Name="InboundHintText" Text="提示：自检会在本机临时打开一个 TCP 端口，检测结束后自动关闭。"
-                                           FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             </StackPanel>
 
                             <Border Grid.Column="2" Background="#F8FAFC" BorderBrush="#EEF2F7" BorderThickness="1"
@@ -425,15 +511,134 @@
                                     <TextBlock Text="为什么必须用移动数据？" FontSize="11" FontWeight="SemiBold"
                                                Foreground="#94A3B8" Margin="0,12,0,0"/>
                                     <TextBlock Text="如果手机仍连着本机 Wi-Fi，访问会走内网，无法代表外部 IPv6 入站是否放行。关闭 Wi-Fi 后使用 4G/5G，才能真实测试。"
-                                               FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                               FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                     <TextBlock Text="点击「启动入站自检」后会弹出说明窗口，3 秒倒计时结束才能关闭。"
-                                               FontSize="10.5" Foreground="#B6C2D2" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                               FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,8,0,0"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
                     </StackPanel>
                 </Border>
 
+            </StackPanel>
+        </ScrollViewer>
+
+                <ScrollViewer x:Name="NatHopScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Padding="24,20,24,20">
+                    <StackPanel>
+                <Grid Margin="0,0,0,4">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="NAT 跃点跟踪" FontSize="17" FontWeight="SemiBold" Foreground="#0F172A"/>
+                        <TextBlock Text="逐跳探测出口路径，判断是否存在多层 NAT"
+                                   FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <ToggleButton x:Name="HopRevealToggle" Content="显示 IP" Style="{StaticResource ToolToggle}"
+                                      Checked="HopRevealToggle_Checked" Unchecked="HopRevealToggle_Unchecked"
+                                      ToolTip="默认隐藏跃点地址中间部分，点击显示完整地址"/>
+                        <Button x:Name="HopRefreshButton" Content="开始检测" Style="{StaticResource ToolButton}"
+                                Click="HopRefreshButton_Click" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 多层 NAT 跃点跟踪 -->
+                <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="22">
+                    <StackPanel>
+                        <Grid>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="34" Height="34" CornerRadius="9" Background="#FFF7ED">
+                                    <TextBlock Text="N" FontSize="15" FontWeight="Bold" Foreground="#C2410C"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="多层 NAT 跃点跟踪" Style="{StaticResource SectionTitle}" FontSize="15.5"/>
+                                    <TextBlock Text="逐跳查看私网 / CGNAT / 公网出口，遇到公网就停止"
+                                               Style="{StaticResource SectionSubtitle}"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Button x:Name="NatTraceStopButton" Content="停止" Visibility="Collapsed"
+                                        Style="{StaticResource CopyButton}" Click="NatTraceStopButton_Click"
+                                        Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <ProgressBar x:Name="NatTraceProgressBar" Height="3" IsIndeterminate="True"
+                                     Foreground="#C2410C" Background="#FFEDD5" BorderThickness="0"
+                                     Margin="0,10,0,0" Visibility="Collapsed"/>
+
+                        <Border x:Name="NatTraceSummaryBanner" Background="#EEF2FF" CornerRadius="10"
+                                Padding="14,11" Margin="0,12,0,0">
+                            <TextBlock x:Name="NatTraceSummaryText"
+                                       Text="尚未开始。点击右上「开始检测」逐跳探测到公网出口。"
+                                       FontSize="12" Foreground="#3730A3" TextWrapping="Wrap"/>
+                        </Border>
+
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="86"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="跳" FontSize="10.5" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                            <TextBlock Grid.Column="1" Text="地址 / 说明" FontSize="10.5" FontWeight="SemiBold"
+                                       Foreground="#94A3B8"/>
+                            <TextBlock Grid.Column="2" Text="延迟" FontSize="10.5" FontWeight="SemiBold"
+                                       Foreground="#94A3B8" HorizontalAlignment="Right"/>
+                        </Grid>
+
+                        <Border Background="#F8FAFC" BorderBrush="#EEF2F7" BorderThickness="1"
+                                CornerRadius="10" Padding="12,8" Margin="0,4,0,0">
+                            <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto"
+                                          PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel">
+                                <ItemsControl x:Name="NatHopList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="44"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="86"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding TtlText}" FontFamily="Consolas"
+                                                           FontSize="11" Foreground="#64748B" VerticalAlignment="Top"/>
+                                                <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding AddressText}" FontFamily="Consolas"
+                                                                   FontSize="11.5" FontWeight="SemiBold"
+                                                                   Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
+                                                        <Border Background="{Binding TagBackground}" CornerRadius="5"
+                                                                Padding="5,0" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding ScopeLabel}" FontSize="9.5"
+                                                                       Foreground="{Binding TagForeground}"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Note}" FontSize="10"
+                                                               Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{Binding RoundTripText}"
+                                                           FontFamily="Consolas" FontSize="10.5"
+                                                           Foreground="#64748B" HorizontalAlignment="Right"
+                                                           VerticalAlignment="Top"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+
+                        <TextBlock x:Name="NatTraceHintText"
+                                   Text="目标：阿里公共 DNS · 最多 30 跳 · 仅 ICMP，不需要管理员权限。跃点只代表三层路径；私网/CGNAT 跃点提示可能存在 NAT 层，实际 NAT 设备数需结合拓扑确认。"
+                                   FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="WebView2ScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Padding="24,20,24,20">
+                    <StackPanel>
                 <!-- WebView2 运行库 -->
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="22">
                     <StackPanel>
@@ -491,7 +696,7 @@
                                 </StackPanel>
                                 <TextBlock x:Name="WebView2HintText"
                                            Text="安装包从 Microsoft 官方服务器下载，并校验 Microsoft 数字签名后静默安装。"
-                                           FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap"
+                                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap"
                                            Margin="0,8,0,0"/>
                             </StackPanel>
 
@@ -526,8 +731,25 @@
                         </Border>
                     </StackPanel>
                 </Border>
-            </StackPanel>
-        </ScrollViewer>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="SunshineScrollViewer" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Padding="24,20,24,20">
+                    <StackPanel>
+                        <!-- Sunshine 版本自检 -->
+                        <views:SunshineCard x:Name="VersionCardView"/>
+
+                        <!-- Sunshine 服务状态 -->
+                        <views:SunshineServiceCard x:Name="ServiceCardView"/>
+
+                        <!-- Zako 虚拟显示器 -->
+                        <views:ZakoDisplayCard x:Name="ZakoCardView"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
 
         <!-- 底部状态栏 -->
         <Border x:Name="FooterBorder" Grid.Row="2" Background="#FFFFFF" BorderBrush="#E8ECF4" BorderThickness="0,1,0,0" Padding="24,10">

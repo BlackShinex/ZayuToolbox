@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using IpInfo.Core;
 
 namespace IpInfo.App
 {
@@ -26,6 +27,7 @@ namespace IpInfo.App
             bool reveal = false;
             bool offscreen = false;
             bool full = false;
+            string serviceStartMode = null;
             for (int i = 0; i < e.Args.Length; i++)
             {
                 if (string.Equals(e.Args[i], "--render", StringComparison.OrdinalIgnoreCase) && i + 1 < e.Args.Length)
@@ -45,6 +47,19 @@ namespace IpInfo.App
                 {
                     full = true;
                 }
+                else if (string.Equals(e.Args[i], "--service-start", StringComparison.OrdinalIgnoreCase)
+                    && i + 1 < e.Args.Length)
+                {
+                    serviceStartMode = e.Args[i + 1];
+                    i++;
+                }
+            }
+
+            // 提权子进程专用：只改服务启动类型，不显示主窗口。
+            if (!string.IsNullOrEmpty(serviceStartMode))
+            {
+                Shutdown(ApplyServiceStartMode(serviceStartMode));
+                return;
             }
 
             MainWindow window = new MainWindow();
@@ -66,6 +81,16 @@ namespace IpInfo.App
             {
                 RunRenderMode(window, renderPath, reveal, full);
             }
+        }
+
+        private static int ApplyServiceStartMode(string text)
+        {
+            SunshineStartMode mode;
+            if (!SunshineServiceManager.TryParseStartMode(text, out mode)) return 1;
+
+            SunshineServiceChangeResult result = SunshineServiceManager.SetStartMode(mode);
+            if (result.Success) return 0;
+            return result.NeedElevation ? 2 : 1;
         }
 
         private async void RunRenderMode(MainWindow window, string path, bool reveal, bool full)

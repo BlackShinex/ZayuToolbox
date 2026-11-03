@@ -35,7 +35,7 @@
                 <TextBlock Text="3. 复制下方地址，用手机浏览器打开；" FontSize="12" Foreground="#334155" Margin="0,5,0,0"/>
                 <TextBlock Text="4. 保持本程序运行，返回主窗口查看检测结果。" FontSize="12" Foreground="#334155" Margin="0,5,0,0"/>
 
-                <TextBlock Text="自测地址（包含完整 IPv6，仅用于本次检测，请勿公开分享）" FontSize="10.5"
+                <TextBlock Text="自测地址（包含完整 IPv6，仅用于本次检测，请勿公开分享）" FontSize="11.5"
                            Foreground="#94A3B8" Margin="0,16,0,0"/>
                 <TextBox x:Name="UrlBox" IsReadOnly="True" FontFamily="Consolas" FontSize="11.5"
                          Foreground="#4338CA" Background="#F8FAFC" BorderBrush="#E2E8F0"
@@ -47,7 +47,7 @@
 
                 <TextBlock x:Name="StatusText" Text="等待外部连接…" FontSize="11.5" Foreground="#64748B"
                            TextWrapping="Wrap" Margin="0,14,0,0"/>
-                <TextBlock x:Name="CountdownText" Text="请阅读说明，3 秒后可以关闭" FontSize="10.5"
+                <TextBlock x:Name="CountdownText" Text="请阅读说明，3 秒后可以关闭" FontSize="11.5"
                            Foreground="#94A3B8" Margin="0,5,0,0"/>
 
                 <Button x:Name="CloseButton" Content="了解" IsEnabled="False" Width="110" Height="34"

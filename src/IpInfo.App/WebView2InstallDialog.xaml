@@ -36,7 +36,7 @@
                 <CheckBox x:Name="AllUsersCheck" Content="为所有用户安装（会请求管理员权限）"
                           FontSize="12" Foreground="#334155" Margin="0,10,0,0"/>
                 <TextBlock x:Name="AllUsersHintText" Text="取消勾选则只安装到当前用户，不需要管理员权限。"
-                           FontSize="10.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
                 <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
                     <Button x:Name="LocalInstallerButton" Content="选择本地安装包…"
@@ -65,7 +65,7 @@
 
                 <TextBlock x:Name="FooterHintText"
                            Text="安装包仅从 Microsoft 官方短链下载；下载完成后会校验 Microsoft Authenticode 数字签名，校验失败不会运行。"
-                           FontSize="9.5" Foreground="#B6C2D2" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                           FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,10,0,0"/>
             </StackPanel>
         </ScrollViewer>
     </Border>

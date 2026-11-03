@@ -11,8 +11,10 @@ namespace IpInfo.CoreTests
     /// <summary>
     /// 无界面的核心逻辑自测程序。用法：
     ///   IpInfo.CoreTests.exe [--live]
+    ///   IpInfo.CoreTests.exe --sunshine [安装目录]
     /// 默认只运行离线测试（隐私遮罩、地址分类、本机地址枚举）；
-    /// 加 --live 时额外执行一次真实的 STUN / NAT 探测。
+    /// 加 --live 时额外执行一次真实的 STUN / NAT 探测；
+    /// 加 --sunshine 时只输出 Sunshine 版本自检，可用于检查任意安装目录。
     /// </summary>
     internal static class Program
     {
@@ -26,6 +28,21 @@ namespace IpInfo.CoreTests
             Console.WriteLine("=== IpInfo.Core 核心逻辑自测 ===");
             Console.WriteLine();
 
+            int sunshineIndex = Array.IndexOf(args, "--sunshine");
+            if (sunshineIndex >= 0)
+            {
+                string root = sunshineIndex + 1 < args.Length && !args[sunshineIndex + 1].StartsWith("--", StringComparison.Ordinal)
+                    ? args[sunshineIndex + 1]
+                    : string.Empty;
+
+                SunshineDetectionResult single = string.IsNullOrEmpty(root)
+                    ? SunshineDetector.Detect()
+                    : SunshineDetector.Detect(root);
+
+                Console.WriteLine(single.ToDiagnostics());
+                return 0;
+            }
+
             TestPrivacyMask();
             TestClassifier();
             TestLocalAddresses();
@@ -33,6 +50,11 @@ namespace IpInfo.CoreTests
             TestFirewallReader();
             TestIpv6InboundServer();
             TestWebView2();
+            TestNatHopTracer();
+            TestSunshineClassifier();
+            TestSunshineDetection();
+            TestSunshineService();
+            TestZakoDisplay();
 
             if (live)
             {
@@ -350,6 +372,284 @@ namespace IpInfo.CoreTests
             else
             {
                 Console.WriteLine("    [跳过] 未找到 notepad.exe，跳过安装取消测试");
+            }
+        }
+
+        private static void TestNatHopTracer()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[8] 多层 NAT 跃点跟踪（取消路径）");
+
+            using (CancellationTokenSource cts = new CancellationTokenSource())
+            {
+                cts.Cancel();
+                NatHopTraceResult result = NatHopTracer.Trace(null, cts.Token);
+                CheckTrue("返回跃点跟踪结果", result != null);
+                if (result == null) return;
+
+                CheckTrue("取消后标记为已停止", result.Canceled);
+                CheckTrue("取消结果摘要非空", !string.IsNullOrEmpty(result.Summary));
+            }
+        }
+
+        private static void TestSunshineClassifier()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[9] Sunshine 版本判定（离线）");
+
+            SunshineSignature official = new SunshineSignature();
+            official.CompanyName = "LizardByte";
+            official.FileVersion = "0.23.1";
+            official.InstallerKind = "MSI";
+            SunshineVerdict officialVerdict = SunshineDetector.Classify(official);
+            CheckTrue("官方版：渠道判定", officialVerdict.Kind == SunshineBuildKind.Official, officialVerdict.Kind.ToString());
+            CheckTrue("官方版：高置信", officialVerdict.Confidence == SunshineConfidence.High, officialVerdict.Confidence.ToString());
+
+            SunshineSignature baseEdition = new SunshineSignature();
+            baseEdition.CompanyName = "LizardByte";
+            baseEdition.FileVersion = "v2026.1031.121458.杂鱼";
+            baseEdition.UninstallPublisher = "qiin2333";
+            baseEdition.MatchedMarkers.Add("杂鱼");
+            baseEdition.MatchedFiles.Add(@"tools\vdd\ZakoVDD.inf");
+            SunshineVerdict baseVerdict = SunshineDetector.Classify(baseEdition);
+            CheckTrue("基地版：渠道判定", baseVerdict.Kind == SunshineBuildKind.BaseEdition, baseVerdict.Kind.ToString());
+            CheckTrue("基地版：高置信", baseVerdict.Confidence == SunshineConfidence.High, baseVerdict.Confidence.ToString());
+
+            SunshineSignature earlyBase = new SunshineSignature();
+            earlyBase.CompanyName = "LizardByte";
+            earlyBase.FileVersion = "2024.0715.211805.7ff3168e.杂鱼";
+            earlyBase.InstallerKind = "Uninstall.exe";
+            earlyBase.MatchedFiles.Add(@"assets\gui\sunshine-gui.exe");
+            SunshineVerdict earlyBaseVerdict = SunshineDetector.Classify(earlyBase);
+            CheckTrue("初版基地：渠道判定", earlyBaseVerdict.Kind == SunshineBuildKind.BaseEdition, earlyBaseVerdict.Kind.ToString());
+            CheckTrue("初版基地：高置信", earlyBaseVerdict.Confidence == SunshineConfidence.High, earlyBaseVerdict.Confidence.ToString());
+
+            CheckEqual("版本号乱码修复（936）",
+                SunshineDetector.NormalizeText("2024.0715.211805.7ff3168e.\u93c9\u509e\u5954"),
+                "2024.0715.211805.7ff3168e.杂鱼");
+            CheckEqual("版本号乱码修复（1252）",
+                SunshineDetector.NormalizeText("v2026.1031.121458.\u00e6\u009d\u201a\u00e9\u00b1\u00bc"),
+                "v2026.1031.121458.杂鱼");
+            CheckEqual("正常中文不被改写", SunshineDetector.NormalizeText("杂鱼"), "杂鱼");
+            CheckEqual("纯英文版本号不被改写", SunshineDetector.NormalizeText("0.23.1"), "0.23.1");
+
+            SunshineSignature futureBase = new SunshineSignature();
+            futureBase.CompanyName = "LizardByte";
+            futureBase.FileVersion = "v2027.0203.091500.0badc0de.杂鱼";
+            SunshineVerdict futureBaseVerdict = SunshineDetector.Classify(futureBase);
+            CheckTrue("未来基地版本：仅凭中文版本后缀即可判定",
+                futureBaseVerdict.Kind == SunshineBuildKind.BaseEdition && futureBaseVerdict.Confidence == SunshineConfidence.Medium,
+                futureBaseVerdict.Kind + " / " + futureBaseVerdict.Confidence);
+
+            SunshineSignature namedBase = new SunshineSignature();
+            namedBase.UninstallDisplayName = "Foundation Sunshine 基地版 v3";
+            SunshineVerdict namedBaseVerdict = SunshineDetector.Classify(namedBase);
+            CheckTrue("基地版：卸载项名称命中", namedBaseVerdict.Kind == SunshineBuildKind.BaseEdition, namedBaseVerdict.Kind.ToString());
+
+            SunshineSignature axixiOld = new SunshineSignature();
+            axixiOld.CompanyName = "Third Party Publisher";
+            axixiOld.FileVersion = "1.0.0";
+            axixiOld.MatchedFiles.Add(@"drivers\sudovda\");
+            SunshineVerdict axixiOldVerdict = SunshineDetector.Classify(axixiOld);
+            CheckTrue("阿西西旧版：目录指纹生效", axixiOldVerdict.Kind == SunshineBuildKind.Axixi, axixiOldVerdict.Kind.ToString());
+            CheckTrue("阿西西旧版：高置信", axixiOldVerdict.Confidence == SunshineConfidence.High, axixiOldVerdict.Confidence.ToString());
+
+            SunshineSignature axixiNamed = new SunshineSignature();
+            axixiNamed.UninstallDisplayName = "阿西西 Sunshine";
+            SunshineVerdict axixiNamedVerdict = SunshineDetector.Classify(axixiNamed);
+            CheckTrue("阿西西版：卸载项名称命中", axixiNamedVerdict.Kind == SunshineBuildKind.Axixi, axixiNamedVerdict.Kind.ToString());
+
+            SunshineSignature futureOfficial = new SunshineSignature();
+            futureOfficial.CompanyName = "LizardByte";
+            futureOfficial.FileVersion = "1.0.0";
+            SunshineVerdict futureOfficialVerdict = SunshineDetector.Classify(futureOfficial);
+            CheckTrue("官方版升级到 1.x 仍判为官方", futureOfficialVerdict.Kind == SunshineBuildKind.Official, futureOfficialVerdict.Kind.ToString());
+
+            CheckTrue("安装状态：服务+文件=已安装",
+                SunshineDetector.DetermineInstallState(true, false, true) == SunshineInstallState.Installed);
+            CheckTrue("安装状态：安装记录+文件=已安装",
+                SunshineDetector.DetermineInstallState(false, true, true) == SunshineInstallState.Installed);
+            CheckTrue("安装状态：只有文件=残留",
+                SunshineDetector.DetermineInstallState(false, false, true) == SunshineInstallState.Leftover);
+            CheckTrue("安装状态：只有安装记录=已卸载",
+                SunshineDetector.DetermineInstallState(false, true, false) == SunshineInstallState.Uninstalled);
+            CheckTrue("安装状态：服务指向的文件已消失=已卸载",
+                SunshineDetector.DetermineInstallState(true, false, false) == SunshineInstallState.Uninstalled);
+            CheckTrue("安装状态：什么都没有=未安装",
+                SunshineDetector.DetermineInstallState(false, false, false) == SunshineInstallState.NotInstalled);
+
+            SunshineSignature axixi = new SunshineSignature();
+            axixi.CompanyName = "Third Party Publisher";
+            axixi.FileVersion = "1.1.0";
+            axixi.MatchedMarkers.Add("axixi");
+            axixi.MatchedFiles.Add(@"drivers\sudovda\sudovda.inf");
+            SunshineVerdict axixiVerdict = SunshineDetector.Classify(axixi);
+            CheckTrue("阿西西版：渠道判定", axixiVerdict.Kind == SunshineBuildKind.Axixi, axixiVerdict.Kind.ToString());
+            CheckTrue("阿西西版：高置信", axixiVerdict.Confidence == SunshineConfidence.High, axixiVerdict.Confidence.ToString());
+
+            SunshineSignature axixiWeak = new SunshineSignature();
+            axixiWeak.CompanyName = "Third Party Publisher";
+            axixiWeak.FileVersion = "1.0.0";
+            SunshineVerdict weakVerdict = SunshineDetector.Classify(axixiWeak);
+            CheckTrue("阿西西版：只有厂商字段时为中置信",
+                weakVerdict.Kind == SunshineBuildKind.Axixi && weakVerdict.Confidence == SunshineConfidence.Medium,
+                weakVerdict.Kind + " / " + weakVerdict.Confidence);
+
+            SunshineSignature baseOnly = new SunshineSignature();
+            baseOnly.CompanyName = "LizardByte";
+            baseOnly.FileVersion = "v2026.1031.121458.杂鱼";
+            SunshineVerdict baseOnlyVerdict = SunshineDetector.Classify(baseOnly);
+            CheckTrue("基地版不会被误判为阿西西", baseOnlyVerdict.Kind == SunshineBuildKind.BaseEdition, baseOnlyVerdict.Kind.ToString());
+
+            SunshineVerdict unknownVerdict = SunshineDetector.Classify(new SunshineSignature());
+            CheckTrue("无信息时为未知构建", unknownVerdict.Kind == SunshineBuildKind.Unknown, unknownVerdict.Kind.ToString());
+            CheckTrue("未知构建置信度为低", unknownVerdict.Confidence == SunshineConfidence.Low, unknownVerdict.Confidence.ToString());
+            CheckTrue("判定结果附带依据", officialVerdict.Reasons.Count > 0);
+        }
+
+        private static void TestSunshineDetection()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[10] Sunshine 版本自检（本机）");
+
+            SunshineDetectionResult result = SunshineDetector.Detect();
+            CheckTrue("返回 Sunshine 检测结果", result != null);
+            if (result == null) return;
+
+            CheckTrue("Sunshine 摘要非空", !string.IsNullOrEmpty(result.Summary));
+            CheckTrue("Sunshine 诊断信息包含标题",
+                result.ToDiagnostics().IndexOf("Sunshine", StringComparison.Ordinal) >= 0);
+            CheckTrue("Sunshine 渠道标签非空", !string.IsNullOrEmpty(result.KindLabel));
+            CheckTrue("Sunshine 判断依据非空", result.Evidence.Count > 0);
+
+            if (string.IsNullOrEmpty(result.ExePath))
+            {
+                Console.WriteLine("    [跳过] 本机未安装 Sunshine");
+                return;
+            }
+
+            CheckTrue("Sunshine 版本号非空", !string.IsNullOrEmpty(result.Version));
+            CheckTrue("Sunshine 渠道已识别", result.Kind != SunshineBuildKind.Unknown, result.Kind.ToString());
+            Console.WriteLine("    " + result.Summary + " | 安装路径 " + result.InstallPath);
+            if (!string.IsNullOrEmpty(result.ServicePath))
+                Console.WriteLine("    服务 " + result.ServiceName + " · " + result.ServiceStartMode + " · " + result.ServicePath);
+
+            if (!string.IsNullOrEmpty(result.InstallPath) && Directory.Exists(result.InstallPath))
+            {
+                SunshineDetectionResult byDirectory = SunshineDetector.Detect(result.InstallPath);
+                CheckTrue("按目录检测与整机检测渠道一致",
+                    byDirectory.Kind == result.Kind,
+                    "整机 " + result.Kind + "，目录 " + byDirectory.Kind);
+                CheckTrue("按目录检测能读到版本号", !string.IsNullOrEmpty(byDirectory.Version));
+            }
+        }
+
+        private static void TestSunshineService()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[11] Sunshine 服务状态");
+
+            SunshineServiceStatus status = SunshineServiceManager.Detect();
+            CheckTrue("返回服务检测结果", status != null);
+            if (status == null) return;
+
+            CheckTrue("服务状态标签非空", !string.IsNullOrEmpty(status.StateLabel));
+            CheckTrue("服务摘要非空", !string.IsNullOrEmpty(status.Summary));
+            CheckTrue("服务诊断信息包含标题",
+                status.ToDiagnostics().IndexOf("Sunshine 服务", StringComparison.Ordinal) >= 0);
+
+            if (!status.IsFound)
+            {
+                CheckTrue("未安装时状态为未安装", status.State == SunshineServiceState.NotFound, status.State.ToString());
+                Console.WriteLine("    [跳过] 本机未注册 Sunshine 服务");
+            }
+            else
+            {
+                CheckTrue("已找到服务时状态已识别", status.State != SunshineServiceState.Unknown, status.State.ToString());
+                CheckTrue("已找到服务时启动类型已识别", status.StartMode != SunshineStartMode.Unknown, status.StartMode.ToString());
+                Console.WriteLine("    " + status.Summary + " | " + status.ServiceName + " | " + status.ImagePath);
+            }
+
+            SunshineStartMode mode;
+            CheckTrue("解析启动类型 auto",
+                SunshineServiceManager.TryParseStartMode("auto", out mode) && mode == SunshineStartMode.Automatic,
+                mode.ToString());
+            CheckTrue("解析启动类型 manual",
+                SunshineServiceManager.TryParseStartMode("manual", out mode) && mode == SunshineStartMode.Manual,
+                mode.ToString());
+            CheckTrue("解析启动类型 disabled",
+                SunshineServiceManager.TryParseStartMode("disabled", out mode) && mode == SunshineStartMode.Disabled,
+                mode.ToString());
+            CheckTrue("拒绝未知启动类型", !SunshineServiceManager.TryParseStartMode("bogus", out mode));
+            CheckEqual("启动类型文案", SunshineServiceManager.StartModeText(SunshineStartMode.Automatic), "自动");
+        }
+
+        private static void TestZakoDisplay()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[12] Zako 虚拟显示器");
+
+            ZakoDisplayStatus status = ZakoDisplayDetector.Detect();
+            CheckTrue("返回 Zako 检测结果", status != null);
+            if (status == null) return;
+
+            CheckTrue("系统版本已读取", !string.IsNullOrEmpty(status.OsDisplay));
+            CheckTrue("系统架构已读取", !string.IsNullOrEmpty(status.OsArch));
+            CheckTrue("Zako 状态已识别", status.State != ZakoDisplayState.Unknown, status.State.ToString());
+            CheckTrue("Zako 状态标签非空", !string.IsNullOrEmpty(status.StateLabel));
+            CheckTrue("Zako 摘要非空", !string.IsNullOrEmpty(status.Summary));
+            CheckTrue("Zako 诊断信息包含标题",
+                status.ToDiagnostics().IndexOf("Zako", StringComparison.Ordinal) >= 0);
+
+            List<ZakoDeviceInfo> one = new List<ZakoDeviceInfo>();
+            ZakoDeviceInfo healthy = new ZakoDeviceInfo();
+            healthy.DeviceClass = "Display";
+            healthy.ProblemCode = 0;
+            one.Add(healthy);
+            CheckTrue("单适配器正常判定",
+                ZakoDisplayDetector.EvaluateState(one) == ZakoDisplayState.Healthy);
+
+            ZakoDeviceInfo disabled = new ZakoDeviceInfo();
+            disabled.DeviceClass = "Display";
+            disabled.ProblemCode = 22;
+            CheckTrue("单适配器禁用判定",
+                ZakoDisplayDetector.EvaluateState(new List<ZakoDeviceInfo> { disabled }) == ZakoDisplayState.Disabled);
+
+            List<ZakoDeviceInfo> two = new List<ZakoDeviceInfo>();
+            two.Add(healthy);
+            two.Add(healthy);
+            CheckTrue("两个适配器判为异常",
+                ZakoDisplayDetector.EvaluateState(two) == ZakoDisplayState.MultipleAdapters);
+            CheckTrue("空列表判为未安装",
+                ZakoDisplayDetector.EvaluateState(new List<ZakoDeviceInfo>()) == ZakoDisplayState.NotInstalled);
+
+            if (status.State == ZakoDisplayState.NotInstalled)
+            {
+                Console.WriteLine("    [跳过] 本机未安装 Zako 虚拟显示器");
+            }
+            else
+            {
+                CheckTrue("已安装时能找到适配器", status.Adapter != null, "适配器为空");
+                if (status.Adapter != null && !string.IsNullOrEmpty(status.Adapter.DriverVersion))
+                {
+                    CheckTrue("读到驱动版本", !string.IsNullOrEmpty(status.Adapter.DriverVersion));
+                    CheckTrue("驱动日期格式规范",
+                        string.IsNullOrEmpty(status.Adapter.DriverDate)
+                            || (status.Adapter.DriverDate.Length == 10 && status.Adapter.DriverDate[4] == '-'),
+                        status.Adapter.DriverDate);
+                }
+                Console.WriteLine("    " + status.Summary + " | 设备数 " + status.Devices.Count
+                    + " | 驱动 " + (status.Adapter == null ? "—" : status.Adapter.DriverVersion));
+
+                if (!string.IsNullOrEmpty(status.BundledDriverVersion))
+                {
+                    CheckTrue("读到安装包驱动版本", status.BundledDriverVersion.IndexOf('.') > 0, status.BundledDriverVersion);
+                    CheckTrue("安装包驱动与本机驱动已对照",
+                        status.DriverVersionMatch != ZakoDriverVersionMatch.Unknown,
+                        status.DriverVersionMatch.ToString());
+                    Console.WriteLine("    安装包驱动 " + status.BundledDriverVersion
+                        + " · " + status.DriverVersionMatchLabel);
+                }
             }
         }
 
