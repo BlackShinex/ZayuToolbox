@@ -122,7 +122,14 @@ powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1
 
 # 3) 前台完整 UI 冒烟测试：包含剪贴板内容校验，89 项检查（会短暂占用桌面）
 powershell -ExecutionPolicy Bypass -STA -File .\tools\ui-smoke-test.ps1
+
+# 4) 只测修改部分（速度快，不跑网络探测 / 连通性测试）
+powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1 -Only components
+powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1 -Only sunshine,webview2
+powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1 -Only selfcheck
 ```
+
+`-Only` 支持 `components`、`sunshine`、`webview2`、`selfcheck`，多个分区用逗号分隔；例如只改组件状态页时运行 `-Only components` 约 5 秒，只改服务卡片时运行 `-Only sunshine` 约 4 秒。发布前仍建议跑一次完整后台测试。
 
 后台模式通过 `CreateDesktop` 创建独立桌面，并在该桌面启动应用与 UI Automation，当前桌面不会出现窗口或抢焦点；由于非输入桌面无法可靠访问剪贴板，后台模式会跳过诊断复制、IP 复制、报告截图等 7 项剪贴板内容校验。需要完整校验时再运行前台模式。
 

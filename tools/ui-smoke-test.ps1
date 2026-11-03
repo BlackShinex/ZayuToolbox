@@ -8,10 +8,14 @@
 # 用法（先构建 Debug）：
 #   powershell -ExecutionPolicy Bypass -File .\tools\ui-smoke-test.ps1
 #   powershell -ExecutionPolicy Bypass -File .\tools\ui-smoke-test.ps1 -SkipClipboard
-#   （后台独立桌面运行请用 tools\ui-test-background.ps1）
+#   powershell -ExecutionPolicy Bypass -File .\tools\ui-smoke-test.ps1 -Only components
+#   powershell -ExecutionPolicy Bypass -File .\tools\ui-smoke-test.ps1 -Only sunshine,webview2
+#   （-Only 支持 components / sunshine / webview2 / selfcheck，跳过网络检测和连通性测试）
+#   （后台独立桌面运行请用 tools\ui-test-background.ps1，同样支持 -Only）
 param(
     [string]$AppPath = "",
-    [switch]$SkipClipboard
+    [switch]$SkipClipboard,
+    [string]$Only = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -187,6 +191,91 @@ try {
         }
     }
     if ($window -eq $null) { throw "没有找到应用窗口（离线启动失败）" }
+
+    # 快速模式：只运行指定分区，跳过网络探测和连通性测试。
+    $fastSections = @($Only -split "," | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrEmpty($_) -and $_ -ne "all" })
+    foreach ($section in $fastSections) {
+        if (@("components", "sunshine", "webview2", "selfcheck") -notcontains $section) {
+            throw ("未知的测试分区：" + $section)
+        }
+    }
+    if ($fastSections.Count -gt 0) {
+        Write-Host ("快速模式：只测试 " + ($fastSections -join ", ")) -ForegroundColor Cyan
+
+        if ($fastSections -contains "components") {
+            Check "切换到组件状态页" (Select-NavItem $window "组件状态")
+            $compReady = $false
+            $compDeadline = (Get-Date).AddSeconds(45)
+            while ((Get-Date) -lt $compDeadline) {
+                Start-Sleep -Milliseconds 400
+                $compCopy = Get-ElementByAutomationId $window "ComponentCopyButton"
+                if ($compCopy -ne $null -and $compCopy.Current.IsEnabled) {
+                    $compReady = $true
+                    break
+                }
+            }
+            Check "组件状态检测完成" $compReady
+            if ($compReady) {
+                $compTexts = (Get-WindowTexts $window) -join "`n"
+                Check "组件页包含显示/音频/传输组件" (($compTexts -match "ZakoDisplay") -and ($compTexts -match "Steam Streaming Speakers") -and ($compTexts -match "VB-CABLE") -and ($compTexts -match "USB/IP"))
+                Check "组件页包含虚拟手柄状态" (($compTexts -match "DualSense") -and ($compTexts -match "HIDMaestro"))
+                $repairButton = Get-ElementByButtonName $window "修复组件"
+                $uninstallButton = Get-ElementByButtonName $window "卸载组件"
+                Check "组件页提供单独修复 / 卸载入口" ($repairButton -ne $null -and $uninstallButton -ne $null)
+            }
+        }
+
+        if ($fastSections -contains "sunshine") {
+            Check "切换到 Sunshine 版本页" (Select-NavItem $window "Sunshine 版本")
+            Start-Sleep -Milliseconds 500
+            $sunshineTexts = (Get-WindowTexts $window) -join "`n"
+            Check "显示 Sunshine 版本自检卡片" (($sunshineTexts -match "Sunshine 版本自检") -and ($sunshineTexts -match "安装来源："))
+            Check "显示 Sunshine 服务卡片" (($sunshineTexts -match "Sunshine 服务") -and ($sunshineTexts -match "服务详情") -and ($sunshineTexts -match "进程 PID："))
+            Check "服务状态与自启动分开显示" (($sunshineTexts -match "服务运行中|服务已停止|服务未安装") -and ($sunshineTexts -match "开机自启") -and ($sunshineTexts -notmatch "启动类型：") -and ($sunshineTexts -notmatch "已开启"))
+            $serviceToggle = Get-ElementByAutomationId $window "ServiceAutoStartToggle"
+            Check "存在开机自启开关" ($serviceToggle -ne $null)
+            $sunshineOfficial = Get-ElementByAutomationId $window "SunshineOfficialSiteButton"
+            Check "存在 Sunshine 基地版官网按钮" ($sunshineOfficial -ne $null -and $sunshineOfficial.Current.IsEnabled)
+        }
+
+        if ($fastSections -contains "webview2") {
+            Check "切换到 WebView2 运行库页" (Select-NavItem $window "WebView2 运行库")
+            Start-Sleep -Milliseconds 500
+            $webView2Texts = (Get-WindowTexts $window) -join "`n"
+            Check "显示 WebView2 运行库卡片" (($webView2Texts -match "WebView2 运行库") -and ($webView2Texts -match "版本："))
+            Check "显示 WebView2 检测状态" (($webView2Texts -match "已安装") -or ($webView2Texts -match "未安装") -or ($webView2Texts -match "安装异常"))
+            $webView2Copy = Get-ElementByAutomationId $window "WebView2CopyButton"
+            Check "存在 WebView2 诊断复制按钮" ($webView2Copy -ne $null)
+        }
+
+        if ($fastSections -contains "selfcheck") {
+            Check "切换到一键自检页" (Select-NavItem $window "一键自检")
+            $selfStart = Get-ElementByAutomationId $window "SelfCheckStartButton"
+            Check "存在开始自检按钮" ($selfStart -ne $null -and $selfStart.Current.IsEnabled)
+            if ($selfStart -ne $null -and $selfStart.Current.IsEnabled) {
+                Invoke-Element $selfStart
+                $selfReady = $false
+                $selfDeadline = (Get-Date).AddSeconds(45)
+                while ((Get-Date) -lt $selfDeadline) {
+                    Start-Sleep -Milliseconds 500
+                    $selfCopy = Get-ElementByAutomationId $window "SelfCheckCopyButton"
+                    if ($selfCopy -ne $null -and $selfCopy.Current.IsEnabled) {
+                        $selfReady = $true
+                        break
+                    }
+                }
+                Check "一键自检完成" $selfReady
+                if ($selfReady) {
+                    $selfTexts = (Get-WindowTexts $window) -join "`n"
+                    Check "报告包含系统信息" (($selfTexts -match "系统信息") -and ($selfTexts -match "CPU") -and ($selfTexts -match "内存"))
+                    Check "报告包含 Sunshine 服务与虚拟显示器" (($selfTexts -match "Sunshine") -and ($selfTexts -match "服务") -and ($selfTexts -match "虚拟显示器"))
+                    Check "报告包含网络与组件信息" (($selfTexts -match "NAT 类型") -and ($selfTexts -match "本机 IPv4") -and ($selfTexts -match "WebView2"))
+                }
+            }
+        }
+
+        return
+    }
 
     $startTexts = (Get-WindowTexts $window) -join "`n"
     Check "默认打开 Sunshine 版本页" ($startTexts -match "Sunshine 版本自检")

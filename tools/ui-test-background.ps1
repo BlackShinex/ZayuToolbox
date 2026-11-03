@@ -3,9 +3,12 @@
 # 用法：
 #   powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1
 #   powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1 -AppPath "D:\...\杂鱼串流工具箱.exe"
+#   powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1 -Only components
+#   powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1 -Only sunshine,webview2
 param(
     [string]$AppPath = "",
-    [int]$TimeoutSeconds = 300
+    [int]$TimeoutSeconds = 300,
+    [string]$Only = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -102,7 +105,11 @@ if (-not (Test-Path $psExe)) {
     $psExe = "powershell.exe"
 }
 
-$inner = "& '" + $testScript + "' -AppPath '" + $AppPath + "' -SkipClipboard *> '" + $logPath + "'; exit `$LASTEXITCODE"
+$onlyArgs = ""
+if (-not [string]::IsNullOrEmpty($Only)) {
+    $onlyArgs = " -Only '" + ($Only -replace "'", "''") + "'"
+}
+$inner = "& '" + $testScript + "' -AppPath '" + $AppPath + "'" + $onlyArgs + " -SkipClipboard *> '" + $logPath + "'; exit `$LASTEXITCODE"
 $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
 $commandLine = "`"$psExe`" -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded"
 

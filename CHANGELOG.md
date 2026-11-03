@@ -47,6 +47,7 @@
 
 - 核心离线测试 176 项，UI 冒烟测试前台 89 项、后台独立桌面 82 项。
 - 新增 `tools/ui-test-background.ps1`：在独立 Windows 桌面运行 UI 测试，不抢当前桌面焦点；后台模式跳过 7 项剪贴板内容校验。
+- UI 冒烟测试新增 `-Only` 快速模式：支持 `components`、`sunshine`、`webview2`、`selfcheck`，跳过网络探测和连通性测试，单个分区约 4～8 秒。
 - 新增 QRCoder 嵌入资源与第三方许可说明 `THIRD-PARTY-NOTICES.md`。
 - 本次改动尚未发布，版本号暂保持 1.7。
 
