@@ -359,14 +359,25 @@ namespace Zayu.Core
 
             int buildNumber;
             if (!int.TryParse(build, out buildNumber)) return string.Empty;
-            if (buildNumber >= 26300) return "26H2";
-            if (buildNumber >= 26200) return "25H2";
-            if (buildNumber >= 26100) return "24H2";
-            if (buildNumber >= 22631) return "23H2";
-            if (buildNumber >= 22621) return "22H2";
-            if (buildNumber >= 22000) return "21H2";
-            if (buildNumber >= 19041) return "22H2";
-            return string.Empty;
+
+            // 优先使用系统注册表的 DisplayVersion；这里仅对已知正式版的
+            // 基准 Build 做回退，未知 Build 不猜测版本号，避免把未来的
+            // Windows 版本错误标成当前的 26H2。
+            switch (buildNumber)
+            {
+                case 19041: return "2004";
+                case 19042: return "20H2";
+                case 19043: return "21H1";
+                case 19044: return "21H2";
+                case 19045: return "22H2";
+                case 22000: return "21H2";
+                case 22621: return "22H2";
+                case 22631: return "23H2";
+                case 26100: return "24H2";
+                case 26200: return "25H2";
+                case 26300: return "26H2";
+                default: return string.Empty;
+            }
         }
 
         private static string GetOperatingSystem()
