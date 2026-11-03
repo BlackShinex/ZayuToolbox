@@ -121,8 +121,18 @@
                         <StackPanel>
                             <TextBlock Text="杂鱼串流工具箱" FontSize="11.5" FontWeight="SemiBold"
                                        Foreground="#1D1D1F"/>
-                            <TextBlock Text="v1.7 · 本地运行" FontSize="10" Foreground="#5F5A70"
-                                       Margin="0,2,0,0"/>
+                            <TextBlock x:Name="AppVersionText" Text="v1.7 · 本地运行" FontSize="10"
+                                       Foreground="#5F5A70" Margin="0,2,0,0"/>
+                            <TextBlock x:Name="UpdateStatusText" Text="检查更新中…"
+                                       FontSize="9.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                       Margin="0,3,0,0"
+                                       AutomationProperties.AutomationId="UpdateStatusText"/>
+                            <Button x:Name="UpdateActionButton" Content="查看更新"
+                                    Style="{StaticResource CopyButton}"
+                                    FontSize="9.5" Padding="8,2" Margin="0,5,0,0"
+                                    HorizontalAlignment="Left" Visibility="Collapsed"
+                                    AutomationProperties.AutomationId="UpdateActionButton"
+                                    Click="UpdateActionButton_Click"/>
                         </StackPanel>
                     </Border>
 

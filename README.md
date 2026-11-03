@@ -48,6 +48,10 @@
   - 自动识别 VMware / VirtualBox / Hyper-V / WSL / Docker / VPN / Tailscale / 蓝牙等虚拟网卡，避免它们抢走「主地址」；虚拟网卡仍会列出并标注
 - **Sunshine 基地版官网入口**
   - Sunshine 环境页右上角提供「Sunshine 基地版官网」按钮，跳转 `https://www.alkaidlab.cn/`
+- **版本更新检测**
+  - 启动时从 GitHub `BlackShinex/ZayuToolbox` 的 Release / Tag 自动检查更新
+  - 有新版本时只在左下角显示「发现新版本 vX.Y」和「查看更新」，不弹窗、不打断操作
+  - 已是最新时显示「已是最新版本」，网络失败时显示失败原因并允许重新检查
 - **界面字体**
   - 界面使用随程序嵌入的 Noto Sans SC，数字 / 地址使用 Noto Sans Mono
   - 两者均为 SIL Open Font License 1.1，不依赖系统微软雅黑或 Consolas
@@ -112,15 +116,15 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zi
 ## 测试
 
 ```powershell
-# 1) 核心逻辑 + 真实网络探测（176 项离线检查；--live 额外 5 项联网检查）
+# 1) 核心逻辑 + 真实网络探测（180 项离线检查；--live 额外 5 项联网检查）
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 .\tests\IpInfo.CoreTests\bin\Debug\IpInfo.CoreTests.exe --live
 
 # 2) 后台 UI 冒烟测试：在独立 Windows 桌面运行，不抢当前桌面焦点
-#    自动跳过 7 项依赖剪贴板内容的校验，82 项检查
+#    自动跳过 7 项依赖剪贴板内容的校验，83 项检查
 powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1
 
-# 3) 前台完整 UI 冒烟测试：包含剪贴板内容校验，89 项检查（会短暂占用桌面）
+# 3) 前台完整 UI 冒烟测试：包含剪贴板内容校验，90 项检查（会短暂占用桌面）
 powershell -ExecutionPolicy Bypass -STA -File .\tools\ui-smoke-test.ps1
 
 # 4) 只测修改部分（速度快，不跑网络探测 / 连通性测试）
@@ -133,7 +137,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1 -Only se
 
 后台模式通过 `CreateDesktop` 创建独立桌面，并在该桌面启动应用与 UI Automation，当前桌面不会出现窗口或抢焦点；由于非输入桌面无法可靠访问剪贴板，后台模式会跳过诊断复制、IP 复制、报告截图等 7 项剪贴板内容校验。需要完整校验时再运行前台模式。
 
-前台 UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 89 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 6 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论、一键自检报告与复制截图、基地版组件状态页，以及 WebView2 状态卡片、诊断复制和安装窗口。
+前台 UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 90 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 6 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论、一键自检报告与复制截图、基地版组件状态页，以及 WebView2 状态卡片、诊断复制和安装窗口。
 
 > 仓库已包含 `.github/workflows/build.yml`：推送到 GitHub 后会自动构建 Release、运行离线核心测试并上传构建产物。
 
@@ -162,6 +166,7 @@ ip-info/
 │  │  ├─ ComponentStatusDetector.cs 基地版组件状态（PnP / 驱动 / 音频 / USB）
 │  │  ├─ ComponentOperationService.cs 组件修复 / 卸载（INF、官方 ZIP、UAC）
 │  │  ├─ ComponentOperationModels.cs 组件操作白名单 / 进度模型
+│  │  ├─ VersionUpdateService.cs GitHub Release / Tag 版本检查
 │  │  ├─ WebView2DetectionService.cs WebView2 注册表 / 安装目录检测
 │  │  ├─ WebView2InstallerService.cs WebView2 下载、签名校验与静默安装
 │  │  ├─ StunClient.cs           RFC 5389 STUN 客户端

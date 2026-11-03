@@ -59,6 +59,7 @@ namespace IpInfo.CoreTests
             TestZakoDisplay();
             TestComponentStatus();
             TestComponentOperations();
+            TestVersionUpdate();
 
             if (live)
             {
@@ -120,6 +121,21 @@ namespace IpInfo.CoreTests
                 !string.IsNullOrEmpty(ComponentOperationCatalog.RepairImpact(ComponentOperationCatalog.DualSense)));
             CheckTrue("卸载说明非空",
                 !string.IsNullOrEmpty(ComponentOperationCatalog.UninstallImpact(ComponentOperationCatalog.ZakoDisplay)));
+        }
+
+        private static void TestVersionUpdate()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[17] GitHub 版本更新判断");
+
+            CheckTrue("1.8 大于 1.7",
+                VersionUpdateService.IsNewer("v1.8", "1.7"));
+            CheckTrue("1.7.1 大于 1.7",
+                VersionUpdateService.IsNewer("1.7.1", "1.7"));
+            CheckTrue("1.7 不高于 1.7",
+                !VersionUpdateService.IsNewer("v1.7", "1.7"));
+            CheckEqual("版本号标准化",
+                "1.8.0", VersionUpdateService.NormalizeVersion("v1.8.0-beta"));
         }
 
         private static void TestPrivacyMask()

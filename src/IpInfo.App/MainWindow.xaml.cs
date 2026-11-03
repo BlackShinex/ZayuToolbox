@@ -62,6 +62,9 @@ namespace IpInfo.App
         private bool _componentBusy;
         private string _componentInstallPath;
         private CancellationTokenSource _componentCts;
+        private bool _updateCheckBusy;
+        private string _updateReleaseUrl;
+        private CancellationTokenSource _updateCts;
         private WebView2DetectionResult _webView2Result;
         private bool _webView2Busy;
         private WebView2InstallDialog _webView2InstallDialog;
@@ -71,6 +74,7 @@ namespace IpInfo.App
             InitializeComponent();
             RevealToggle.Content = "显示 IP";
             RevealToggle.Foreground = UiPalette.IndigoFg;
+            AppVersionText.Text = "v" + GetAppVersion() + " · 本地运行";
             UpdatePageVisibility(NavList.SelectedIndex);
             ResetSelfCheckState();
             ResetComponentStatusState();
@@ -303,7 +307,92 @@ namespace IpInfo.App
             FitToWorkArea();
             ShowNetworkIdleState();
             _initialRefresh.TrySetResult(true);
+            CheckForUpdatesAsync();
             await RefreshWebView2Async();
+        }
+
+        private static string GetAppVersion()
+        {
+            Version version = typeof(MainWindow).Assembly.GetName().Version;
+            return version == null ? "1.7" : version.Major + "." + version.Minor;
+        }
+
+        private async void CheckForUpdatesAsync()
+        {
+            if (_updateCheckBusy || UpdateStatusText == null) return;
+            _updateCheckBusy = true;
+            _updateReleaseUrl = null;
+            _updateCts = new CancellationTokenSource();
+            UpdateStatusText.Text = "检查更新中…";
+            UpdateStatusText.Foreground = UiPalette.MutedFg;
+            UpdateActionButton.Visibility = Visibility.Collapsed;
+
+            try
+            {
+                VersionUpdateResult result = await VersionUpdateService.CheckAsync(
+                    GetAppVersion(), _updateCts.Token);
+                if (result != null && result.HasUpdate)
+                {
+                    UpdateStatusText.Text = "发现新版本 v" + result.LatestVersion;
+                    UpdateStatusText.Foreground = UiPalette.IndigoFg;
+                    _updateReleaseUrl = result.ReleaseUrl;
+                    UpdateActionButton.Content = "查看更新";
+                    UpdateActionButton.Visibility = Visibility.Visible;
+                }
+                else if (result != null && result.HasReleaseInfo)
+                {
+                    UpdateStatusText.Text = "已是最新版本";
+                    UpdateStatusText.Foreground = UiPalette.MutedFg;
+                    UpdateActionButton.Content = "重新检查";
+                    UpdateActionButton.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    UpdateStatusText.Text = string.IsNullOrEmpty(result == null ? null : result.Error)
+                        ? "暂无发布版本" : result.Error;
+                    UpdateStatusText.Foreground = UiPalette.MutedFg;
+                    UpdateActionButton.Content = "重新检查";
+                    UpdateActionButton.Visibility = Visibility.Visible;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                UpdateStatusText.Text = "已取消更新检查";
+            }
+            catch (Exception ex)
+            {
+                UpdateStatusText.Text = "更新检查失败：" + ex.Message;
+                UpdateStatusText.Foreground = UiPalette.WarnFg;
+                UpdateActionButton.Content = "重试";
+                UpdateActionButton.Visibility = Visibility.Visible;
+            }
+            finally
+            {
+                _updateCheckBusy = false;
+                if (_updateCts != null)
+                {
+                    _updateCts.Dispose();
+                    _updateCts = null;
+                }
+            }
+        }
+
+        private void UpdateActionButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(_updateReleaseUrl))
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo(_updateReleaseUrl) { UseShellExecute = true });
+                }
+                catch (Exception ex)
+                {
+                    UpdateStatusText.Text = "打开更新页面失败：" + ex.Message;
+                    UpdateStatusText.Foreground = UiPalette.WarnFg;
+                }
+                return;
+            }
+            CheckForUpdatesAsync();
         }
 
         /// <summary>网络检测改为手动触发，启动时只展示未检测状态。</summary>
@@ -1887,6 +1976,11 @@ namespace IpInfo.App
             if (_componentCts != null)
             {
                 try { _componentCts.Cancel(); }
+                catch { }
+            }
+            if (_updateCts != null)
+            {
+                try { _updateCts.Cancel(); }
                 catch { }
             }
             StopConnectivityTest(false);
