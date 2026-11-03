@@ -14,6 +14,17 @@
         <DropShadowEffect x:Key="SidebarShadow" Color="#1D1D1F" BlurRadius="30" ShadowDepth="5"
                           Direction="270" Opacity="0.08"/>
 
+        <!-- 全局关闭键盘焦点虚线框：覆盖系统默认 FocusVisualStyle，避免 Ctrl+Alt 切回窗口时出现虚线框。 -->
+        <Style x:Key="{x:Static SystemParameters.FocusVisualStyleKey}" TargetType="{x:Type Control}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Control}">
+                        <Border Background="Transparent" BorderThickness="0"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="{x:Type ScrollBar}">
             <Setter Property="Width" Value="5"/>
             <Setter Property="Background" Value="Transparent"/>

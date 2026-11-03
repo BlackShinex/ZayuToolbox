@@ -34,7 +34,7 @@
   - 电脑侧另外主动连接公共 IPv4 TCP 端口，并结合 STUN 得到的 NAT 类型，判断 IPv4 打洞可行性
   - 结论优先推荐 IPv6 直连；IPv4 锥型 NAT 提示可打洞；对称 NAT 提示可能需要中继；IPv4 / IPv6 都不通则明确提示「无法建立有效 P2P 连接」
   - 二维码在本机离线生成（QRCoder 嵌入 exe），测试地址带随机令牌，测试结束或 90 秒超时后自动关闭临时端口
-  - 保留手动复制地址的打开方式；说明窗口带 3 秒倒计时，关闭按钮为「完成并关闭」
+  - 保留手动复制地址的打开方式；说明窗口带 6 秒倒计时，关闭按钮为「完成并关闭」
   - 显示 Windows 防火墙状态（管理员权限不足时从注册表推断，并明确标注“推断”）
 - **主地址智能选择**
   - 优先使用系统实际选路的物理网卡（`GetBestInterface` + 网关 + 地址类型综合判断）
@@ -51,6 +51,8 @@
 - **高分屏适配**
   - 清单启用 Per-Monitor V2 DPI 感知，并配置 WPF `DoNotScaleForDpiChanges=false`
   - 窗口启动/跨屏移动时自动限制在当前屏幕可用区域内，125% / 150% 缩放下不会超出屏幕；内容用 ScrollViewer 兜底
+- **键盘焦点样式**
+  - 全局关闭键盘焦点虚线框；按 Ctrl+Alt 切回窗口时不会出现虚线框
 - 检测异步执行，不阻塞界面；检测失败时仍会显示本机地址
 - 所有数据仅在本机处理，不上传到任何第三方服务
 
@@ -91,7 +93,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 powershell -ExecutionPolicy Bypass -STA -File .\tools\ui-smoke-test.ps1
 ```
 
-UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 68 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 3 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论，以及 WebView2 状态卡片、诊断复制和安装窗口。
+UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 69 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 6 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论，以及 WebView2 状态卡片、诊断复制和安装窗口。
 
 > 仓库已包含 `.github/workflows/build.yml`：推送到 GitHub 后会自动构建 Release、运行离线核心测试并上传构建产物。
 

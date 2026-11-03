@@ -1,4 +1,4 @@
-﻿<Window x:Class="IpInfo.App.WebView2InstallDialog"
+<Window x:Class="IpInfo.App.WebView2InstallDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="安装 / 修复 WebView2"
@@ -8,6 +8,7 @@
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
+        FocusVisualStyle="{x:Null}"
         Background="#F5F5F8"
         FontFamily="Microsoft YaHei UI"
         UseLayoutRounding="True"

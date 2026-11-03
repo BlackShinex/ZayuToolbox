@@ -13,7 +13,7 @@ namespace IpInfo.App
         private readonly ConnectivityTestServer _server;
         private readonly Action<ConnectivityTestMode> _onModeShown;
         private ConnectivityTestMode _mode;
-        private int _remainingSeconds = 3;
+        private int _remainingSeconds = 6;
         private bool _canClose;
         private bool _syncingMode;
         private DispatcherTimer _timer;
@@ -209,7 +209,7 @@ namespace IpInfo.App
             }
         }
 
-        /// <summary>主窗口停止测试时强制关闭，绕过 3 秒阅读倒计时。</summary>
+        /// <summary>主窗口停止测试时强制关闭，绕过 6 秒阅读倒计时。</summary>
         public void ForceClose()
         {
             _canClose = true;

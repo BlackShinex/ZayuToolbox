@@ -378,6 +378,7 @@ try {
         if ($dialog -ne $null) {
             $dialogJoined = (Get-WindowTexts $dialog) -join "`n"
             Check "弹窗包含内网/公网两种模式" (($dialogJoined -match "同一 Wi-Fi") -and ($dialogJoined -match "移动数据"))
+            Check "倒计时初始为 6 秒" ($dialogJoined -match "6 秒后可以关闭")
             Check "弹窗未显示二维码生成失败" ($dialogJoined -notmatch "二维码生成失败")
 
             $urlBox = Get-ElementByAutomationId $dialog "UrlBox"
@@ -393,8 +394,8 @@ try {
             Check "弹窗包含完成按钮" ($closeButton -ne $null)
             if ($closeButton -ne $null) {
                 Check "倒计时内完成按钮不可用" (-not $closeButton.Current.IsEnabled)
-                Start-Sleep -Milliseconds 3400
-                Check "3 秒倒计时结束后完成按钮可点击" ($closeButton.Current.IsEnabled)
+                Start-Sleep -Milliseconds 6400
+                Check "6 秒倒计时结束后完成按钮可点击" ($closeButton.Current.IsEnabled)
             }
 
             if ($url -match '^http://') {

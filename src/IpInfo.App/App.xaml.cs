@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 using IpInfo.Core;
 
@@ -44,6 +45,15 @@ namespace IpInfo.App
             }
         }
 
+        private static void OnPreviewGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            FrameworkElement element = sender as FrameworkElement;
+            if (element != null)
+            {
+                element.FocusVisualStyle = null;
+            }
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -58,6 +68,11 @@ namespace IpInfo.App
             }
 
             DispatcherUnhandledException += App_DispatcherUnhandledException;
+
+            // 保险：即使某个控件没有显式设置 FocusVisualStyle，也不显示键盘焦点虚线框。
+            EventManager.RegisterClassHandler(typeof(FrameworkElement),
+                Keyboard.PreviewGotKeyboardFocusEvent,
+                new KeyboardFocusChangedEventHandler(OnPreviewGotKeyboardFocus));
 
             string renderPath = null;
             bool reveal = false;
