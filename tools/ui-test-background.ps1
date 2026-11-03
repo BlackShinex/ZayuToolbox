@@ -14,7 +14,7 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrEmpty($AppPath)) {
-    $AppPath = Join-Path $root "src\IpInfo.App\bin\Debug\杂鱼串流工具箱.exe"
+    $AppPath = Join-Path $root "src\Zayu.App\bin\Debug\杂鱼串流工具箱.exe"
 }
 if (-not (Test-Path $AppPath)) {
     throw "找不到应用：$AppPath，请先构建"

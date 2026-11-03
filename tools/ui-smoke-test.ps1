@@ -21,7 +21,7 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrEmpty($AppPath)) {
-    $AppPath = Join-Path $root "src\IpInfo.App\bin\Debug\杂鱼串流工具箱.exe"
+    $AppPath = Join-Path $root "src\Zayu.App\bin\Debug\杂鱼串流工具箱.exe"
 }
 if (-not (Test-Path $AppPath)) {
     throw "找不到应用：$AppPath，请先运行 tools\build.ps1"
@@ -33,8 +33,8 @@ Add-Type -AssemblyName System.Windows.Forms
 
 $originalClipboard = $null
 try { $originalClipboard = [System.Windows.Forms.Clipboard]::GetText() } catch { }
-$originalLoopbackEnv = $env:IPINFO_CONNECTIVITY_BIND_LOOPBACK
-$env:IPINFO_CONNECTIVITY_BIND_LOOPBACK = "1"
+$originalLoopbackEnv = $env:ZAYU_CONNECTIVITY_BIND_LOOPBACK
+$env:ZAYU_CONNECTIVITY_BIND_LOOPBACK = "1"
 
 $checks = 0
 $failures = 0
@@ -696,9 +696,9 @@ try {
         try { [System.Windows.Forms.Clipboard]::SetText($originalClipboard) } catch { }
     }
     if ($null -eq $originalLoopbackEnv) {
-        Remove-Item Env:\IPINFO_CONNECTIVITY_BIND_LOOPBACK -ErrorAction SilentlyContinue
+        Remove-Item Env:\ZAYU_CONNECTIVITY_BIND_LOOPBACK -ErrorAction SilentlyContinue
     } else {
-        $env:IPINFO_CONNECTIVITY_BIND_LOOPBACK = $originalLoopbackEnv
+        $env:ZAYU_CONNECTIVITY_BIND_LOOPBACK = $originalLoopbackEnv
     }
     if ($process -ne $null -and -not $process.HasExited) {
         try { $process.Kill() } catch { }

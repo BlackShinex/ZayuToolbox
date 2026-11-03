@@ -1,11 +1,11 @@
-# 生成应用图标 src/IpInfo.App/app.ico
+# 生成应用图标 src/Zayu.App/app.ico
 # 使用与界面左上角一致的 Sunshine 角色图，放到浅色圆角玻璃底板上。
 # 用法：python tools\make-icon.py
 from PIL import Image, ImageDraw, ImageFilter
 
 SIZE = 1024
-LOGO_PATH = "src/IpInfo.App/Assets/sunshine-logo.png"
-OUT_ICO = "src/IpInfo.App/app.ico"
+LOGO_PATH = "src/Zayu.App/Assets/sunshine-logo.png"
+OUT_ICO = "src/Zayu.App/app.ico"
 OUT_PREVIEW = "docs/app-icon-preview.png"
 
 # 与界面一致的浅色玻璃底：白色到淡紫

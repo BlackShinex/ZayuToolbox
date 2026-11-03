@@ -2,20 +2,19 @@
 
 本项目「杂鱼串流工具箱」（ZayuToolbox）包含以下第三方组件，其版权归各自作者所有。
 
-## MiSans / Noto Sans Mono
+## Source Han Sans SC（思源黑体）/ Noto Sans Mono
 
-- 组件：MiSans（界面字体）、Noto Sans Mono（地址 / 版本等等宽字体）
+- 组件：Source Han Sans SC（界面字体）、Noto Sans Mono（地址 / 版本等等宽字体）
 - 用途：随程序嵌入，替代 Microsoft YaHei UI / Consolas，规避字体侵权风险
-- MiSans 许可：小米 MiSans 全球免费商用字体，允许随软件嵌入并在软件中注明使用了 MiSans
-- MiSans 官方主页：https://hyperos.mi.com/font/
-- MiSans 官方 FAQ：https://hyperos.mi.com/font/en/faq/
+- 许可：SIL Open Font License 1.1
+- Source Han Sans 项目主页：https://github.com/adobe-fonts/source-han-sans
 - Noto Sans Mono 项目主页：https://github.com/notofonts/noto-cjk
-- 相关说明见 [LICENSES/MiSans-LICENSE.txt](LICENSES/MiSans-LICENSE.txt) 与 [LICENSES/NotoSans-OFL.txt](LICENSES/NotoSans-OFL.txt)
+- 完整许可见 [LICENSES/SourceHanSans-OFL.txt](LICENSES/SourceHanSans-OFL.txt) 与 [LICENSES/NotoSans-OFL.txt](LICENSES/NotoSans-OFL.txt)
 
 ## QRCoder
 
 - 组件：QRCoder 1.4.3（net40 构建，以嵌入资源形式随主程序发布）
-- 用途：离线生成二维码模块矩阵（`IpInfo.App.QrCodeRenderer`）
+- 用途：离线生成二维码模块矩阵（`二维码渲染器`）
 - 许可：MIT License
 - 项目主页：https://github.com/Shane32/QRCoder
 - 版权与致谢：QRCoder by codebude and contributors (Raffael Herrmann), currently maintained by Shane32.
