@@ -39,6 +39,7 @@ namespace IpInfo.App
         public string Label { get; set; }
         public string Value { get; set; }
         public bool IsSection { get; set; }
+        public bool IsAlt { get; set; }
 
         public SelfCheckRow()
         {

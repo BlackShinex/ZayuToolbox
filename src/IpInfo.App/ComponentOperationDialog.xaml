@@ -16,46 +16,46 @@
     <Border Margin="20" Background="#E6FFFFFF" CornerRadius="18" BorderBrush="#80FFFFFF" BorderThickness="1"
             Padding="24">
         <StackPanel>
-            <TextBlock x:Name="OperationTitleText" Text="修复组件" FontSize="20" FontWeight="SemiBold"
+            <TextBlock x:Name="OperationTitleText" Text="修复组件" FontSize="21" FontWeight="SemiBold"
                        Foreground="#0F172A" TextWrapping="Wrap"/>
-            <TextBlock x:Name="OperationSubtitleText" Text="—" FontSize="11.5" Foreground="#58536A"
+            <TextBlock x:Name="OperationSubtitleText" Text="—" FontSize="12.5" Foreground="#58536A"
                        TextWrapping="Wrap" Margin="0,6,0,0"/>
 
             <Border Background="#F8FAFC" BorderBrush="#EEF2F7" BorderThickness="1" CornerRadius="9"
                     Padding="12,10" Margin="0,12,0,0">
                 <StackPanel>
-                    <TextBlock Text="操作说明" FontSize="11" FontWeight="SemiBold" Foreground="#6E687F"/>
-                    <TextBlock x:Name="OperationImpactText" Text="—" FontSize="11.5" Foreground="#475569"
+                    <TextBlock Text="操作说明" FontSize="12" FontWeight="SemiBold" Foreground="#6E687F"/>
+                    <TextBlock x:Name="OperationImpactText" Text="—" FontSize="12.5" Foreground="#475569"
                                TextWrapping="Wrap" Margin="0,5,0,0"/>
                 </StackPanel>
             </Border>
 
             <StackPanel Margin="0,14,0,0">
                 <Grid>
-                    <TextBlock x:Name="OperationStageText" Text="准备中…" FontSize="11.5"
+                    <TextBlock x:Name="OperationStageText" Text="准备中…" FontSize="12.5"
                                Foreground="#334155" TextWrapping="Wrap"/>
-                    <TextBlock x:Name="OperationPercentText" Text="" FontSize="11" Foreground="#4338CA"
+                    <TextBlock x:Name="OperationPercentText" Text="" FontSize="12" Foreground="#4338CA"
                                HorizontalAlignment="Right" FontWeight="SemiBold"/>
                 </Grid>
                 <ProgressBar x:Name="OperationProgressBar" Height="6" Minimum="0" Maximum="100"
                              Value="0" IsIndeterminate="True" Foreground="#4F46E5"
                              Background="#E0E7FF" BorderThickness="0" Margin="0,8,0,0"/>
                 <Grid Margin="0,6,0,0">
-                    <TextBlock x:Name="OperationSpeedText" Text="" FontSize="10.5" Foreground="#6E687F"/>
-                    <TextBlock x:Name="OperationEtaText" Text="" FontSize="10.5" Foreground="#6E687F"
+                    <TextBlock x:Name="OperationSpeedText" Text="" FontSize="11.5" Foreground="#6E687F"/>
+                    <TextBlock x:Name="OperationEtaText" Text="" FontSize="11.5" Foreground="#6E687F"
                                HorizontalAlignment="Right"/>
                 </Grid>
             </StackPanel>
 
             <TextBox x:Name="OperationLogBox" FocusVisualStyle="{x:Null}" IsReadOnly="True"
                      AcceptsReturn="True" TextWrapping="Wrap"
-                     FontFamily="{StaticResource MonoFont}" FontSize="10" Foreground="#475569"
+                     FontFamily="{StaticResource MonoFont}" FontSize="11" Foreground="#475569"
                      Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1"
                      Padding="8" Margin="0,10,0,0" Height="128"
                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"/>
 
             <TextBlock Text="需要管理员权限时会弹出 UAC；取消 UAC 不会修改任何组件。"
-                       FontSize="11" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                       FontSize="12" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,10,0,0"/>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
                 <Button x:Name="CancelButton" Content="取消" Style="{StaticResource CopyButton}"

@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:IpInfo.App"
         Title="杂鱼串流工具箱"
-        Width="1180" Height="840"
-        MinWidth="960" MinHeight="680"
+        Width="1240" Height="900"
+        MinWidth="1040" MinHeight="740"
         WindowStartupLocation="CenterScreen"
         FocusVisualStyle="{x:Null}"
         Background="{StaticResource BgBrush}"
@@ -87,15 +87,15 @@
                         <Image Source="/Assets/sunshine-logo.png" Stretch="Uniform" Margin="2"/>
                     </Border>
                     <StackPanel Margin="13,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="杂鱼串流工具箱" FontSize="20" FontWeight="SemiBold" Foreground="#1D1D1F"/>
-                        <TextBlock Text="网络诊断 · Sunshine 环境 · WebView2 运行库" FontSize="11.5"
+                        <TextBlock Text="杂鱼串流工具箱" FontSize="21" FontWeight="SemiBold" Foreground="#1D1D1F"/>
+                        <TextBlock Text="网络诊断 · Sunshine 环境 · WebView2 运行库" FontSize="12.5"
                                    Foreground="#5F5A70" Margin="0,2,0,0"/>
                     </StackPanel>
                 </StackPanel>
 
                 <Border Grid.Column="1" Background="#66FFFFFF" BorderBrush="#80FFFFFF"
                         BorderThickness="1" CornerRadius="999" Padding="11,5" VerticalAlignment="Center">
-                    <TextBlock Text="LOCAL TOOLKIT" FontSize="9" FontWeight="SemiBold"
+                    <TextBlock Text="LOCAL TOOLKIT" FontSize="10" FontWeight="SemiBold"
                                Foreground="#5F5A70"/>
                 </Border>
             </Grid>
@@ -104,7 +104,7 @@
         <!-- 内容：左侧菜单 + 右侧页面 -->
         <Grid Grid.Row="1" Margin="18,16,18,16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="224"/>
+                <ColumnDefinition Width="240"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
@@ -112,24 +112,24 @@
                     BorderBrush="#80FFFFFF" BorderThickness="1" CornerRadius="18"
                     Effect="{DynamicResource SidebarShadow}">
                 <DockPanel Margin="12,16,12,12">
-                    <TextBlock DockPanel.Dock="Top" Text="功能分区" FontSize="10.5" FontWeight="SemiBold"
+                    <TextBlock DockPanel.Dock="Top" Text="功能分区" FontSize="11.5" FontWeight="SemiBold"
                                Foreground="#5F5A70" Margin="10,0,0,10"/>
 
                     <Border DockPanel.Dock="Bottom" Margin="0,12,0,0" Background="#66FFFFFF"
                             BorderBrush="#80FFFFFF" BorderThickness="1" CornerRadius="12"
                             Padding="12,10">
                         <StackPanel>
-                            <TextBlock Text="杂鱼串流工具箱" FontSize="11.5" FontWeight="SemiBold"
+                            <TextBlock Text="杂鱼串流工具箱" FontSize="12.5" FontWeight="SemiBold"
                                        Foreground="#1D1D1F"/>
-                            <TextBlock x:Name="AppVersionText" Text="v1.7 · 本地运行" FontSize="10"
+                            <TextBlock x:Name="AppVersionText" Text="v1.7 · 本地运行" FontSize="11"
                                        Foreground="#5F5A70" Margin="0,2,0,0"/>
                             <TextBlock x:Name="UpdateStatusText" Text="检查更新中…"
-                                       FontSize="9.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                       FontSize="10.5" Foreground="#6E687F" TextWrapping="Wrap"
                                        Margin="0,3,0,0"
                                        AutomationProperties.AutomationId="UpdateStatusText"/>
                             <Button x:Name="UpdateActionButton" Content="查看更新"
                                     Style="{StaticResource CopyButton}"
-                                    FontSize="9.5" Padding="8,2" Margin="0,5,0,0"
+                                    FontSize="10.5" Padding="8,2" Margin="0,5,0,0"
                                     HorizontalAlignment="Left" Visibility="Collapsed"
                                     AutomationProperties.AutomationId="UpdateActionButton"
                                     Click="UpdateActionButton_Click"/>
@@ -144,7 +144,7 @@
                             <Style TargetType="{x:Type ListBoxItem}">
                                 <Setter Property="Padding" Value="12,0"/>
                                 <Setter Property="Margin" Value="0,3"/>
-                                <Setter Property="MinHeight" Value="42"/>
+                                <Setter Property="MinHeight" Value="46"/>
                                 <Setter Property="FontSize" Value="12.5"/>
                                 <Setter Property="Foreground" Value="#475569"/>
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -216,7 +216,7 @@
 
             <Grid Grid.Column="1">
                 <ScrollViewer x:Name="NetworkScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                              Padding="28,24,28,28">
+                              Padding="30,26,30,28">
             <StackPanel>
                 <Grid Margin="0,0,0,16">
                     <Grid.ColumnDefinitions>
@@ -249,17 +249,17 @@
                                 <Grid>
                                 <StackPanel Orientation="Horizontal">
                                     <Border Width="34" Height="34" CornerRadius="9" Background="#EEF2FF">
-                                        <TextBlock Text="4" FontSize="16" FontWeight="Bold" Foreground="#4F46E5"
+                                        <TextBlock Text="4" FontSize="17" FontWeight="Bold" Foreground="#4F46E5"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="本机 IPv4 地址" Style="{StaticResource SectionTitle}" FontSize="15.5"/>
+                                        <TextBlock Text="本机 IPv4 地址" Style="{StaticResource SectionTitle}" FontSize="16.5"/>
                                         <TextBlock x:Name="Ipv4Summary" Text="正在读取…" Style="{StaticResource SectionSubtitle}"/>
                                     </StackPanel>
                                 </StackPanel>
                                 <Border HorizontalAlignment="Right" VerticalAlignment="Top"
                                         Background="#F1F5F9" CornerRadius="7" Padding="8,3">
-                                    <TextBlock x:Name="Ipv4CountText" Text="0 个" FontSize="10.5" Foreground="#58536A"/>
+                                    <TextBlock x:Name="Ipv4CountText" Text="0 个" FontSize="11.5" Foreground="#58536A"/>
                                 </Border>
                             </Grid>
 
@@ -296,15 +296,15 @@
                                                             VerticalAlignment="Center"/>
                                                     <Border DockPanel.Dock="Left" Background="{Binding TagBackground}"
                                                             CornerRadius="5" Padding="5,1" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding ScopeLabel}" FontSize="10"
+                                                        <TextBlock Text="{Binding ScopeLabel}" FontSize="11"
                                                                    Foreground="{Binding TagForeground}"/>
                                                     </Border>
                                                     <Border DockPanel.Dock="Left" Background="#EEF2FF" CornerRadius="5"
                                                             Padding="5,1" Margin="5,0,0,0" VerticalAlignment="Center"
                                                             Visibility="{Binding PrimaryVisibility}">
-                                                        <TextBlock Text="主地址" FontSize="10" Foreground="#4F46E5"/>
+                                                        <TextBlock Text="主地址" FontSize="11" Foreground="#4F46E5"/>
                                                     </Border>
-                                                    <TextBlock Text="{Binding AdapterText}" FontSize="10.5"
+                                                    <TextBlock Text="{Binding AdapterText}" FontSize="11.5"
                                                                Foreground="#6E687F" Margin="7,0,8,0"
                                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                 </DockPanel>
@@ -316,7 +316,7 @@
 
                             <Border x:Name="Ipv4Empty" Visibility="Collapsed" Background="#66FFFFFF"
                                     CornerRadius="10" Padding="16" Margin="0,12,0,0">
-                                <TextBlock Text="未检测到可用的 IPv4 地址" FontSize="12" Foreground="#6E687F"
+                                <TextBlock Text="未检测到可用的 IPv4 地址" FontSize="13" Foreground="#6E687F"
                                            HorizontalAlignment="Center"/>
                             </Border>
                             </StackPanel>
@@ -324,15 +324,15 @@
 
                         <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="16">
                             <StackPanel>
-                                <TextBlock Text="小提示" FontSize="12" FontWeight="SemiBold" Foreground="#475569"/>
+                                <TextBlock Text="小提示" FontSize="13" FontWeight="SemiBold" Foreground="#475569"/>
                                 <TextBlock Text="· 默认只遮罩公网 IP，局域网 IPv4 保持完整；点击右上角「显示 IP」查看完整公网地址。"
-                                           FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                           FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,6,0,0"/>
                                 <TextBlock Text="· 每个地址右侧的「复制」按钮复制完整 IP。"
-                                           FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                           FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 <TextBlock Text="· IPv6 出现多个地址是正常现象：除主地址外，Windows 还会生成临时地址和链路本地地址。"
-                                           FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                           FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 <TextBlock Text="· 公网出口与 NAT 类型通过公共 STUN 服务器（UDP）检测，不经过第三方 HTTP 服务。"
-                                           FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                           FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -343,17 +343,17 @@
                             <Grid>
                                 <StackPanel Orientation="Horizontal">
                                     <Border Width="34" Height="34" CornerRadius="9" Background="#F3E8FF">
-                                        <TextBlock Text="6" FontSize="16" FontWeight="Bold" Foreground="#7E22CE"
+                                        <TextBlock Text="6" FontSize="17" FontWeight="Bold" Foreground="#7E22CE"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="本机 IPv6 地址" Style="{StaticResource SectionTitle}" FontSize="15.5"/>
+                                        <TextBlock Text="本机 IPv6 地址" Style="{StaticResource SectionTitle}" FontSize="16.5"/>
                                         <TextBlock x:Name="Ipv6Summary" Text="正在读取…" Style="{StaticResource SectionSubtitle}"/>
                                     </StackPanel>
                                 </StackPanel>
                                 <Border HorizontalAlignment="Right" VerticalAlignment="Top"
                                         Background="#F1F5F9" CornerRadius="7" Padding="8,3">
-                                    <TextBlock x:Name="Ipv6CountText" Text="0 个" FontSize="10.5" Foreground="#58536A"/>
+                                    <TextBlock x:Name="Ipv6CountText" Text="0 个" FontSize="11.5" Foreground="#58536A"/>
                                 </Border>
                             </Grid>
 
@@ -390,15 +390,15 @@
                                                             VerticalAlignment="Center"/>
                                                     <Border DockPanel.Dock="Left" Background="{Binding TagBackground}"
                                                             CornerRadius="5" Padding="5,1" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding ScopeLabel}" FontSize="10"
+                                                        <TextBlock Text="{Binding ScopeLabel}" FontSize="11"
                                                                    Foreground="{Binding TagForeground}"/>
                                                     </Border>
                                                     <Border DockPanel.Dock="Left" Background="#EEF2FF" CornerRadius="5"
                                                             Padding="5,1" Margin="5,0,0,0" VerticalAlignment="Center"
                                                             Visibility="{Binding PrimaryVisibility}">
-                                                        <TextBlock Text="主地址" FontSize="10" Foreground="#4F46E5"/>
+                                                        <TextBlock Text="主地址" FontSize="11" Foreground="#4F46E5"/>
                                                     </Border>
-                                                    <TextBlock Text="{Binding AdapterText}" FontSize="10.5"
+                                                    <TextBlock Text="{Binding AdapterText}" FontSize="11.5"
                                                                Foreground="#6E687F" Margin="7,0,8,0"
                                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                 </DockPanel>
@@ -410,7 +410,7 @@
 
                             <Border x:Name="Ipv6Empty" Visibility="Collapsed" Background="#66FFFFFF"
                                     CornerRadius="10" Padding="16" Margin="0,12,0,0">
-                                <TextBlock Text="未检测到可用的 IPv6 地址" FontSize="12" Foreground="#6E687F"
+                                <TextBlock Text="未检测到可用的 IPv6 地址" FontSize="13" Foreground="#6E687F"
                                            HorizontalAlignment="Center"/>
                             </Border>
                         </StackPanel>
@@ -434,11 +434,11 @@
                                 <TextBlock Text="公网 IP 与 NAT 类型" Style="{StaticResource SectionTitle}" VerticalAlignment="Center"/>
                                 <Border Background="#EEF2FF" CornerRadius="5" Padding="6,1" Margin="8,0,0,0"
                                         VerticalAlignment="Center">
-                                    <TextBlock Text="STUN" FontSize="9.5" FontWeight="SemiBold" Foreground="#4338CA"/>
+                                    <TextBlock Text="STUN" FontSize="10.5" FontWeight="SemiBold" Foreground="#4338CA"/>
                                 </Border>
                             </StackPanel>
                             <TextBlock x:Name="ProgressText" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                       FontSize="11" Foreground="#58536A" Visibility="Collapsed"/>
+                                       FontSize="12" Foreground="#58536A" Visibility="Collapsed"/>
                         </Grid>
 
                         <ProgressBar x:Name="DetectProgressBar" Grid.Row="1" Height="3" IsIndeterminate="True"
@@ -450,7 +450,7 @@
                             <DockPanel>
                                 <Border x:Name="SummaryDot" Width="8" Height="8" CornerRadius="4"
                                         Background="#6366F1" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                                <TextBlock x:Name="SummaryText" Text="正在获取网络信息…" FontSize="12.5"
+                                <TextBlock x:Name="SummaryText" Text="正在获取网络信息…" FontSize="13.5"
                                            Foreground="#3730A3" TextWrapping="Wrap" Margin="10,0,0,0"
                                            VerticalAlignment="Center"/>
                             </DockPanel>
@@ -464,7 +464,7 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="公网出口 IP" FontSize="11" FontWeight="SemiBold" Foreground="#6E687F"/>
+                                <TextBlock Text="公网出口 IP" FontSize="12" FontWeight="SemiBold" Foreground="#6E687F"/>
 
                                 <Border Background="#66FFFFFF" BorderBrush="#70FFFFFF" BorderThickness="1"
                                         CornerRadius="10" Padding="12,10" Margin="0,7,0,0">
@@ -476,15 +476,15 @@
                                         </Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Background="#E0E7FF" CornerRadius="6"
                                                 Padding="7,2" VerticalAlignment="Center">
-                                            <TextBlock Text="IPv4" FontSize="10.5" FontWeight="SemiBold" Foreground="#4338CA"/>
+                                            <TextBlock Text="IPv4" FontSize="11.5" FontWeight="SemiBold" Foreground="#4338CA"/>
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
                                             <TextBlock x:Name="ExternalIpv4Text" Text="--" FontFamily="{StaticResource MonoFont}"
-                                                       FontSize="13.5" FontWeight="SemiBold" Foreground="#0F172A"
+                                                       FontSize="14.5" FontWeight="SemiBold" Foreground="#0F172A"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <Border x:Name="Ipv4StatusChip" Background="#F1F5F9" CornerRadius="5"
                                                     Padding="5,0" HorizontalAlignment="Left" Margin="0,3,0,0">
-                                                <TextBlock x:Name="Ipv4StatusText" Text="未知" FontSize="10"
+                                                <TextBlock x:Name="Ipv4StatusText" Text="未知" FontSize="11"
                                                            Foreground="#58536A"/>
                                             </Border>
                                         </StackPanel>
@@ -504,15 +504,15 @@
                                         </Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Background="#F3E8FF" CornerRadius="6"
                                                 Padding="7,2" VerticalAlignment="Center">
-                                            <TextBlock Text="IPv6" FontSize="10.5" FontWeight="SemiBold" Foreground="#7E22CE"/>
+                                            <TextBlock Text="IPv6" FontSize="11.5" FontWeight="SemiBold" Foreground="#7E22CE"/>
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
                                             <TextBlock x:Name="ExternalIpv6Text" Text="--" FontFamily="{StaticResource MonoFont}"
-                                                       FontSize="13.5" FontWeight="SemiBold" Foreground="#0F172A"
+                                                       FontSize="14.5" FontWeight="SemiBold" Foreground="#0F172A"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <Border x:Name="Ipv6StatusChip" Background="#F1F5F9" CornerRadius="5"
                                                     Padding="5,0" HorizontalAlignment="Left" Margin="0,3,0,0">
-                                                <TextBlock x:Name="Ipv6StatusText" Text="未知" FontSize="10"
+                                                <TextBlock x:Name="Ipv6StatusText" Text="未知" FontSize="11"
                                                            Foreground="#58536A"/>
                                             </Border>
                                         </StackPanel>
@@ -526,19 +526,19 @@
                             <Border Grid.Column="2" Background="#66FFFFFF" BorderBrush="#70FFFFFF"
                                     BorderThickness="1" CornerRadius="10" Padding="14,12">
                                 <StackPanel>
-                                    <TextBlock Text="NAT 类型" FontSize="11" FontWeight="SemiBold" Foreground="#6E687F"/>
-                                    <TextBlock x:Name="NatTypeText" Text="检测中…" FontSize="18" FontWeight="SemiBold"
+                                    <TextBlock Text="NAT 类型" FontSize="12" FontWeight="SemiBold" Foreground="#6E687F"/>
+                                    <TextBlock x:Name="NatTypeText" Text="检测中…" FontSize="19" FontWeight="SemiBold"
                                                Foreground="#334155" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     <TextBlock x:Name="NatDescriptionText" Text="正在分析当前网络的 NAT 行为…"
-                                               FontSize="11" Foreground="#58536A" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                               FontSize="12" Foreground="#58536A" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                     <Border Background="#FFFFFF" BorderBrush="#70FFFFFF" BorderThickness="1"
                                             CornerRadius="8" Padding="10,8" Margin="0,10,0,0">
                                         <StackPanel>
-                                            <TextBlock x:Name="NatDetailMappingText" Text="映射行为：--" FontSize="11"
+                                            <TextBlock x:Name="NatDetailMappingText" Text="映射行为：--" FontSize="12"
                                                        Foreground="#475569" TextWrapping="Wrap"/>
-                                            <TextBlock x:Name="NatDetailPortText" Text="端口保持：--" FontSize="11"
+                                            <TextBlock x:Name="NatDetailPortText" Text="端口保持：--" FontSize="12"
                                                        Foreground="#475569" Margin="0,3,0,0" TextWrapping="Wrap"/>
-                                            <TextBlock x:Name="NatDetailServerText" Text="STUN 服务器：--" FontSize="10.5"
+                                            <TextBlock x:Name="NatDetailServerText" Text="STUN 服务器：--" FontSize="11.5"
                                                        Foreground="#6E687F" Margin="0,3,0,0"
                                                        TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
@@ -547,7 +547,7 @@
                             </Border>
                         </Grid>
 
-                        <Expander x:Name="NatDetailExpander" Grid.Row="4" Margin="0,10,0,0" FontSize="11.5"
+                        <Expander x:Name="NatDetailExpander" Grid.Row="4" Margin="0,10,0,0" FontSize="12.5"
                                   FocusVisualStyle="{x:Null}"
                                   Foreground="#58536A" Header="查看检测详情" Visibility="Collapsed">
                             <Border Background="#66FFFFFF" CornerRadius="8" Padding="10,8" Margin="0,6,0,0">
@@ -556,7 +556,7 @@
                                     <ItemsControl x:Name="StepsList">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding}" FontSize="10.5" Foreground="#58536A"
+                                                <TextBlock Text="{Binding}" FontSize="11.5" Foreground="#58536A"
                                                            TextWrapping="Wrap" Margin="0,1"/>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -568,7 +568,7 @@
                         <Border x:Name="ErrorBanner" Grid.Row="5" Visibility="Collapsed" Background="#FEF2F2"
                                 BorderBrush="#FECACA" BorderThickness="1" CornerRadius="8" Padding="12,9"
                                 Margin="0,12,0,0">
-                            <TextBlock x:Name="ErrorText" FontSize="11.5" Foreground="#B91C1C" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="ErrorText" FontSize="12.5" Foreground="#B91C1C" TextWrapping="Wrap"/>
                         </Border>
                     </Grid>
                 </Border>
@@ -583,11 +583,11 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Orientation="Horizontal">
                                 <Border Width="34" Height="34" CornerRadius="9" Background="#E0E7FF">
-                                    <TextBlock Text="&#x2194;" FontSize="17" FontWeight="Bold" Foreground="#4338CA"
+                                    <TextBlock Text="&#x2194;" FontSize="18" FontWeight="Bold" Foreground="#4338CA"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="网络连通性测试" Style="{StaticResource SectionTitle}" FontSize="15.5"/>
+                                    <TextBlock Text="网络连通性测试" Style="{StaticResource SectionTitle}" FontSize="16.5"/>
                                     <TextBlock Text="同时验证内网 / 外网的 IPv4 与 IPv6，判断能否建立有效 P2P 连接"
                                                Style="{StaticResource SectionSubtitle}"/>
                                 </StackPanel>
@@ -608,7 +608,7 @@
                                 <Border x:Name="ConnectivityVerdictDot" Width="8" Height="8" CornerRadius="4"
                                         Background="#6366F1" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="ConnectivityVerdictText" Text="尚未测试"
-                                           FontSize="12.5" Foreground="#3730A3" TextWrapping="Wrap"
+                                           FontSize="13.5" Foreground="#3730A3" TextWrapping="Wrap"
                                            Margin="10,0,0,0"/>
                             </DockPanel>
                         </Border>
@@ -621,7 +621,7 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="测试矩阵" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="测试矩阵" FontSize="12" FontWeight="SemiBold"
                                            Foreground="#6E687F"/>
                                 <ItemsControl x:Name="ConnectivityList" Margin="0,7,0,0">
                                     <ItemsControl.ItemTemplate>
@@ -635,15 +635,15 @@
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
                                                     <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                                        <TextBlock Text="{Binding Title}" FontSize="11.5"
+                                                        <TextBlock Text="{Binding Title}" FontSize="12.5"
                                                                    FontWeight="SemiBold" Foreground="#334155"/>
-                                                        <TextBlock Text="{Binding Detail}" FontSize="10.5"
+                                                        <TextBlock Text="{Binding Detail}" FontSize="11.5"
                                                                    Foreground="#6E687F" TextWrapping="Wrap"
                                                                    Margin="0,2,0,0"/>
                                                     </StackPanel>
                                                     <Border Grid.Column="1" Background="{Binding StatusBackground}"
                                                             CornerRadius="6" Padding="7,2" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding StatusText}" FontSize="10"
+                                                        <TextBlock Text="{Binding StatusText}" FontSize="11"
                                                                    FontWeight="SemiBold"
                                                                    Foreground="{Binding StatusForeground}"/>
                                                     </Border>
@@ -653,30 +653,30 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                                 <TextBlock x:Name="ConnectivityStatusText" Text="尚未测试"
-                                           FontSize="11" Foreground="#6E687F" TextWrapping="Wrap"
+                                           FontSize="12" Foreground="#6E687F" TextWrapping="Wrap"
                                            Margin="0,6,0,0"/>
                             </StackPanel>
 
                             <Border Grid.Column="2" Background="#66FFFFFF" BorderBrush="#70FFFFFF"
                                     BorderThickness="1" CornerRadius="10" Padding="14,12">
                                 <StackPanel>
-                                    <TextBlock Text="Windows 防火墙" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="Windows 防火墙" FontSize="12" FontWeight="SemiBold"
                                                Foreground="#6E687F"/>
-                                    <TextBlock x:Name="FirewallText" Text="正在读取 Windows 防火墙状态…" FontSize="10.5"
+                                    <TextBlock x:Name="FirewallText" Text="正在读取 Windows 防火墙状态…" FontSize="11.5"
                                                Foreground="#58536A" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                    <TextBlock Text="两种测试场景" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="两种测试场景" FontSize="12" FontWeight="SemiBold"
                                                Foreground="#6E687F" Margin="0,12,0,0"/>
                                     <TextBlock Text="· 同一 Wi-Fi：手机扫码访问电脑局域网地址，同时测试内网 IPv4 与 IPv6。"
-                                               FontSize="10.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                               FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
                                                Margin="0,4,0,0"/>
                                     <TextBlock Text="· 移动数据：手机扫码访问公网 IPv6，测试外部入站是否放行。"
-                                               FontSize="10.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                               FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
                                                Margin="0,3,0,0"/>
                                     <TextBlock Text="测试结束会自动关闭临时端口；二维码只在本机生成，不会上传。"
-                                               FontSize="10.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                               FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
                                                Margin="0,8,0,0"/>
                                     <TextBlock Text="外网 IPv4 为公网出口 + NAT 类型判断，不等同于外部一定能连入。"
-                                               FontSize="10.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                               FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
                                                Margin="0,3,0,0"/>
                                 </StackPanel>
                             </Border>
@@ -689,7 +689,7 @@
 
                 <ScrollViewer x:Name="SelfCheckScrollViewer" Visibility="Collapsed"
                               VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                              Padding="28,24,28,28">
+                              Padding="30,26,30,28">
                     <StackPanel>
                         <Grid Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
@@ -719,57 +719,128 @@
                                      Foreground="#4F46E5" Background="#E0E7FF" BorderThickness="0"
                                      Margin="0,0,0,10" Visibility="Collapsed"/>
                         <TextBlock x:Name="SelfCheckStatusText" Text="尚未自检，点击「开始自检」生成诊断报告。"
-                                   FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                   FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap"
                                    Margin="0,0,0,10"/>
 
                         <Border x:Name="SelfCheckReportCard" Background="#FFFFFF" BorderBrush="#E2E8F0"
-                                BorderThickness="1" CornerRadius="16" Padding="22">
+                                BorderThickness="1" CornerRadius="16" Padding="24">
                             <StackPanel>
+                                <Border Height="4" CornerRadius="2" Margin="0,0,0,14">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="#6366F1" Offset="0"/>
+                                            <GradientStop Color="#8B5CF6" Offset="0.55"/>
+                                            <GradientStop Color="#22D3EE" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
                                 <Grid>
                                     <StackPanel>
                                         <TextBlock Text="杂鱼串流工具箱 · 一键自检报告"
-                                                   FontSize="18" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                                   FontSize="19" FontWeight="SemiBold" Foreground="#0F172A"/>
                                         <TextBlock x:Name="SelfCheckMetaText" Text="尚未生成报告"
-                                                   FontSize="11.5" Foreground="#6E687F" Margin="0,4,0,0"/>
+                                                   FontSize="12.5" Foreground="#6E687F" Margin="0,4,0,0"/>
                                     </StackPanel>
                                     <Border HorizontalAlignment="Right" VerticalAlignment="Top"
                                             Background="#EEF2FF" CornerRadius="7" Padding="9,4">
                                         <TextBlock x:Name="SelfCheckPrivacyText" Text="公网 IP 已打码"
-                                                   FontSize="10.5" Foreground="#4338CA"/>
+                                                   FontSize="11.5" Foreground="#4338CA"/>
                                     </Border>
                                 </Grid>
 
-                                <Border Height="1" Background="#E2E8F0" Margin="0,14,0,6"/>
+                                <Grid x:Name="SelfCheckSummaryGrid" Margin="0,16,0,0"
+                                      Visibility="Collapsed">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="#F8FAFF" BorderBrush="#E0E7FF"
+                                            BorderThickness="1" CornerRadius="10" Padding="12,9">
+                                        <StackPanel>
+                                            <TextBlock Text="系统" FontSize="11.5" Foreground="#6E687F"/>
+                                            <TextBlock x:Name="SelfCheckSummarySystemText" Text="—"
+                                                       FontSize="13.5" FontWeight="SemiBold"
+                                                       Foreground="#1E293B" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Background="#F8FAFF" BorderBrush="#E0E7FF"
+                                            BorderThickness="1" CornerRadius="10" Padding="12,9">
+                                        <StackPanel>
+                                            <TextBlock Text="Sunshine" FontSize="11.5" Foreground="#6E687F"/>
+                                            <TextBlock x:Name="SelfCheckSummarySunshineText" Text="—"
+                                                       FontSize="13.5" FontWeight="SemiBold"
+                                                       Foreground="#1E293B" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="4" Background="#F8FAFF" BorderBrush="#E0E7FF"
+                                            BorderThickness="1" CornerRadius="10" Padding="12,9">
+                                        <StackPanel>
+                                            <TextBlock Text="网络" FontSize="11.5" Foreground="#6E687F"/>
+                                            <TextBlock x:Name="SelfCheckSummaryNetworkText" Text="—"
+                                                       FontSize="13.5" FontWeight="SemiBold"
+                                                       Foreground="#1E293B" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="6" Background="#F8FAFF" BorderBrush="#E0E7FF"
+                                            BorderThickness="1" CornerRadius="10" Padding="12,9">
+                                        <StackPanel>
+                                            <TextBlock Text="可选组件" FontSize="11.5" Foreground="#6E687F"/>
+                                            <TextBlock x:Name="SelfCheckSummaryComponentsText" Text="—"
+                                                       FontSize="13.5" FontWeight="SemiBold"
+                                                       Foreground="#1E293B" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <Border Height="1" Background="#E2E8F0" Margin="0,16,0,6"/>
 
                                 <TextBlock x:Name="SelfCheckEmptyText"
                                            Text="点击右上角「开始自检」，自动收集系统、Sunshine、网络、连通性和组件信息。"
-                                           FontSize="12" Foreground="#6E687F" TextWrapping="Wrap"
+                                           FontSize="13" Foreground="#6E687F" TextWrapping="Wrap"
                                            Margin="0,10,0,10"/>
 
                                 <ItemsControl x:Name="SelfCheckRowsList">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Border x:Name="SelfCheckRowBorder" Background="Transparent"
-                                                    CornerRadius="6" Padding="8,5" Margin="0,1">
+                                                    BorderBrush="#EEF2F7" BorderThickness="0,0,0,1"
+                                                    CornerRadius="6" Padding="10,7" Margin="0,1">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="150"/>
+                                                        <ColumnDefinition Width="4"/>
+                                                        <ColumnDefinition Width="170"/>
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock x:Name="SelfCheckLabel" Text="{Binding Label}"
-                                                               FontSize="11.5" Foreground="#475569"
+                                                    <Border x:Name="SelfCheckSectionAccent" Grid.Column="0"
+                                                            Width="3" Height="18" CornerRadius="2"
+                                                            Background="#6366F1" Visibility="Collapsed"
+                                                            VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                    <TextBlock x:Name="SelfCheckLabel" Grid.Column="1"
+                                                               Text="{Binding Label}"
+                                                               FontSize="12.5" Foreground="#475569"
                                                                VerticalAlignment="Top"/>
-                                                    <TextBlock x:Name="SelfCheckValue" Grid.Column="1"
-                                                               Text="{Binding Value}" FontSize="11.5"
+                                                    <TextBlock x:Name="SelfCheckValue" Grid.Column="2"
+                                                               Text="{Binding Value}" FontSize="12.5"
                                                                Foreground="#0F172A" TextWrapping="Wrap"
                                                                VerticalAlignment="Top"/>
                                                 </Grid>
                                             </Border>
                                             <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsAlt}" Value="True">
+                                                    <Setter TargetName="SelfCheckRowBorder" Property="Background" Value="#F8FAFF"/>
+                                                </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsSection}" Value="True">
                                                     <Setter TargetName="SelfCheckRowBorder" Property="Background" Value="#EEF2FF"/>
+                                                    <Setter TargetName="SelfCheckRowBorder" Property="BorderThickness" Value="0"/>
+                                                    <Setter TargetName="SelfCheckRowBorder" Property="Padding" Value="12,8"/>
+                                                    <Setter TargetName="SelfCheckSectionAccent" Property="Visibility" Value="Visible"/>
                                                     <Setter TargetName="SelfCheckLabel" Property="FontWeight" Value="SemiBold"/>
-                                                    <Setter TargetName="SelfCheckLabel" Property="FontSize" Value="12"/>
+                                                    <Setter TargetName="SelfCheckLabel" Property="FontSize" Value="13"/>
                                                     <Setter TargetName="SelfCheckLabel" Property="Foreground" Value="#3730A3"/>
                                                     <Setter TargetName="SelfCheckValue" Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
@@ -780,7 +851,7 @@
 
                                 <TextBlock x:Name="SelfCheckFooterText"
                                            Text="由 杂鱼串流工具箱生成 · 数据仅在本机处理"
-                                           FontSize="10.5" Foreground="#6E687F" Margin="0,14,0,0"/>
+                                           FontSize="11.5" Foreground="#6E687F" Margin="0,14,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -788,7 +859,7 @@
 
                 <ScrollViewer x:Name="ComponentStatusScrollViewer" Visibility="Collapsed"
                               VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                              Padding="28,24,28,28">
+                              Padding="30,26,30,28">
                     <StackPanel>
                         <Grid Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
@@ -818,21 +889,21 @@
                                      Foreground="#4F46E5" Background="#E0E7FF" BorderThickness="0"
                                      Margin="0,0,0,10" Visibility="Collapsed"/>
                         <TextBlock x:Name="ComponentStatusText" Text="尚未检测，点击「刷新状态」开始。"
-                                   FontSize="12" Foreground="#6E687F" TextWrapping="Wrap"
+                                   FontSize="13" Foreground="#6E687F" TextWrapping="Wrap"
                                    Margin="0,0,0,10"/>
 
                         <Border Style="{StaticResource Card}" Padding="22">
                             <StackPanel>
                                 <Grid>
                                     <StackPanel>
-                                        <TextBlock Text="基地版组件状态" FontSize="17.5"
+                                        <TextBlock Text="基地版组件状态" FontSize="18.5"
                                                    FontWeight="SemiBold" Foreground="#0F172A"/>
                                         <TextBlock x:Name="ComponentSummaryText" Text="尚未检测"
-                                                   FontSize="12" Foreground="#6E687F" Margin="0,4,0,0"/>
+                                                   FontSize="13" Foreground="#6E687F" Margin="0,4,0,0"/>
                                     </StackPanel>
                                     <Border HorizontalAlignment="Right" VerticalAlignment="Top"
                                             Background="#EEF2FF" CornerRadius="7" Padding="9,4">
-                                        <TextBlock Text="检测 + 修复" FontSize="11" Foreground="#4338CA"/>
+                                        <TextBlock Text="检测 + 修复" FontSize="12" Foreground="#4338CA"/>
                                     </Border>
                                 </Grid>
 
@@ -847,7 +918,7 @@
                                                 <StackPanel>
                                                     <Grid>
                                                         <TextBlock x:Name="ComponentName" Text="{Binding Name}"
-                                                                   FontSize="13" FontWeight="SemiBold"
+                                                                   FontSize="14" FontWeight="SemiBold"
                                                                    Foreground="#0F172A" TextWrapping="Wrap"
                                                                    Margin="0,0,10,0" VerticalAlignment="Center"/>
                                                         <Border x:Name="ComponentStatusBorder"
@@ -856,13 +927,13 @@
                                                                 HorizontalAlignment="Right"
                                                                 VerticalAlignment="Center">
                                                             <TextBlock x:Name="ComponentHealthText"
-                                                                       Text="{Binding StatusText}" FontSize="11"
+                                                                       Text="{Binding StatusText}" FontSize="12"
                                                                        FontWeight="SemiBold"
                                                                        Foreground="{Binding StatusForeground}"/>
                                                         </Border>
                                                     </Grid>
                                                     <TextBlock x:Name="ComponentDetail" Text="{Binding Detail}"
-                                                               FontSize="12" Foreground="#6E687F"
+                                                               FontSize="13" Foreground="#6E687F"
                                                                TextWrapping="Wrap" LineHeight="18"
                                                                Margin="0,5,0,0"/>
                                                     <Grid x:Name="ComponentMeta" Margin="0,4,0,0">
@@ -873,12 +944,12 @@
                                                         <TextBlock x:Name="ComponentDevice" Grid.Column="0"
                                                                    Text="{Binding DeviceId}"
                                                                    FontFamily="{StaticResource MonoFont}"
-                                                                   FontSize="10.5" Foreground="#8A8499"
+                                                                   FontSize="11.5" Foreground="#8A8499"
                                                                    TextWrapping="Wrap" Margin="0,0,14,0"/>
                                                         <TextBlock x:Name="ComponentVersion" Grid.Column="1"
                                                                    Text="{Binding Version, StringFormat=版本 {0}}"
                                                                    FontFamily="{StaticResource MonoFont}"
-                                                                   FontSize="10.5" Foreground="#58536A"
+                                                                   FontSize="11.5" Foreground="#58536A"
                                                                    TextAlignment="Right" VerticalAlignment="Top"
                                                                    TextWrapping="Wrap"/>
                                                     </Grid>
@@ -887,7 +958,7 @@
                                                                 Visibility="Collapsed">
                                                         <Button x:Name="ComponentRepairButton" Content="{Binding RepairLabel}"
                                                                 Style="{StaticResource CopyButton}"
-                                                                Padding="12,4" FontSize="11"
+                                                                Padding="12,4" FontSize="12"
                                                                 Background="#EEF2FF" BorderBrush="#C7D2FE"
                                                                 Foreground="#4338CA"
                                                                 Tag="{Binding Key}"
@@ -895,7 +966,7 @@
                                                                 Click="ComponentRepairButton_Click"/>
                                                         <Button x:Name="ComponentUninstallButton" Content="卸载"
                                                                 Style="{StaticResource CopyButton}"
-                                                                Padding="12,4" FontSize="11" Margin="6,0,0,0"
+                                                                Padding="12,4" FontSize="12" Margin="6,0,0,0"
                                                                 Background="#FEF2F2" BorderBrush="#FECACA"
                                                                 Foreground="#B91C1C"
                                                                 Tag="{Binding Key}"
@@ -939,7 +1010,7 @@
                                 </ItemsControl>
 
                                 <TextBlock Text="状态检测为只读；修复 / 卸载只对支持的组件开放，操作前会确认并请求管理员权限。"
-                                           FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                           FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap"
                                            Margin="0,14,0,0"/>
                             </StackPanel>
                         </Border>
@@ -947,7 +1018,7 @@
                 </ScrollViewer>
 
                 <ScrollViewer x:Name="WebView2ScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled" Padding="28,24,28,28">
+                              HorizontalScrollBarVisibility="Disabled" Padding="30,26,30,28">
                     <StackPanel>
                 <Grid Margin="0,0,0,16">
                     <Grid.ColumnDefinitions>
@@ -960,7 +1031,7 @@
                                 HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0,0,0">
                         <Border x:Name="WebView2StatusChip" Background="#F1F5F9" CornerRadius="7"
                                 Padding="8,3" VerticalAlignment="Center">
-                            <TextBlock x:Name="WebView2StatusText" Text="检测中…" FontSize="11"
+                            <TextBlock x:Name="WebView2StatusText" Text="检测中…" FontSize="12"
                                        Foreground="#58536A"/>
                         </Border>
                         <Button x:Name="WebView2RefreshButton" Content="重新检测"
@@ -981,10 +1052,10 @@
 
                             <StackPanel Grid.Column="0">
                                 <TextBlock x:Name="WebView2HeadlineText" Text="正在检测 WebView2 运行库…"
-                                           FontSize="18" FontWeight="SemiBold" Foreground="#334155"
+                                           FontSize="19" FontWeight="SemiBold" Foreground="#334155"
                                            TextWrapping="Wrap"/>
                                 <TextBlock x:Name="WebView2SummaryText" Text="读取注册表与安装目录…"
-                                           FontSize="11.5" Foreground="#58536A" TextWrapping="Wrap"
+                                           FontSize="12.5" Foreground="#58536A" TextWrapping="Wrap"
                                            Margin="0,4,0,0"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                     <Button x:Name="WebView2InstallButton" Content="安装 WebView2"
@@ -1002,28 +1073,28 @@
                                 </StackPanel>
                                 <TextBlock x:Name="WebView2HintText"
                                            Text="安装包从 Microsoft 官方服务器下载，并校验 Microsoft 数字签名后静默安装。"
-                                           FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                           FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap"
                                            Margin="0,8,0,0"/>
                             </StackPanel>
 
                             <Border Grid.Column="2" Background="#66FFFFFF" BorderBrush="#70FFFFFF"
                                     BorderThickness="1" CornerRadius="10" Padding="14,12">
                                 <StackPanel>
-                                    <TextBlock Text="运行库详情" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="运行库详情" FontSize="12" FontWeight="SemiBold"
                                                Foreground="#6E687F"/>
-                                    <TextBlock x:Name="WebView2VersionText" Text="版本：--" FontSize="11"
+                                    <TextBlock x:Name="WebView2VersionText" Text="版本：--" FontSize="12"
                                                Foreground="#475569" TextWrapping="Wrap" Margin="0,7,0,0"/>
-                                    <TextBlock x:Name="WebView2ScopeText" Text="范围：--" FontSize="11"
+                                    <TextBlock x:Name="WebView2ScopeText" Text="范围：--" FontSize="12"
                                                Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                    <TextBlock x:Name="WebView2ArchText" Text="架构：--" FontSize="11"
+                                    <TextBlock x:Name="WebView2ArchText" Text="架构：--" FontSize="12"
                                                Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                    <TextBlock x:Name="WebView2SourceText" Text="来源：--" FontSize="11"
+                                    <TextBlock x:Name="WebView2SourceText" Text="来源：--" FontSize="12"
                                                Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                    <TextBlock x:Name="WebView2PathText" Text="路径：--" FontSize="10.5"
+                                    <TextBlock x:Name="WebView2PathText" Text="路径：--" FontSize="11.5"
                                                Foreground="#58536A" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                    <TextBlock x:Name="WebView2EdgeText" Text="Edge 浏览器：--" FontSize="10.5"
+                                    <TextBlock x:Name="WebView2EdgeText" Text="Edge 浏览器：--" FontSize="11.5"
                                                Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                    <TextBlock x:Name="WebView2PermissionText" Text="权限：--" FontSize="10.5"
+                                    <TextBlock x:Name="WebView2PermissionText" Text="权限：--" FontSize="11.5"
                                                Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 </StackPanel>
                             </Border>
@@ -1032,7 +1103,7 @@
                         <Border x:Name="WebView2WarningBanner" Visibility="Collapsed" Background="#FFF7ED"
                                 BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" Padding="12,9"
                                 Margin="0,12,0,0">
-                            <TextBlock x:Name="WebView2WarningText" FontSize="11" Foreground="#B45309"
+                            <TextBlock x:Name="WebView2WarningText" FontSize="12" Foreground="#B45309"
                                        TextWrapping="Wrap"/>
                         </Border>
                     </StackPanel>
@@ -1042,7 +1113,7 @@
                 </ScrollViewer>
 
                 <ScrollViewer x:Name="SunshineScrollViewer" VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled" Padding="28,24,28,28">
+                              HorizontalScrollBarVisibility="Disabled" Padding="30,26,30,28">
                     <StackPanel>
                         <Grid Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
@@ -1075,10 +1146,10 @@
         <!-- 底部状态栏 -->
         <Border x:Name="FooterBorder" Grid.Row="2" Background="#B8FFFFFF" BorderBrush="#80FFFFFF" BorderThickness="0,1,0,0" Padding="28,10">
             <Grid>
-                <TextBlock x:Name="TimestampText" Text="检测时间 --" FontSize="11.5" Foreground="#5F5A70"
+                <TextBlock x:Name="TimestampText" Text="检测时间 --" FontSize="12.5" Foreground="#5F5A70"
                            VerticalAlignment="Center"/>
                 <TextBlock x:Name="VersionText" Text="杂鱼串流工具箱 v1.7 · 作者 BlackCat · 数据仅在本机处理"
-                           HorizontalAlignment="Right" FontSize="11.5" Foreground="#5F5A70"
+                           HorizontalAlignment="Right" FontSize="12.5" Foreground="#5F5A70"
                            VerticalAlignment="Center"/>
             </Grid>
         </Border>

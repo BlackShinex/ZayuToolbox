@@ -7,11 +7,11 @@
             <Grid>
                 <StackPanel Orientation="Horizontal">
                     <Border Width="34" Height="34" CornerRadius="9" Background="#F5F3FF">
-                        <TextBlock Text="Z" FontSize="15" FontWeight="Bold" Foreground="#6D28D9"
+                        <TextBlock Text="Z" FontSize="16" FontWeight="Bold" Foreground="#6D28D9"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Zako 虚拟显示器" Style="{StaticResource SectionTitle}" FontSize="15.5"/>
+                        <TextBlock Text="Zako 虚拟显示器" Style="{StaticResource SectionTitle}" FontSize="16.5"/>
                         <TextBlock Text="Windows 版本与 Zako 显示适配器的安装、驱动状态"
                                    Style="{StaticResource SectionSubtitle}"/>
                     </StackPanel>
@@ -19,7 +19,7 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Border x:Name="ZakoStatusChip" Background="#F1F5F9" CornerRadius="6"
                             Padding="8,3" VerticalAlignment="Center">
-                        <TextBlock x:Name="ZakoStatusText" Text="检测中…" FontSize="11"
+                        <TextBlock x:Name="ZakoStatusText" Text="检测中…" FontSize="12"
                                    Foreground="#58536A"/>
                     </Border>
                     <Button x:Name="ZakoRefreshButton" Content="重新检测"
@@ -37,10 +37,10 @@
 
                 <StackPanel Grid.Column="0">
                     <TextBlock x:Name="ZakoHeadlineText" Text="正在检测 Zako 虚拟显示器…"
-                               FontSize="18" FontWeight="SemiBold" Foreground="#334155"
+                               FontSize="19" FontWeight="SemiBold" Foreground="#334155"
                                TextWrapping="Wrap"/>
                     <TextBlock x:Name="ZakoSummaryText" Text="读取系统版本与设备信息…"
-                               FontSize="11.5" Foreground="#58536A" TextWrapping="Wrap"
+                               FontSize="12.5" Foreground="#58536A" TextWrapping="Wrap"
                                Margin="0,4,0,0"/>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                         <Button x:Name="ZakoCopyButton" Content="复制诊断"
@@ -49,28 +49,28 @@
                     </StackPanel>
                     <TextBlock x:Name="ZakoHintText"
                                Text="只读检测，不会安装或卸载驱动。设备管理器里的黄色感叹号通常对应问题码 28 或 31。"
-                               FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
+                               FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap"
                                Margin="0,8,0,0"/>
                 </StackPanel>
 
                 <Border Grid.Column="2" Background="#66FFFFFF" BorderBrush="#70FFFFFF"
                         BorderThickness="1" CornerRadius="10" Padding="14,12">
                     <StackPanel>
-                        <TextBlock Text="系统与设备" FontSize="11" FontWeight="SemiBold"
+                        <TextBlock Text="系统与设备" FontSize="12" FontWeight="SemiBold"
                                    Foreground="#6E687F"/>
-                        <TextBlock x:Name="ZakoOsText" Text="系统：--" FontSize="11"
+                        <TextBlock x:Name="ZakoOsText" Text="系统：--" FontSize="12"
                                    Foreground="#475569" TextWrapping="Wrap" Margin="0,7,0,0"/>
-                        <TextBlock x:Name="ZakoAdapterText" Text="适配器：--" FontSize="11"
+                        <TextBlock x:Name="ZakoAdapterText" Text="适配器：--" FontSize="12"
                                    Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                        <TextBlock x:Name="ZakoProblemText" Text="设备状态：--" FontSize="11"
+                        <TextBlock x:Name="ZakoProblemText" Text="设备状态：--" FontSize="12"
                                    Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                        <TextBlock x:Name="ZakoDriverText" Text="驱动版本：--" FontSize="11"
+                        <TextBlock x:Name="ZakoDriverText" Text="驱动版本：--" FontSize="12"
                                    Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                        <TextBlock x:Name="ZakoBundledText" Text="安装包驱动：--" FontSize="11"
+                        <TextBlock x:Name="ZakoBundledText" Text="安装包驱动：--" FontSize="12"
                                    Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                        <TextBlock x:Name="ZakoDeviceCountText" Text="Zako 设备数：--" FontSize="10.5"
+                        <TextBlock x:Name="ZakoDeviceCountText" Text="Zako 设备数：--" FontSize="11.5"
                                    Foreground="#58536A" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                        <TextBlock x:Name="ZakoDeviceListText" Text="" FontSize="10.5"
+                        <TextBlock x:Name="ZakoDeviceListText" Text="" FontSize="11.5"
                                    Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
                     </StackPanel>
                 </Border>
@@ -79,7 +79,7 @@
             <Border x:Name="ZakoWarningBanner" Visibility="Collapsed" Background="#FFF7ED"
                     BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" Padding="12,9"
                     Margin="0,12,0,0">
-                <TextBlock x:Name="ZakoWarningText" FontSize="11" Foreground="#B45309"
+                <TextBlock x:Name="ZakoWarningText" FontSize="12" Foreground="#B45309"
                            TextWrapping="Wrap"/>
             </Border>
         </StackPanel>

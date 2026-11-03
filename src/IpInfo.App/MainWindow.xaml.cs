@@ -1194,12 +1194,81 @@ namespace IpInfo.App
 
             SelfCheckRowsList.ItemsSource = BuildSelfCheckRows(_selfCheckReport, _selfCheckRevealed);
             SelfCheckPrivacyText.Text = _selfCheckRevealed ? "公网 IP 未打码" : "公网 IP 已打码";
+            RenderSelfCheckSummary(_selfCheckReport);
+        }
+
+        private void RenderSelfCheckSummary(SelfCheckReport report)
+        {
+            if (report == null)
+            {
+                SelfCheckSummaryGrid.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            string system = FindSelfCheckValue(report, "操作系统");
+            string sunshine = FindSelfCheckValue(report, "版本");
+            string network = FindSelfCheckValue(report, "NAT 类型");
+            if (string.IsNullOrEmpty(network)) network = FindSelfCheckValue(report, "本机 IPv4");
+            int optional = CountOptionalComponents(report);
+
+            SelfCheckSummarySystemText.Text = TrimSummary(system, 22);
+            SelfCheckSummarySunshineText.Text = TrimSummary(sunshine, 22);
+            SelfCheckSummaryNetworkText.Text = TrimSummary(network, 18);
+            SelfCheckSummaryComponentsText.Text = optional + " 项可选 · 不影响主程序";
+            SelfCheckSummaryGrid.Visibility = Visibility.Visible;
+        }
+
+        private static string FindSelfCheckValue(SelfCheckReport report, string label)
+        {
+            if (report == null || report.Items == null) return "—";
+            for (int i = 0; i < report.Items.Count; i++)
+            {
+                SelfCheckItem item = report.Items[i];
+                if (!item.IsSection && string.Equals(item.Label, label, StringComparison.Ordinal))
+                {
+                    return string.IsNullOrEmpty(item.Value) ? "—" : item.Value;
+                }
+            }
+            return "—";
+        }
+
+        private static int CountOptionalComponents(SelfCheckReport report)
+        {
+            if (report == null || report.Items == null) return 0;
+            bool inSection = false;
+            int count = 0;
+            for (int i = 0; i < report.Items.Count; i++)
+            {
+                SelfCheckItem item = report.Items[i];
+                if (item.IsSection)
+                {
+                    inSection = item.Label != null && item.Label.StartsWith("组件信息", StringComparison.Ordinal);
+                    continue;
+                }
+                if (inSection && item.Label != "说明" && item.Label != "组件检测") count++;
+            }
+            return count;
+        }
+
+        private static string TrimSummary(string value, int max)
+        {
+            if (string.IsNullOrEmpty(value)) return "—";
+            string text = value;
+            if (text.StartsWith("Microsoft ", StringComparison.OrdinalIgnoreCase))
+            {
+                text = text.Substring("Microsoft ".Length);
+            }
+            int cut = text.IndexOf(" · ", StringComparison.Ordinal);
+            if (cut > 0) text = text.Substring(0, cut);
+            if (text.Length > max) text = text.Substring(0, max) + "…";
+            return text;
         }
 
         private static List<SelfCheckRow> BuildSelfCheckRows(SelfCheckReport report, bool revealed)
         {
             List<SelfCheckRow> rows = new List<SelfCheckRow>();
             if (report == null || report.Items == null) return rows;
+            bool alt = false;
 
             for (int i = 0; i < report.Items.Count; i++)
             {
@@ -1207,8 +1276,14 @@ namespace IpInfo.App
                 SelfCheckRow row = new SelfCheckRow();
                 row.Label = item.Label;
                 row.IsSection = item.IsSection;
-                if (!item.IsSection)
+                if (item.IsSection)
                 {
+                    alt = false;
+                }
+                else
+                {
+                    row.IsAlt = alt;
+                    alt = !alt;
                     row.Value = item.Sensitive && !revealed ? MaskIpText(item.Value) : item.Value;
                 }
                 rows.Add(row);
@@ -1273,12 +1348,13 @@ namespace IpInfo.App
         {
             if (_selfCheckReport == null) return null;
 
-            const double cardWidth = 900.0;
-            const double padding = 24.0;
-            const double labelWidth = 150.0;
-            const double columnGap = 12.0;
+            const double cardWidth = 1000.0;
+            const double padding = 26.0;
+            const double labelWidth = 180.0;
+            const double columnGap = 16.0;
             const double dpi = 144.0;
-            double valueWidth = cardWidth - padding * 2 - labelWidth - columnGap;
+            double contentWidth = cardWidth - padding * 2;
+            double valueWidth = contentWidth - labelWidth - columnGap;
             double pixelsPerDip = dpi / 96.0;
 
             Brush labelBrush = UiPalette.Brush("#475569");
@@ -1287,22 +1363,47 @@ namespace IpInfo.App
             Brush sectionTextBrush = UiPalette.Brush("#3730A3");
             Brush mutedBrush = UiPalette.Brush("#6E687F");
             Brush borderBrush = UiPalette.Brush("#E2E8F0");
+            Brush altBrush = UiPalette.Brush("#F8FAFF");
             Pen borderPen = new Pen(borderBrush, 1);
 
             FormattedText title = CreateSelfCheckText("杂鱼串流工具箱 · 一键自检报告",
-                18, valueBrush, true, cardWidth - padding * 2 - 160, pixelsPerDip);
+                20, valueBrush, true, contentWidth - 180, pixelsPerDip);
             FormattedText meta = CreateSelfCheckText(SelfCheckMetaText.Text,
-                11.5, mutedBrush, false, cardWidth - padding * 2 - 160, pixelsPerDip);
+                12.5, mutedBrush, false, contentWidth - 180, pixelsPerDip);
             FormattedText privacy = CreateSelfCheckText(SelfCheckPrivacyText.Text,
-                10.5, UiPalette.Brush("#4338CA"), false, 200, pixelsPerDip);
+                11.5, UiPalette.Brush("#4338CA"), false, 200, pixelsPerDip);
             FormattedText footer = CreateSelfCheckText(SelfCheckFooterText.Text,
-                10.5, mutedBrush, false, cardWidth - padding * 2, pixelsPerDip);
+                11.5, mutedBrush, false, contentWidth, pixelsPerDip);
+
+            string[] summaryLabels = new string[] { "系统", "Sunshine", "网络", "可选组件" };
+            string[] summaryValues = new string[]
+            {
+                SelfCheckSummarySystemText.Text,
+                SelfCheckSummarySunshineText.Text,
+                SelfCheckSummaryNetworkText.Text,
+                SelfCheckSummaryComponentsText.Text
+            };
+            double summaryGap = 10;
+            double summaryWidth = (contentWidth - summaryGap * 3) / 4;
+            double summaryHeight = 64;
+            FormattedText[] summaryLabelTexts = new FormattedText[4];
+            FormattedText[] summaryValueTexts = new FormattedText[4];
+            for (int i = 0; i < 4; i++)
+            {
+                summaryLabelTexts[i] = CreateSelfCheckText(summaryLabels[i], 10.5, mutedBrush, false,
+                    summaryWidth - 20, pixelsPerDip);
+                summaryValueTexts[i] = CreateSelfCheckText(summaryValues[i], 12.5, valueBrush, true,
+                    summaryWidth - 20, pixelsPerDip);
+            }
 
             List<SelfCheckRow> rows = BuildSelfCheckRows(_selfCheckReport, _selfCheckRevealed);
             List<SelfCheckDrawRow> drawRows = new List<SelfCheckDrawRow>();
             double contentHeight = padding;
+            contentHeight += 4 + 14;             // gradient bar
             contentHeight += title.Height + 4;
-            contentHeight += meta.Height + 14;
+            contentHeight += meta.Height + 16;
+            contentHeight += summaryHeight + 16; // summary cards
+            contentHeight += 1 + 8;              // divider
 
             for (int i = 0; i < rows.Count; i++)
             {
@@ -1311,50 +1412,73 @@ namespace IpInfo.App
                 draw.Row = row;
                 if (row.IsSection)
                 {
-                    draw.Label = CreateSelfCheckText(row.Label, 12, sectionTextBrush, true,
-                        cardWidth - padding * 2, pixelsPerDip);
-                    draw.Height = 28;
+                    draw.Label = CreateSelfCheckText(row.Label, 13.5, sectionTextBrush, true,
+                        contentWidth - 24, pixelsPerDip);
+                    draw.Height = 32;
                 }
                 else
                 {
-                    draw.Label = CreateSelfCheckText(row.Label, 11.5, labelBrush, false,
+                    draw.Label = CreateSelfCheckText(row.Label, 12.5, labelBrush, false,
                         labelWidth, pixelsPerDip);
-                    draw.Value = CreateSelfCheckText(row.Value, 11.5, valueBrush, false,
+                    draw.Value = CreateSelfCheckText(row.Value, 12.5, valueBrush, false,
                         valueWidth, pixelsPerDip);
-                    draw.Height = Math.Max(18, Math.Max(draw.Label.Height, draw.Value.Height)) + 10;
+                    draw.Height = Math.Max(20, Math.Max(draw.Label.Height, draw.Value.Height)) + 12;
                 }
-                contentHeight += draw.Height + 2;
+                contentHeight += draw.Height + 1;
                 drawRows.Add(draw);
             }
 
-            contentHeight += 10;
+            contentHeight += 14;
             contentHeight += footer.Height;
             contentHeight += padding;
-            if (contentHeight < 200) contentHeight = 200;
+            if (contentHeight < 240) contentHeight = 240;
 
             DrawingVisual visual = new DrawingVisual();
             using (DrawingContext context = visual.RenderOpen())
             {
                 context.DrawRectangle(Brushes.White, null, new Rect(0, 0, cardWidth, contentHeight));
                 context.DrawRoundedRectangle(Brushes.White, borderPen,
-                    new Rect(0.5, 0.5, cardWidth - 1, contentHeight - 1), 16, 16);
+                    new Rect(0.5, 0.5, cardWidth - 1, contentHeight - 1), 18, 18);
 
                 double y = padding;
+                LinearGradientBrush accent = new LinearGradientBrush();
+                accent.StartPoint = new Point(0, 0);
+                accent.EndPoint = new Point(1, 0);
+                accent.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString("#6366F1"), 0));
+                accent.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString("#8B5CF6"), 0.55));
+                accent.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString("#22D3EE"), 1));
+                context.DrawRoundedRectangle(accent, null,
+                    new Rect(padding, y, contentWidth, 4), 2, 2);
+                y += 4 + 14;
+
                 context.DrawText(title, new Point(padding, y));
                 y += title.Height + 4;
                 context.DrawText(meta, new Point(padding, y));
 
                 double badgeWidth = privacy.Width + 16;
-                double badgeHeight = 22;
+                double badgeHeight = 24;
                 double badgeX = cardWidth - padding - badgeWidth;
                 context.DrawRoundedRectangle(sectionBrush, null,
-                    new Rect(badgeX, padding, badgeWidth, badgeHeight), 7, 7);
-                context.DrawText(privacy, new Point(badgeX + 8, padding + (badgeHeight - privacy.Height) / 2));
+                    new Rect(badgeX, padding + 18, badgeWidth, badgeHeight), 7, 7);
+                context.DrawText(privacy,
+                    new Point(badgeX + 8, padding + 18 + (badgeHeight - privacy.Height) / 2));
 
-                y += meta.Height + 14;
+                y += meta.Height + 16;
+
+                double summaryX = padding;
+                for (int i = 0; i < 4; i++)
+                {
+                    context.DrawRoundedRectangle(altBrush, new Pen(UiPalette.Brush("#E0E7FF"), 1),
+                        new Rect(summaryX, y, summaryWidth, summaryHeight), 10, 10);
+                    context.DrawText(summaryLabelTexts[i], new Point(summaryX + 10, y + 8));
+                    context.DrawText(summaryValueTexts[i], new Point(summaryX + 10, y + 26));
+                    summaryX += summaryWidth + summaryGap;
+                }
+                y += summaryHeight + 16;
+
                 context.DrawLine(new Pen(borderBrush, 1),
                     new Point(padding, y), new Point(cardWidth - padding, y));
-                y += 6;
+                y += 9;
 
                 for (int i = 0; i < drawRows.Count; i++)
                 {
@@ -1362,19 +1486,27 @@ namespace IpInfo.App
                     if (draw.Row.IsSection)
                     {
                         context.DrawRoundedRectangle(sectionBrush, null,
-                            new Rect(padding, y, cardWidth - padding * 2, draw.Height), 6, 6);
+                            new Rect(padding, y, contentWidth, draw.Height), 7, 7);
+                        context.DrawRoundedRectangle(UiPalette.Brush("#6366F1"), null,
+                            new Rect(padding + 9, y + (draw.Height - 18) / 2, 3, 18), 2, 2);
                         context.DrawText(draw.Label,
-                            new Point(padding + 8, y + (draw.Height - draw.Label.Height) / 2));
+                            new Point(padding + 20, y + (draw.Height - draw.Label.Height) / 2));
                     }
                     else
                     {
-                        context.DrawText(draw.Label, new Point(padding, y + 2));
-                        context.DrawText(draw.Value, new Point(padding + labelWidth + columnGap, y + 2));
+                        if (draw.Row.IsAlt)
+                        {
+                            context.DrawRoundedRectangle(altBrush, null,
+                                new Rect(padding, y, contentWidth, draw.Height), 5, 5);
+                        }
+                        context.DrawText(draw.Label, new Point(padding + 2, y + 3));
+                        context.DrawText(draw.Value,
+                            new Point(padding + 2 + labelWidth + columnGap, y + 3));
                     }
-                    y += draw.Height + 2;
+                    y += draw.Height + 1;
                 }
 
-                y += 10;
+                y += 14;
                 context.DrawText(footer, new Point(padding, y));
             }
 
@@ -1418,6 +1550,11 @@ namespace IpInfo.App
         {
             _selfCheckReport = null;
             SelfCheckRowsList.ItemsSource = null;
+            SelfCheckSummaryGrid.Visibility = Visibility.Collapsed;
+            SelfCheckSummarySystemText.Text = "—";
+            SelfCheckSummarySunshineText.Text = "—";
+            SelfCheckSummaryNetworkText.Text = "—";
+            SelfCheckSummaryComponentsText.Text = "—";
             SelfCheckEmptyText.Visibility = Visibility.Visible;
             SelfCheckCopyButton.IsEnabled = false;
             SelfCheckStartButton.IsEnabled = true;
@@ -1792,7 +1929,7 @@ namespace IpInfo.App
                 row.ScopeLabel = entry.ScopeLabel;
                 row.TagBackground = tagBackground;
                 row.TagForeground = tagForeground;
-                row.AddressFontSize = ipv6 ? 13.5 : 16;
+                row.AddressFontSize = ipv6 ? 14.5 : 17.5;
                 row.PrimaryVisibility = entry.IsPrimary ? Visibility.Visible : Visibility.Collapsed;
                 rows.Add(row);
             }
@@ -2569,7 +2706,7 @@ namespace IpInfo.App
                 CultureInfo.CurrentUICulture,
                 FlowDirection.LeftToRight,
                 typeface,
-                11.5,
+                12.5,
                 UiPalette.MutedFg,
                 1.5);
         }

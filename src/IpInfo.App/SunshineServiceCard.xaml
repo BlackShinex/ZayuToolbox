@@ -7,11 +7,11 @@
             <Grid>
                 <StackPanel Orientation="Horizontal">
                     <Border Width="34" Height="34" CornerRadius="9" Background="#ECFDF5">
-                        <TextBlock Text="S" FontSize="15" FontWeight="Bold" Foreground="#047857"
+                        <TextBlock Text="S" FontSize="16" FontWeight="Bold" Foreground="#047857"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Sunshine 服务" Style="{StaticResource SectionTitle}" FontSize="15.5"/>
+                        <TextBlock Text="Sunshine 服务" Style="{StaticResource SectionTitle}" FontSize="16.5"/>
                         <TextBlock Text="检测服务是否存在、是否运行，以及开机自启状态"
                                    Style="{StaticResource SectionSubtitle}"/>
                     </StackPanel>
@@ -19,7 +19,7 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Border x:Name="ServiceStatusChip" Background="#F1F5F9" CornerRadius="6"
                             Padding="8,3" VerticalAlignment="Center">
-                        <TextBlock x:Name="ServiceStatusText" Text="检测中…" FontSize="11"
+                        <TextBlock x:Name="ServiceStatusText" Text="检测中…" FontSize="12"
                                    Foreground="#58536A"/>
                     </Border>
                     <Button x:Name="ServiceRefreshButton" Content="重新检测"
@@ -37,17 +37,17 @@
 
                 <StackPanel Grid.Column="0">
                     <TextBlock x:Name="ServiceHeadlineText" Text="正在检测 Sunshine 服务…"
-                               FontSize="18" FontWeight="SemiBold" Foreground="#334155"
+                               FontSize="19" FontWeight="SemiBold" Foreground="#334155"
                                TextWrapping="Wrap"/>
                     <TextBlock x:Name="ServiceSummaryText" Text="读取服务管理器与注册表…"
-                               FontSize="11.5" Foreground="#58536A" TextWrapping="Wrap"
+                               FontSize="12.5" Foreground="#58536A" TextWrapping="Wrap"
                                Margin="0,4,0,0"/>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                         <ToggleButton x:Name="ServiceAutoStartToggle"
                                       AutomationProperties.Name="开机自启"
                                       Style="{StaticResource SwitchToggle}"
                                       Click="ServiceAutoStartToggle_Click" IsEnabled="False"/>
-                        <TextBlock Text="开机自启" FontSize="11.5" Foreground="#475569"
+                        <TextBlock Text="开机自启" FontSize="12.5" Foreground="#475569"
                                    VerticalAlignment="Center" Margin="8,0,0,0"/>
                         <Button x:Name="ServiceCopyButton" Content="复制诊断"
                                 Style="{StaticResource CopyButton}" Margin="12,0,0,0"
@@ -55,22 +55,22 @@
                     </StackPanel>
                     <TextBlock x:Name="ServiceHintText"
                                Text="修改启动类型需要管理员权限，点击后会单独弹出 UAC 确认，不会自动提权。"
-                               FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
+                               FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap"
                                Margin="0,8,0,0"/>
                 </StackPanel>
 
                 <Border Grid.Column="2" Background="#66FFFFFF" BorderBrush="#70FFFFFF"
                         BorderThickness="1" CornerRadius="10" Padding="14,12">
                     <StackPanel>
-                        <TextBlock Text="服务详情" FontSize="11" FontWeight="SemiBold"
+                        <TextBlock Text="服务详情" FontSize="12" FontWeight="SemiBold"
                                    Foreground="#6E687F"/>
-                        <TextBlock x:Name="ServiceNameText" Text="服务名：--" FontSize="11"
+                        <TextBlock x:Name="ServiceNameText" Text="服务名：--" FontSize="12"
                                    Foreground="#475569" TextWrapping="Wrap" Margin="0,7,0,0"/>
-                        <TextBlock x:Name="ServiceAccountText" Text="运行账户：--" FontSize="10.5"
+                        <TextBlock x:Name="ServiceAccountText" Text="运行账户：--" FontSize="11.5"
                                    Foreground="#58536A" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                        <TextBlock x:Name="ServiceProcessText" Text="进程 PID：--" FontSize="10.5"
+                        <TextBlock x:Name="ServiceProcessText" Text="进程 PID：--" FontSize="11.5"
                                    Foreground="#58536A" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                        <TextBlock x:Name="ServicePathText" Text="可执行文件：--" FontSize="10.5"
+                        <TextBlock x:Name="ServicePathText" Text="可执行文件：--" FontSize="11.5"
                                    Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
                     </StackPanel>
                 </Border>
@@ -79,7 +79,7 @@
             <Border x:Name="ServiceWarningBanner" Visibility="Collapsed" Background="#FFF7ED"
                     BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" Padding="12,9"
                     Margin="0,12,0,0">
-                <TextBlock x:Name="ServiceWarningText" FontSize="11" Foreground="#B45309"
+                <TextBlock x:Name="ServiceWarningText" FontSize="12" Foreground="#B45309"
                            TextWrapping="Wrap"/>
             </Border>
         </StackPanel>

@@ -71,7 +71,6 @@ namespace IpInfo.Core
                 AddSection(report, "音频");
                 AddSteamSpeakers(report, devices);
                 AddVbCable(report, devices);
-                AddSunshineMicrophone(report, devices, drivers);
 
                 cancellationToken.ThrowIfCancellationRequested();
                 AddSection(report, "USB 透传");
