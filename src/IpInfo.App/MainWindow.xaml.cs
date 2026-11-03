@@ -17,7 +17,6 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using IpInfo.Core;
-using Microsoft.Win32;
 
 namespace IpInfo.App
 {
@@ -1436,33 +1435,26 @@ namespace IpInfo.App
             ComponentStatusRow row = GetComponentRow(sender);
             if (row == null || !row.CanRepair || string.IsNullOrEmpty(row.Key)) return;
 
-            string localInstaller = null;
-            if (ComponentOperationCatalog.NeedsLocalInstaller(row.Key))
+            if (row.Key == ComponentOperationCatalog.VbCable)
             {
-                OpenFileDialog picker = new OpenFileDialog();
-                picker.Title = "选择 VB-CABLE 官方安装包";
-                picker.Filter = "VB-CABLE 安装包 (*.exe;*.zip)|*.exe;*.zip|所有文件 (*.*)|*.*";
-                if (picker.ShowDialog(this) != true)
+                MessageBoxResult open = MessageBox.Show(
+                    "VB-CABLE 由 VB-Audio 提供，需要从官网下载后手动安装。\n\n"
+                    + "安装完成后回到本页刷新状态即可。\n\n是否打开官方下载页？",
+                    "VB-CABLE",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+                if (open == MessageBoxResult.Yes)
                 {
-                    MessageBoxResult open = MessageBox.Show(
-                        "VB-CABLE 由 VB-Audio 提供，需要先下载官方安装包。\n\n是否打开官方下载页？",
-                        "VB-CABLE",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Information);
-                    if (open == MessageBoxResult.Yes)
+                    try
                     {
-                        try
-                        {
-                            Process.Start(new ProcessStartInfo("https://vb-audio.com/Cable/")
-                            { UseShellExecute = true });
-                        }
-                        catch
-                        {
-                        }
+                        Process.Start(new ProcessStartInfo("https://vb-audio.com/Cable/")
+                        { UseShellExecute = true });
                     }
-                    return;
+                    catch
+                    {
+                    }
                 }
-                localInstaller = picker.FileName;
+                return;
             }
 
             MessageBoxResult confirm = MessageBox.Show(
@@ -1473,7 +1465,7 @@ namespace IpInfo.App
                 MessageBoxImage.Question);
             if (confirm != MessageBoxResult.OK) return;
 
-            StartComponentOperation(row, ComponentOperationKind.Repair, localInstaller);
+            StartComponentOperation(row, ComponentOperationKind.Repair, null);
         }
 
         private void ComponentUninstallButton_Click(object sender, RoutedEventArgs e)
@@ -1632,7 +1624,9 @@ namespace IpInfo.App
                     row.DeviceId = item.DeviceId;
                     row.Key = item.Key;
                     row.CanRepair = item.CanRepair;
-                    row.CanUninstall = item.CanUninstall;
+                    row.CanUninstall = item.CanUninstall
+                        && item.Health != ComponentHealth.NotInstalled
+                        && item.Health != ComponentHealth.Unknown;
                     row.HasActions = item.CanRepair || item.CanUninstall;
                     row.RepairLabel = item.CanRepair
                         ? (item.Health == ComponentHealth.NotInstalled ? "安装" : "修复")

@@ -118,7 +118,7 @@ namespace IpInfo.Core
                 case SteamSpeakers:
                     return "会从 Steam 自带的 Windows10 音频驱动重新安装 Steam Streaming Speakers，过程中会请求管理员权限。";
                 case VbCable:
-                    return "需要选择 VB-Audio 官方安装包；校验数字签名后会启动官方安装程序。";
+                    return "VB-CABLE 由 VB-Audio 提供。会打开官方下载页，请下载后手动运行官方安装程序，完成后刷新状态。";
                 case SunshineMicrophone:
                     return "会检查并修复 DualSense 组件与 USB/IP 驱动依赖；虚拟麦克风会随串流设备按需创建。";
                 case UsbIp:

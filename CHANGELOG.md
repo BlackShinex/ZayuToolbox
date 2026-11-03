@@ -45,7 +45,9 @@
   - Steam Streaming Speakers 使用 Steam 自带 INF 重新安装；
   - USB/IP 从 usbip-win2 官方 Release 下载 0.9.8.1 安装包，校验 SHA-256 后启动安装；
   - Sunshine Virtual Microphone 检查并修复 DualSense 组件 + USB/IP 依赖；
-  - VB-CABLE 选择 VB-Audio 官方安装包，校验数字签名后启动安装；
+  - VB-CABLE 直接提示打开 VB-Audio 官网下载，安装完成后刷新状态；
+  - 未安装组件只显示「安装」，已安装组件显示「修复 / 卸载」；
+  - DualSense 安装完成后统一显示「就绪」，不再显示「已安装」，虚拟手柄仍在串流时创建；
   - 修复 / 卸载前二次确认，需要管理员权限时弹出 UAC；
   - 其他组件暂不开放破坏性操作。
 - Sunshine 服务卡片去掉重复状态展示：右上角明确标注「服务运行中 / 服务已停止」，大标题改为服务名，开机自启只由开关本身表达，不再额外显示「已开启」。

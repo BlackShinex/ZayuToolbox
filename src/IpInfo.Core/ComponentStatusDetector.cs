@@ -294,8 +294,8 @@ namespace IpInfo.Core
             }
             else
             {
-                health = ComponentHealth.Installed;
-                detail = "已安装，等待串流时创建虚拟手柄";
+                health = ComponentHealth.Ready;
+                detail = "组件已就绪，串流时创建虚拟手柄";
             }
 
             string version = componentVersion;
