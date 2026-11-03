@@ -12,6 +12,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 
 namespace IpInfo.Core
 {
@@ -184,6 +185,12 @@ namespace IpInfo.Core
         private async Task<ComponentOperationResult> RepairUsbIpAsync(
             IProgress<ComponentOperationProgress> progress, CancellationToken cancellationToken)
         {
+            if (HasPinnedUsbIpVersion())
+            {
+                Report(progress, "USB/IP 0.9.8.1 已安装", false, 100, false);
+                return Success("USB/IP 0.9.8.1 已安装，跳过重复安装。");
+            }
+
             string root = Path.Combine(Path.GetTempPath(), "ZayuToolbox", "Components",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
@@ -210,9 +217,13 @@ namespace IpInfo.Core
                     return Fail("USB/IP 安装程序退出码 " + code + "。");
 
                 await Task.Delay(1500, cancellationToken).ConfigureAwait(false);
+                if (!HasPinnedUsbIpVersion())
+                {
+                    return Success("USB/IP 安装程序已结束，但尚未检测到 0.9.8.1；如已提示重启，请重启后重试。");
+                }
                 if (!IsUsbIpReady())
                 {
-                    return Fail("USB/IP 安装程序已结束，但 0.9.8.1 驱动尚未注册；请重启后重试。");
+                    return Success("USB/IP 0.9.8.1 已安装；驱动尚未全部运行，如提示重启请重启。");
                 }
 
                 Report(progress, "USB/IP 0.9.8.1 已就绪", false, 100, false);
@@ -236,7 +247,7 @@ namespace IpInfo.Core
                 if (component == null || !component.Success) return component ?? Fail("DualSense 组件安装失败。");
             }
 
-            if (!IsUsbIpReady())
+            if (!HasPinnedUsbIpVersion())
             {
                 ComponentOperationResult usbip = await RepairUsbIpAsync(progress, cancellationToken)
                     .ConfigureAwait(false);
@@ -338,14 +349,72 @@ namespace IpInfo.Core
 
         private static bool IsUsbIpReady()
         {
-            if (!AreUsbIpDriversRunning()) return false;
+            return AreUsbIpDriversRunning() && HasPinnedUsbIpVersion();
+        }
+
+        private static bool HasPinnedUsbIpVersion()
+        {
             string version = InstalledUsbIpVersion();
-            return !string.IsNullOrEmpty(version)
-                && !VersionUpdateService.IsNewer(ComponentOperationCatalog.RequiredUsbIpVersion, version);
+            if (string.IsNullOrEmpty(version)) return false;
+            return !VersionUpdateService.IsNewer(ComponentOperationCatalog.RequiredUsbIpVersion, version)
+                && !VersionUpdateService.IsNewer(version, ComponentOperationCatalog.RequiredUsbIpVersion);
         }
 
         private static string InstalledUsbIpVersion()
         {
+            // Base Control Panel resolves USB/IP from its uninstall registration
+            // (DisplayVersion, then "USBip <version>" DisplayName), not from the
+            // driver file. Match that order so an already-installed 0.9.8.1 is
+            // never downloaded again just because a driver node is temporarily stopped.
+            List<string> versions = new List<string>();
+            try
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    RegistryView view = i == 0 ? RegistryView.Registry64 : RegistryView.Registry32;
+                    using (RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view))
+                    using (RegistryKey uninstall = baseKey.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"))
+                    {
+                        if (uninstall == null) continue;
+                        string[] names = uninstall.GetSubKeyNames();
+                        for (int n = 0; n < names.Length; n++)
+                        {
+                            using (RegistryKey key = uninstall.OpenSubKey(names[n]))
+                            {
+                                if (key == null) continue;
+                                string display = Convert.ToString(key.GetValue("DisplayName"));
+                                if (string.IsNullOrEmpty(display)
+                                    || display.IndexOf("USBip", StringComparison.OrdinalIgnoreCase) < 0)
+                                {
+                                    continue;
+                                }
+                                string version = Convert.ToString(key.GetValue("DisplayVersion"));
+                                if (string.IsNullOrEmpty(version)) version = ParseVersionText(display);
+                                version = VersionUpdateService.NormalizeVersion(version);
+                                if (!string.IsNullOrEmpty(version)) versions.Add(version);
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            if (versions.Count > 0)
+            {
+                string first = versions[0];
+                for (int i = 1; i < versions.Count; i++)
+                {
+                    if (!string.Equals(first, versions[i], StringComparison.OrdinalIgnoreCase))
+                    {
+                        return string.Empty;
+                    }
+                }
+                return first;
+            }
+
             try
             {
                 using (System.Management.ManagementObjectSearcher searcher =
@@ -369,6 +438,12 @@ namespace IpInfo.Core
             {
             }
             return string.Empty;
+        }
+
+        private static string ParseVersionText(string text)
+        {
+            Match match = Regex.Match(text ?? string.Empty, "(\\d+\\.\\d+\\.\\d+(?:\\.\\d+)?)");
+            return match.Success ? match.Groups[1].Value : string.Empty;
         }
 
         private static string FindFile(string root, string name)
@@ -550,13 +625,14 @@ namespace IpInfo.Core
             if (expectedSha.Length != 64)
                 return Fail("组件清单缺少有效的 SHA-256。");
 
-            if (!IsUsbIpReady())
+            if (!HasPinnedUsbIpVersion())
             {
                 Report(progress, "正在准备匹配的 USB/IP 0.9.8.1 传输…", true, 0, false);
                 ComponentOperationResult usbip = await RepairUsbIpAsync(progress, cancellationToken)
                     .ConfigureAwait(false);
                 if (usbip == null || !usbip.Success) return usbip ?? Fail("USB/IP 准备失败。");
             }
+            bool usbIpReady = IsUsbIpReady();
 
             string root = Path.Combine(Path.GetTempPath(), "ZayuToolbox", "Components", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
@@ -637,24 +713,31 @@ namespace IpInfo.Core
                 }
 
                 Report(progress, "正在验证 Sidecar 运行时能力…", true, 0, false);
-                ProcessResult probe = await RunProcessAsync(sidecar, "--probe", null,
-                    Path.GetDirectoryName(sidecar), cancellationToken).ConfigureAwait(false);
-                if (!probe.Success || probe.ExitCode != 0)
+                if (!usbIpReady)
                 {
-                    return Fail("Sidecar 运行时探测失败，组件不会激活。");
+                    Report(progress, "USB/IP 已安装但尚未就绪，跳过运行时探测；重启后再验证。", true, 0, false);
                 }
-                if (!JsonBool(probe.Output, "standard")
-                    || !JsonBool(probe.Output, "composite")
-                    || !JsonBool(probe.Output, "genshin_compatibility_identity")
-                    || JsonInt(probe.Output, "protocol") != runtimeProtocol
-                    || !string.Equals(JsonString(probe.Output, "component_version"), componentVersion,
-                        StringComparison.Ordinal)
-                    || !string.Equals(JsonString(probe.Output, "usbip_policy"), compatibilityPolicy,
-                        StringComparison.Ordinal)
-                    || !string.Equals(JsonString(probe.Output, "usbip_version"), runtimeUsbip,
-                        StringComparison.Ordinal))
+                else
                 {
-                    return Fail("Sidecar 探测结果与基地版兼容组合不一致，组件不会激活。");
+                    ProcessResult probe = await RunProcessAsync(sidecar, "--probe", null,
+                        Path.GetDirectoryName(sidecar), cancellationToken).ConfigureAwait(false);
+                    if (!probe.Success || probe.ExitCode != 0)
+                    {
+                        return Fail("Sidecar 运行时探测失败，组件不会激活。");
+                    }
+                    if (!JsonBool(probe.Output, "standard")
+                        || !JsonBool(probe.Output, "composite")
+                        || !JsonBool(probe.Output, "genshin_compatibility_identity")
+                        || JsonInt(probe.Output, "protocol") != runtimeProtocol
+                        || !string.Equals(JsonString(probe.Output, "component_version"), componentVersion,
+                            StringComparison.Ordinal)
+                        || !string.Equals(JsonString(probe.Output, "usbip_policy"), compatibilityPolicy,
+                            StringComparison.Ordinal)
+                        || !string.Equals(JsonString(probe.Output, "usbip_version"), runtimeUsbip,
+                            StringComparison.Ordinal))
+                    {
+                        return Fail("Sidecar 探测结果与基地版兼容组合不一致，组件不会激活。");
+                    }
                 }
 
                 string componentJson = BuildComponentManifest(

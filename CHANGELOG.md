@@ -41,6 +41,7 @@
   - DualSense 按基地版 `ds5-sidecar-package.json` 的官方 Release 地址下载完整 `Sunshine.Ds5Sidecar.x64.zip`，校验 SHA-256、组件版本、协议、HIDMaestro 版本与 USB/IP 0.9.8.1 兼容性后安装；
   - 生成与基地版 Control Panel 一致的 `component.json`，包含 `hidmaestro_version`、`sidecar_package_sha256` 和 `sidecar_source`；
   - 新增 ViGEmBus 虚拟手柄驱动检测：读取驱动文件版本、PnP 总线状态与服务状态，要求 v1.17+；使用基地版 scripts 安装 / 修复 / 卸载；
+  - USB/IP 版本改为读取卸载注册表（与基地版一致），已安装 0.9.8.1 时跳过重复安装；安装结束后继续安装 Sidecar，不再因驱动未立即运行而中断；
   - Steam Streaming Speakers 使用 Steam 自带 INF 重新安装；
   - USB/IP 从 usbip-win2 官方 Release 下载 0.9.8.1 安装包，校验 SHA-256 后启动安装；
   - Sunshine Virtual Microphone 检查并修复 DualSense 组件 + USB/IP 依赖；

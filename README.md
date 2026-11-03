@@ -71,6 +71,7 @@
   - 显示安装 / 驱动 / 运行状态、版本、设备 ID，并提供复制诊断、设备管理器、工具目录入口
   - ZakoDisplay、Zako 虚拟鼠标、DualSense 支持单独「修复 / 卸载」；DualSense 按基地版 `tools\ds5-sidecar-package.json` 中的官方 Release 地址下载完整 `Sunshine.Ds5Sidecar.x64.zip`，校验 SHA-256、组件版本、协议、HIDMaestro 版本和 USB/IP 0.9.8.1 兼容性，并生成包含 `hidmaestro_version` 的 `component.json` 后再安装
   - Steam Streaming Speakers 使用 Steam 自带 INF 重新安装；USB/IP 从官方 Release 下载 0.9.8.1 安装包并校验 SHA-256
+  - USB/IP 版本读取卸载注册表，已安装 0.9.8.1 时跳过重复下载；安装结束后继续 Sidecar 步骤，不因驱动暂未运行而中断
   - Sunshine Virtual Microphone 会检查并修复 DualSense 组件 + USB/IP 依赖；VB-CABLE 需要选择 VB-Audio 官方安装包，校验数字签名后安装
   - 说明哪些设备是按需创建：未启动串流时显示「未创建」并不代表组件损坏
 - **WebView2 运行库检测与修复**
