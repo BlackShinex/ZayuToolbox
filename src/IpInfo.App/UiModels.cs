@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Media;
 using IpInfo.Core;
@@ -30,6 +31,21 @@ namespace IpInfo.App
             DeviceId = string.Empty;
             Key = string.Empty;
             RepairLabel = string.Empty;
+        }
+    }
+
+    /// <summary>组件状态页中按大类分组的卡片。</summary>
+    public sealed class ComponentStatusGroup
+    {
+        public string Title { get; set; }
+        public string Summary { get; set; }
+        public List<ComponentStatusRow> Items { get; set; }
+
+        public ComponentStatusGroup()
+        {
+            Title = string.Empty;
+            Summary = string.Empty;
+            Items = new List<ComponentStatusRow>();
         }
     }
 

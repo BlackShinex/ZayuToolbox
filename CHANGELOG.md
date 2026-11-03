@@ -35,7 +35,9 @@
   - 显示安装 / 驱动 / 运行状态、版本、设备 ID，支持复制诊断、打开设备管理器和工具目录。
 - 界面字体改为随程序嵌入的思源黑体 Source Han Sans SC / Noto Sans Mono（SIL OFL 1.1），不再依赖 Microsoft YaHei UI / Consolas。
 - 左侧「工作台」更名为「功能分区」，并把「组件状态」移动到「Sunshine 版本」下方。
-- 优化组件状态页排版：放大字号、改为卡片行布局，版本与设备信息不再错位。
+- 组件状态页改为按大类卡片分组展示：基础环境、显示与输入、音频、USB 透传、画质增强。
+- 网络连通性测试按钮改为「启动测试」；未检测 IP 时点击会先自动检测 IP，再直接启动测试。
+- 一键自检的 Windows 版本增加 `26H2` 这类显示版本标注。
 - 组件状态新增单独「修复 / 卸载」：
   - ZakoDisplay、Zako 虚拟鼠标使用基地版 tools 目录中的 INF 重新安装 / 移除设备与驱动；
   - DualSense 按基地版 `ds5-sidecar-package.json` 的官方 Release 地址下载完整 `Sunshine.Ds5Sidecar.x64.zip`，校验 SHA-256、组件版本、协议、HIDMaestro 版本与 USB/IP 0.9.8.1 兼容性后安装；

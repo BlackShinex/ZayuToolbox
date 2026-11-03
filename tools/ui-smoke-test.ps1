@@ -10,7 +10,7 @@
 #   powershell -ExecutionPolicy Bypass -File .\tools\ui-smoke-test.ps1 -SkipClipboard
 #   powershell -ExecutionPolicy Bypass -File .\tools\ui-smoke-test.ps1 -Only components
 #   powershell -ExecutionPolicy Bypass -File .\tools\ui-smoke-test.ps1 -Only sunshine,webview2
-#   （-Only 支持 components / sunshine / webview2 / selfcheck，跳过网络检测和连通性测试）
+#   （-Only 支持 components / sunshine / webview2 / selfcheck / network-start）
 #   （后台独立桌面运行请用 tools\ui-test-background.ps1，同样支持 -Only）
 param(
     [string]$AppPath = "",
@@ -195,7 +195,7 @@ try {
     # 快速模式：只运行指定分区，跳过网络探测和连通性测试。
     $fastSections = @($Only -split "," | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrEmpty($_) -and $_ -ne "all" })
     foreach ($section in $fastSections) {
-        if (@("components", "sunshine", "webview2", "selfcheck") -notcontains $section) {
+        if (@("components", "sunshine", "webview2", "selfcheck", "network-start") -notcontains $section) {
             throw ("未知的测试分区：" + $section)
         }
     }
@@ -276,6 +276,24 @@ try {
             }
         }
 
+        if ($fastSections -contains "network-start") {
+            Check "切换到网络检测页" (Select-NavItem $window "网络检测")
+            Start-Sleep -Milliseconds 600
+            $connectivityStart = Get-ElementByAutomationId $window "ConnectivityStartButton"
+            Check "启动测试按钮默认可用" ($connectivityStart -ne $null -and $connectivityStart.Current.IsEnabled)
+            if ($connectivityStart -ne $null -and $connectivityStart.Current.IsEnabled) {
+                Invoke-Element $connectivityStart
+                $dialog = $null
+                $dialogDeadline = (Get-Date).AddSeconds(45)
+                while ((Get-Date) -lt $dialogDeadline) {
+                    Start-Sleep -Milliseconds 500
+                    $dialog = Get-WindowByTitle "网络连通性测试"
+                    if ($dialog -ne $null) { break }
+                }
+                Check "未检测 IP 时点击启动会先检测并打开测试" ($dialog -ne $null)
+            }
+        }
+
         return
     }
 
@@ -339,7 +357,7 @@ try {
 
     # 网络检测页：地址 / STUN / 连通性测试
     Check "网络检测页包含 STUN/NAT 结果" (($joined -match "公网出口 IP") -or ($joined -match "NAT 类型"))
-    Check "网络检测页包含网络连通性测试" (($joined -match "网络连通性测试") -and ($joined -match "启动测试并显示二维码"))
+    Check "网络检测页包含网络连通性测试" (($joined -match "网络连通性测试") -and ($joined -match "启动测试"))
     Check "连通性测试包含 2x2 矩阵" (($joined -match "内网 IPv4") -and ($joined -match "内网 IPv6") -and ($joined -match "外网 IPv4") -and ($joined -match "外网 IPv6"))
     Check "网络检测页不再包含 IPv6 入站自检" ($joined -notmatch "IPv6 入站可达性")
 
@@ -563,7 +581,7 @@ try {
     # 网络连通性测试：二维码 + 回环 IPv4/IPv6 探测 + 结论
     Write-Host "测试网络连通性测试…" -ForegroundColor Cyan
     $startCondition = New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::NameProperty, "启动测试并显示二维码")
+        [System.Windows.Automation.AutomationElement]::NameProperty, "启动测试")
     $startButton = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $startCondition)
     if ($startButton -ne $null -and $startButton.Current.IsEnabled) {
         Invoke-Element $startButton

@@ -594,7 +594,7 @@
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal"
                                         HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0,0,0">
-                                <Button x:Name="ConnectivityStartButton" Content="启动测试并显示二维码" IsEnabled="False"
+                                <Button x:Name="ConnectivityStartButton" Content="启动测试"
                                         Style="{StaticResource PrimaryButton}" Click="ConnectivityStartButton_Click"/>
                                 <Button x:Name="ConnectivityStopButton" Content="停止" Visibility="Collapsed"
                                         Style="{StaticResource CopyButton}" Click="ConnectivityStopButton_Click"
@@ -892,7 +892,7 @@
                                    FontSize="13" Foreground="#6E687F" TextWrapping="Wrap"
                                    Margin="0,0,0,10"/>
 
-                        <Border Style="{StaticResource Card}" Padding="22">
+                        <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14">
                             <StackPanel>
                                 <Grid>
                                     <StackPanel>
@@ -906,114 +906,116 @@
                                         <TextBlock Text="检测 + 修复" FontSize="12" Foreground="#4338CA"/>
                                     </Border>
                                 </Grid>
-
-                                <Border Height="1" Background="#E2E8F0" Margin="0,14,0,6"/>
-
-                                <ItemsControl x:Name="ComponentStatusList">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border x:Name="ComponentRow" Background="#66FFFFFF"
-                                                    BorderBrush="#70E2E8F0" BorderThickness="1"
-                                                    CornerRadius="9" Padding="12,9" Margin="0,0,0,6">
-                                                <StackPanel>
-                                                    <Grid>
-                                                        <TextBlock x:Name="ComponentName" Text="{Binding Name}"
-                                                                   FontSize="14" FontWeight="SemiBold"
-                                                                   Foreground="#0F172A" TextWrapping="Wrap"
-                                                                   Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                                        <Border x:Name="ComponentStatusBorder"
-                                                                Background="{Binding StatusBackground}"
-                                                                CornerRadius="7" Padding="8,3"
-                                                                HorizontalAlignment="Right"
-                                                                VerticalAlignment="Center">
-                                                            <TextBlock x:Name="ComponentHealthText"
-                                                                       Text="{Binding StatusText}" FontSize="12"
-                                                                       FontWeight="SemiBold"
-                                                                       Foreground="{Binding StatusForeground}"/>
-                                                        </Border>
-                                                    </Grid>
-                                                    <TextBlock x:Name="ComponentDetail" Text="{Binding Detail}"
-                                                               FontSize="13" Foreground="#6E687F"
-                                                               TextWrapping="Wrap" LineHeight="18"
-                                                               Margin="0,5,0,0"/>
-                                                    <Grid x:Name="ComponentMeta" Margin="0,4,0,0">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock x:Name="ComponentDevice" Grid.Column="0"
-                                                                   Text="{Binding DeviceId}"
-                                                                   FontFamily="{StaticResource MonoFont}"
-                                                                   FontSize="11.5" Foreground="#8A8499"
-                                                                   TextWrapping="Wrap" Margin="0,0,14,0"/>
-                                                        <TextBlock x:Name="ComponentVersion" Grid.Column="1"
-                                                                   Text="{Binding Version, StringFormat=版本 {0}}"
-                                                                   FontFamily="{StaticResource MonoFont}"
-                                                                   FontSize="11.5" Foreground="#58536A"
-                                                                   TextAlignment="Right" VerticalAlignment="Top"
-                                                                   TextWrapping="Wrap"/>
-                                                    </Grid>
-                                                    <StackPanel x:Name="ComponentActions" Orientation="Horizontal"
-                                                                HorizontalAlignment="Right" Margin="0,8,0,0"
-                                                                Visibility="Collapsed">
-                                                        <Button x:Name="ComponentRepairButton" Content="{Binding RepairLabel}"
-                                                                Style="{StaticResource CopyButton}"
-                                                                Padding="12,4" FontSize="12"
-                                                                Background="#EEF2FF" BorderBrush="#C7D2FE"
-                                                                Foreground="#4338CA"
-                                                                Tag="{Binding Key}"
-                                                                AutomationProperties.Name="修复组件"
-                                                                Click="ComponentRepairButton_Click"/>
-                                                        <Button x:Name="ComponentUninstallButton" Content="卸载"
-                                                                Style="{StaticResource CopyButton}"
-                                                                Padding="12,4" FontSize="12" Margin="6,0,0,0"
-                                                                Background="#FEF2F2" BorderBrush="#FECACA"
-                                                                Foreground="#B91C1C"
-                                                                Tag="{Binding Key}"
-                                                                AutomationProperties.Name="卸载组件"
-                                                                Click="ComponentUninstallButton_Click"/>
-                                                    </StackPanel>
-                                                </StackPanel>
-                                            </Border>
-                                            <DataTemplate.Triggers>
-                                                <DataTrigger Binding="{Binding IsSection}" Value="True">
-                                                    <Setter TargetName="ComponentRow" Property="Background" Value="#EEF2FF"/>
-                                                    <Setter TargetName="ComponentRow" Property="BorderBrush" Value="#C7D2FE"/>
-                                                    <Setter TargetName="ComponentRow" Property="Padding" Value="11,7"/>
-                                                    <Setter TargetName="ComponentRow" Property="Margin" Value="0,7,0,4"/>
-                                                    <Setter TargetName="ComponentName" Property="FontWeight" Value="SemiBold"/>
-                                                    <Setter TargetName="ComponentName" Property="FontSize" Value="12.5"/>
-                                                    <Setter TargetName="ComponentName" Property="Foreground" Value="#3730A3"/>
-                                                    <Setter TargetName="ComponentDetail" Property="Visibility" Value="Collapsed"/>
-                                                    <Setter TargetName="ComponentMeta" Property="Visibility" Value="Collapsed"/>
-                                                    <Setter TargetName="ComponentStatusBorder" Property="Visibility" Value="Collapsed"/>
-                                                    <Setter TargetName="ComponentActions" Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding DeviceId}" Value="">
-                                                    <Setter TargetName="ComponentDevice" Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Version}" Value="">
-                                                    <Setter TargetName="ComponentVersion" Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding HasActions}" Value="True">
-                                                    <Setter TargetName="ComponentActions" Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding CanRepair}" Value="False">
-                                                    <Setter TargetName="ComponentRepairButton" Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding CanUninstall}" Value="False">
-                                                    <Setter TargetName="ComponentUninstallButton" Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                            </DataTemplate.Triggers>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-
-                                <TextBlock Text="状态检测为只读；修复 / 卸载只对支持的组件开放，操作前会确认并请求管理员权限。"
-                                           FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap"
-                                           Margin="0,14,0,0"/>
+                                <Border Height="1" Background="#E2E8F0" Margin="0,14,0,8"/>
+                                <TextBlock Text="状态检测本身只读；修复 / 卸载只对支持的组件开放，操作前会确认并请求管理员权限。"
+                                           FontSize="12.5" Foreground="#6E687F" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
+
+                        <ItemsControl x:Name="ComponentStatusList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14">
+                                        <StackPanel>
+                                            <Grid>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Title}" FontSize="17"
+                                                               FontWeight="SemiBold" Foreground="#0F172A"/>
+                                                    <TextBlock Text="{Binding Summary}" FontSize="12.5"
+                                                               Foreground="#6E687F" Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Border Height="1" Background="#E2E8F0" Margin="0,12,0,2"/>
+                                            <ItemsControl ItemsSource="{Binding Items}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border x:Name="ComponentGroupRow"
+                                                                BorderBrush="#EEF2F7" BorderThickness="0,0,0,1"
+                                                                Padding="0,12" Margin="0,0,0,1">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel Grid.Column="0" Margin="0,0,18,0">
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <TextBlock x:Name="ComponentName"
+                                                                                   Text="{Binding Name}" FontSize="14"
+                                                                                   FontWeight="SemiBold" Foreground="#0F172A"
+                                                                                   TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                                        <Border x:Name="ComponentStatusBorder"
+                                                                                Background="{Binding StatusBackground}"
+                                                                                CornerRadius="7" Padding="8,3"
+                                                                                Margin="8,0,0,0" VerticalAlignment="Center">
+                                                                            <TextBlock x:Name="ComponentHealthText"
+                                                                                       Text="{Binding StatusText}" FontSize="12"
+                                                                                       FontWeight="SemiBold"
+                                                                                       Foreground="{Binding StatusForeground}"/>
+                                                                        </Border>
+                                                                    </StackPanel>
+                                                                    <TextBlock x:Name="ComponentDetail" Text="{Binding Detail}"
+                                                                               FontSize="12.5" Foreground="#6E687F"
+                                                                               TextWrapping="Wrap" LineHeight="19"
+                                                                               Margin="0,5,0,0"/>
+                                                                    <TextBlock x:Name="ComponentDevice" Text="{Binding DeviceId}"
+                                                                               FontFamily="{StaticResource MonoFont}"
+                                                                               FontSize="11.5" Foreground="#8A8499"
+                                                                               TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                </StackPanel>
+                                                                <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                                                    <TextBlock x:Name="ComponentVersion"
+                                                                               Text="{Binding Version, StringFormat=版本 {0}}"
+                                                                               FontFamily="{StaticResource MonoFont}"
+                                                                               FontSize="11.5" Foreground="#58536A"
+                                                                               TextAlignment="Right" TextWrapping="Wrap"/>
+                                                                    <StackPanel x:Name="ComponentActions" Orientation="Horizontal"
+                                                                                HorizontalAlignment="Right" Margin="0,8,0,0"
+                                                                                Visibility="Collapsed">
+                                                                        <Button x:Name="ComponentRepairButton" Content="{Binding RepairLabel}"
+                                                                                Style="{StaticResource CopyButton}"
+                                                                                Padding="12,4" FontSize="12"
+                                                                                Background="#EEF2FF" BorderBrush="#C7D2FE"
+                                                                                Foreground="#4338CA"
+                                                                                Tag="{Binding Key}"
+                                                                                AutomationProperties.Name="修复组件"
+                                                                                Click="ComponentRepairButton_Click"/>
+                                                                        <Button x:Name="ComponentUninstallButton" Content="卸载"
+                                                                                Style="{StaticResource CopyButton}"
+                                                                                Padding="12,4" FontSize="12" Margin="6,0,0,0"
+                                                                                Background="#FEF2F2" BorderBrush="#FECACA"
+                                                                                Foreground="#B91C1C"
+                                                                                Tag="{Binding Key}"
+                                                                                AutomationProperties.Name="卸载组件"
+                                                                                Click="ComponentUninstallButton_Click"/>
+                                                                    </StackPanel>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                        <DataTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding DeviceId}" Value="">
+                                                                <Setter TargetName="ComponentDevice" Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Version}" Value="">
+                                                                <Setter TargetName="ComponentVersion" Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding HasActions}" Value="True">
+                                                                <Setter TargetName="ComponentActions" Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CanRepair}" Value="False">
+                                                                <Setter TargetName="ComponentRepairButton" Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CanUninstall}" Value="False">
+                                                                <Setter TargetName="ComponentUninstallButton" Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </DataTemplate.Triggers>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </ScrollViewer>
 

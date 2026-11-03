@@ -503,7 +503,7 @@ namespace IpInfo.App
                 _busy = false;
                 RefreshButton.IsEnabled = true;
                 RefreshButton.Content = "重新检测";
-                ConnectivityStartButton.IsEnabled = HasConnectivityTargets(_report);
+                ConnectivityStartButton.IsEnabled = _report == null || HasConnectivityTargets(_report);
                 DetectProgressBar.Visibility = Visibility.Collapsed;
                 ProgressText.Visibility = Visibility.Collapsed;
                 _initialRefresh.TrySetResult(true);
@@ -591,8 +591,28 @@ namespace IpInfo.App
                 + "  ·  耗时 " + report.Elapsed.TotalSeconds.ToString("0.0") + " 秒";
         }
 
-        private void ConnectivityStartButton_Click(object sender, RoutedEventArgs e)
+        private async void ConnectivityStartButton_Click(object sender, RoutedEventArgs e)
         {
+            if (_connectivityBusy || _busy) return;
+
+            if (_report == null)
+            {
+                ConnectivityStartButton.IsEnabled = false;
+                ConnectivityStartButton.Content = "正在检测 IP…";
+                ConnectivityStatusText.Text = "正在检测本机 IP，完成后会自动启动连通性测试…";
+                ConnectivityStatusText.Foreground = UiPalette.WarnFg;
+                await RefreshAsync();
+                ConnectivityStartButton.Content = "启动测试";
+
+                if (_report == null)
+                {
+                    ConnectivityStartButton.IsEnabled = true;
+                    ConnectivityStatusText.Text = "未获取到 IP，请检查网络后重试。";
+                    ConnectivityStatusText.Foreground = UiPalette.WarnFg;
+                    return;
+                }
+            }
+
             StartConnectivityTest();
         }
 
@@ -851,8 +871,8 @@ namespace IpInfo.App
 
             _connectivityBusy = false;
             ConnectivityStopButton.Visibility = Visibility.Collapsed;
-            ConnectivityStartButton.Content = "启动测试并显示二维码";
-            ConnectivityStartButton.IsEnabled = HasConnectivityTargets(_report);
+            ConnectivityStartButton.Content = "启动测试";
+            ConnectivityStartButton.IsEnabled = _report == null || HasConnectivityTargets(_report);
 
             if (_connectivitySession != null)
             {
@@ -880,7 +900,7 @@ namespace IpInfo.App
             }
             else
             {
-                ConnectivityStatusText.Text = "点击「启动测试并显示二维码」，用手机扫码验证内网 / 公网连通性。";
+                ConnectivityStatusText.Text = "点击「启动测试」，用手机扫码验证内网 / 公网连通性。";
                 ConnectivityStatusText.Foreground = UiPalette.MutedFg;
             }
         }
@@ -897,11 +917,11 @@ namespace IpInfo.App
         private void ResetConnectivityState()
         {
             ConnectivityList.ItemsSource = BuildConnectivityRows(null);
-            ConnectivityStatusText.Text = "尚未测试。点击「启动测试并显示二维码」，用手机扫码。";
+            ConnectivityStatusText.Text = "尚未测试。点击「启动测试」，用手机扫码。";
             ConnectivityStatusText.Foreground = UiPalette.MutedFg;
             ConnectivityStopButton.Visibility = Visibility.Collapsed;
-            ConnectivityStartButton.Content = "启动测试并显示二维码";
-            ConnectivityStartButton.IsEnabled = HasConnectivityTargets(_report);
+            ConnectivityStartButton.Content = "启动测试";
+            ConnectivityStartButton.IsEnabled = _report == null || HasConnectivityTargets(_report);
             SetConnectivityVerdict("尚未测试",
                 "同时验证内网 / 外网的 IPv4 与 IPv6 连通性，再判断能否建立有效 P2P 连接。",
                 ConnectivityVerdictLevel.Unknown);
@@ -1211,7 +1231,7 @@ namespace IpInfo.App
             if (string.IsNullOrEmpty(network)) network = FindSelfCheckValue(report, "本机 IPv4");
             int optional = CountOptionalComponents(report);
 
-            SelfCheckSummarySystemText.Text = TrimSummary(system, 22);
+            SelfCheckSummarySystemText.Text = TrimSystemSummary(system);
             SelfCheckSummarySunshineText.Text = TrimSummary(sunshine, 22);
             SelfCheckSummaryNetworkText.Text = TrimSummary(network, 18);
             SelfCheckSummaryComponentsText.Text = optional + " 项可选 · 不影响主程序";
@@ -1248,6 +1268,24 @@ namespace IpInfo.App
                 if (inSection && item.Label != "说明" && item.Label != "组件检测") count++;
             }
             return count;
+        }
+
+        private static string TrimSystemSummary(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "—";
+            string text = value;
+            if (text.StartsWith("Microsoft ", StringComparison.OrdinalIgnoreCase))
+            {
+                text = text.Substring("Microsoft ".Length);
+            }
+            string[] parts = text.Split(new string[] { " · " }, StringSplitOptions.None);
+            if (parts.Length >= 2 && (parts[1].EndsWith("H2", StringComparison.OrdinalIgnoreCase)
+                || parts[1].EndsWith("H1", StringComparison.OrdinalIgnoreCase)))
+            {
+                text = parts[0] + " · " + parts[1];
+            }
+            if (text.Length > 26) text = text.Substring(0, 26) + "…";
+            return text;
         }
 
         private static string TrimSummary(string value, int max)
@@ -1710,7 +1748,7 @@ namespace IpInfo.App
         {
             if (report == null) return;
 
-            ComponentStatusList.ItemsSource = BuildComponentStatusRows(report);
+            ComponentStatusList.ItemsSource = BuildComponentStatusGroups(report);
             ComponentCopyButton.IsEnabled = true;
 
             int ready = 0;
@@ -1742,41 +1780,69 @@ namespace IpInfo.App
             UpdatePageFooter(NavList.SelectedIndex);
         }
 
-        private static List<ComponentStatusRow> BuildComponentStatusRows(ComponentStatusReport report)
+        private static List<ComponentStatusGroup> BuildComponentStatusGroups(ComponentStatusReport report)
         {
-            List<ComponentStatusRow> rows = new List<ComponentStatusRow>();
-            if (report == null || report.Items == null) return rows;
+            List<ComponentStatusGroup> groups = new List<ComponentStatusGroup>();
+            if (report == null || report.Items == null) return groups;
 
+            ComponentStatusGroup current = null;
             for (int i = 0; i < report.Items.Count; i++)
             {
                 ComponentStatusItem item = report.Items[i];
+                if (item.IsSection)
+                {
+                    current = new ComponentStatusGroup();
+                    current.Title = item.Name;
+                    groups.Add(current);
+                    continue;
+                }
+                if (current == null)
+                {
+                    current = new ComponentStatusGroup();
+                    current.Title = "组件";
+                    groups.Add(current);
+                }
+
                 ComponentStatusRow row = new ComponentStatusRow();
                 row.Name = item.Name;
-                row.IsSection = item.IsSection;
-                if (!item.IsSection)
-                {
-                    row.StatusText = item.StatusText;
-                    row.Version = item.Version;
-                    row.Detail = item.Detail;
-                    row.DeviceId = item.DeviceId;
-                    row.Key = item.Key;
-                    row.CanRepair = item.CanRepair;
-                    row.CanUninstall = item.CanUninstall
-                        && item.Health != ComponentHealth.NotInstalled
-                        && item.Health != ComponentHealth.Unknown;
-                    row.HasActions = item.CanRepair || item.CanUninstall;
-                    row.RepairLabel = item.CanRepair
-                        ? (item.Health == ComponentHealth.NotInstalled ? "安装" : "修复")
-                        : string.Empty;
-                    Brush background;
-                    Brush foreground;
-                    GetComponentStatusColors(item.Health, out background, out foreground);
-                    row.StatusBackground = background;
-                    row.StatusForeground = foreground;
-                }
-                rows.Add(row);
+                row.StatusText = item.StatusText;
+                row.Version = item.Version;
+                row.Detail = item.Detail;
+                row.DeviceId = item.DeviceId;
+                row.Key = item.Key;
+                row.CanRepair = item.CanRepair;
+                row.CanUninstall = item.CanUninstall
+                    && item.Health != ComponentHealth.NotInstalled
+                    && item.Health != ComponentHealth.Unknown;
+                row.HasActions = item.CanRepair || item.CanUninstall;
+                row.RepairLabel = item.CanRepair
+                    ? (item.Health == ComponentHealth.NotInstalled ? "安装" : "修复")
+                    : string.Empty;
+                Brush background;
+                Brush foreground;
+                GetComponentStatusColors(item.Health, out background, out foreground);
+                row.StatusBackground = background;
+                row.StatusForeground = foreground;
+                current.Items.Add(row);
             }
-            return rows;
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                int ready = 0;
+                int warning = 0;
+                int error = 0;
+                for (int j = 0; j < groups[i].Items.Count; j++)
+                {
+                    ComponentStatusRow row = groups[i].Items[j];
+                    if (row.StatusText == "就绪" || row.StatusText == "运行中" || row.StatusText == "已安装") ready++;
+                    else if (row.StatusText == "异常") error++;
+                    else if (row.StatusText == "注意") warning++;
+                }
+                groups[i].Summary = groups[i].Items.Count + " 项 · 就绪 " + ready
+                    + (warning > 0 ? " · 注意 " + warning : string.Empty)
+                    + (error > 0 ? " · 异常 " + error : string.Empty);
+            }
+            return groups;
         }
 
         private static void GetComponentStatusColors(ComponentHealth health, out Brush background, out Brush foreground)

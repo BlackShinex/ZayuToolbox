@@ -42,6 +42,7 @@
   - 结论优先推荐 IPv6 直连；IPv4 锥型 NAT 提示可打洞；对称 NAT 提示可能需要中继；IPv4 / IPv6 都不通则明确提示「无法建立有效 P2P 连接」
   - 二维码在本机离线生成（QRCoder 嵌入 exe），测试地址带随机令牌，测试结束或 90 秒超时后自动关闭临时端口
   - 保留手动复制地址的打开方式；说明窗口带 6 秒倒计时，关闭按钮为「完成并关闭」
+  - 网络连通性测试按钮为「启动测试」；尚未检测 IP 时点击会先自动检测本机 IP，再直接启动测试
   - 显示 Windows 防火墙状态（管理员权限不足时从注册表推断，并明确标注“推断”）
 - **主地址智能选择**
   - 优先使用系统实际选路的物理网卡（`GetBestInterface` + 网关 + 地址类型综合判断）
@@ -62,6 +63,7 @@
   - 如果做过网络连通性测试，自动纳入 2×2 结果与 P2P 结论；没做过则标注「已跳过」
   - 汇总 WebView2 / Edge 等组件信息
   - 汇总可选功能组件状态，并标明缺失只影响对应功能、不影响 Sunshine 正常运行
+  - Windows 版本按 `26H2` 这类显示版本标注
   - 报告默认对 IP 打码，可切换「显示 IP / 隐藏 IP」；支持一键复制为截图
 - **基地版组件状态**
   - 状态检测 ZakoDisplay 虚拟显示器、Zako 虚拟鼠标、DualSense / HIDMaestro 虚拟手柄、ViGEmBus 虚拟手柄驱动
@@ -70,6 +72,7 @@
   - 检测 USB/IP 透传驱动与 HIDMaestro UDE 主机设备
   - 检测 DLSS NR / RTX Video 画质增强组件文件
   - 显示安装 / 驱动 / 运行状态、版本、设备 ID，并提供复制诊断、设备管理器、工具目录入口
+  - 按「基础环境 / 显示与输入 / 音频 / USB 透传 / 画质增强」大类卡片分组展示
   - ZakoDisplay、Zako 虚拟鼠标、DualSense 支持单独「修复 / 卸载」；DualSense 按基地版 `tools\ds5-sidecar-package.json` 中的官方 Release 地址下载完整 `Sunshine.Ds5Sidecar.x64.zip`，校验 SHA-256、组件版本、协议、HIDMaestro 版本和 USB/IP 0.9.8.1 兼容性，并生成包含 `hidmaestro_version` 的 `component.json` 后再安装
   - Steam Streaming Speakers 使用 Steam 自带 INF 重新安装；USB/IP 从官方 Release 下载 0.9.8.1 安装包并校验 SHA-256
   - USB/IP 版本读取卸载注册表，已安装 0.9.8.1 时跳过重复下载；安装结束后继续 Sidecar 步骤，不因驱动暂未运行而中断
@@ -140,7 +143,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1 -Only su
 powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1 -Only selfcheck
 ```
 
-`-Only` 支持 `components`、`sunshine`、`webview2`、`selfcheck`，多个分区用逗号分隔；例如只改组件状态页时运行 `-Only components` 约 5 秒，只改服务卡片时运行 `-Only sunshine` 约 4 秒。发布前仍建议跑一次完整后台测试。
+`-Only` 支持 `components`、`sunshine`、`webview2`、`selfcheck`、`network-start`，多个分区用逗号分隔；例如只改组件状态页时运行 `-Only components` 约 5 秒，只改服务卡片时运行 `-Only sunshine` 约 4 秒。`network-start` 用于验证「未检测 IP 时点击启动测试会自动检测并打开测试」。发布前仍建议跑一次完整后台测试。
 
 后台模式通过 `CreateDesktop` 创建独立桌面，并在该桌面启动应用与 UI Automation，当前桌面不会出现窗口或抢焦点；由于非输入桌面无法可靠访问剪贴板，后台模式会跳过诊断复制、IP 复制、报告截图等 7 项剪贴板内容校验。需要完整校验时再运行前台模式。
 

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Management;
 using System.Text;
 using System.Threading;
+using Microsoft.Win32;
 
 namespace IpInfo.Core
 {
@@ -335,6 +336,39 @@ namespace IpInfo.Core
             }
         }
 
+        private static string GetWindowsDisplayVersion(string build)
+        {
+            try
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    RegistryView view = i == 0 ? RegistryView.Registry64 : RegistryView.Registry32;
+                    using (RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view))
+                    using (RegistryKey key = baseKey.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
+                    {
+                        if (key == null) continue;
+                        string display = Convert.ToString(key.GetValue("DisplayVersion"));
+                        if (!string.IsNullOrEmpty(display)) return display.Trim();
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            int buildNumber;
+            if (!int.TryParse(build, out buildNumber)) return string.Empty;
+            if (buildNumber >= 26300) return "26H2";
+            if (buildNumber >= 26200) return "25H2";
+            if (buildNumber >= 26100) return "24H2";
+            if (buildNumber >= 22631) return "23H2";
+            if (buildNumber >= 22621) return "22H2";
+            if (buildNumber >= 22000) return "21H2";
+            if (buildNumber >= 19041) return "22H2";
+            return string.Empty;
+        }
+
         private static string GetOperatingSystem()
         {
             try
@@ -354,6 +388,8 @@ namespace IpInfo.Core
                             if (!string.IsNullOrEmpty(caption))
                             {
                                 string text = caption;
+                                string displayVersion = GetWindowsDisplayVersion(build);
+                                if (!string.IsNullOrEmpty(displayVersion)) text += " · " + displayVersion;
                                 if (!string.IsNullOrEmpty(version)) text += " · " + version;
                                 if (!string.IsNullOrEmpty(build)) text += " (Build " + build + ")";
                                 if (!string.IsNullOrEmpty(arch)) text += " · " + arch;
