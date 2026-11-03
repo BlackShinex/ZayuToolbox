@@ -276,6 +276,8 @@ namespace Zayu.App
             if (selected != null)
             {
                 selected.Opacity = 1;
+                selected.ScrollToTop();
+                selected.ScrollToHorizontalOffset(0);
                 if (IsLoaded)
                 {
                     DoubleAnimation fade = new DoubleAnimation(0.35, 1, TimeSpan.FromMilliseconds(180));
