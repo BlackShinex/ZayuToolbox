@@ -81,25 +81,25 @@
         </Style>
 
         <Style x:Key="SectionTitle" TargetType="{x:Type TextBlock}">
-            <Setter Property="FontSize" Value="15.5"/>
+            <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="#1D1D1F"/>
         </Style>
 
         <Style x:Key="SectionSubtitle" TargetType="{x:Type TextBlock}">
-            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="Foreground" Value="#5F5A70"/>
             <Setter Property="Margin" Value="0,3,0,0"/>
         </Style>
 
         <Style x:Key="PageTitle" TargetType="{x:Type TextBlock}">
-            <Setter Property="FontSize" Value="23"/>
+            <Setter Property="FontSize" Value="22"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="#1D1D1F"/>
         </Style>
 
         <Style x:Key="PageSubtitle" TargetType="{x:Type TextBlock}">
-            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="Foreground" Value="#5F5A70"/>
             <Setter Property="Margin" Value="0,4,0,0"/>
         </Style>
@@ -168,7 +168,7 @@
             <Setter Property="BorderBrush" Value="#80FFFFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Focusable" Value="False"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -245,7 +245,7 @@
             <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="14,7"/>
-            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Focusable" Value="False"/>
@@ -285,7 +285,7 @@
             <Setter Property="BorderBrush" Value="#80FFFFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Focusable" Value="False"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -324,7 +324,7 @@
             <Setter Property="BorderBrush" Value="#80FFFFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Focusable" Value="False"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>

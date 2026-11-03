@@ -11,7 +11,7 @@
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Sunshine 服务" Style="{StaticResource SectionTitle}" FontSize="17"/>
+                        <TextBlock Text="Sunshine 服务" Style="{StaticResource SectionTitle}"/>
                         <TextBlock Text="检测服务是否存在、是否运行，以及开机自启状态"
                                    Style="{StaticResource SectionSubtitle}"/>
                     </StackPanel>

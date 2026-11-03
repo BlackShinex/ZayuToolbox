@@ -11,7 +11,7 @@
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Sunshine 版本自检" Style="{StaticResource SectionTitle}" FontSize="17"/>
+                        <TextBlock Text="Sunshine 版本自检" Style="{StaticResource SectionTitle}"/>
                         <TextBlock Text="识别官方版 / 基地版 / 第三方构建，只读检测，不需要管理员权限"
                                    Style="{StaticResource SectionSubtitle}"/>
                     </StackPanel>

@@ -11,7 +11,7 @@
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Zako 虚拟显示器" Style="{StaticResource SectionTitle}" FontSize="17"/>
+                        <TextBlock Text="Zako 虚拟显示器" Style="{StaticResource SectionTitle}"/>
                         <TextBlock Text="Windows 版本与 Zako 显示适配器的安装、驱动状态"
                                    Style="{StaticResource SectionSubtitle}"/>
                     </StackPanel>
