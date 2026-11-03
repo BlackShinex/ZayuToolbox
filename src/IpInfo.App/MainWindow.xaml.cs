@@ -88,6 +88,70 @@ namespace IpInfo.App
             Loaded += MainWindow_Loaded;
             Closed += MainWindow_Closed;
             DpiChanged += MainWindow_DpiChanged;
+            StateChanged += MainWindow_StateChanged;
+        }
+
+        private void HeaderBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (FindButtonAncestor(e.OriginalSource as DependencyObject) != null) return;
+            if (e.ClickCount == 2)
+            {
+                ToggleMaximizeWindow();
+                return;
+            }
+            if (WindowState == WindowState.Normal)
+            {
+                try { DragMove(); }
+                catch { }
+            }
+        }
+
+        private static Button FindButtonAncestor(DependencyObject source)
+        {
+            while (source != null)
+            {
+                Button button = source as Button;
+                if (button != null) return button;
+                try
+                {
+                    source = VisualTreeHelper.GetParent(source);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        private void ToggleMaximizeWindow()
+        {
+            WindowState = WindowState == WindowState.Maximized
+                ? WindowState.Normal
+                : WindowState.Maximized;
+        }
+
+        private void MinimizeWindowButton_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        private void MaximizeWindowButton_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleMaximizeWindow();
+        }
+
+        private void CloseWindowButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void MainWindow_StateChanged(object sender, EventArgs e)
+        {
+            if (MaximizeWindowButton == null) return;
+            bool maximized = WindowState == WindowState.Maximized;
+            MaximizeWindowButton.Content = maximized ? "\uE923" : "\uE922";
+            MaximizeWindowButton.ToolTip = maximized ? "还原" : "最大化";
         }
 
         private void MainWindow_DpiChanged(object sender, DpiChangedEventArgs e)
@@ -319,13 +383,14 @@ namespace IpInfo.App
 
         private async void CheckForUpdatesAsync()
         {
-            if (_updateCheckBusy || UpdateStatusText == null) return;
+            if (_updateCheckBusy || UpdateActionButton == null) return;
             _updateCheckBusy = true;
             _updateReleaseUrl = null;
             _updateCts = new CancellationTokenSource();
-            UpdateStatusText.Text = "检查更新中…";
-            UpdateStatusText.Foreground = UiPalette.MutedFg;
-            UpdateActionButton.Visibility = Visibility.Collapsed;
+            UpdateActionButton.Visibility = Visibility.Visible;
+            UpdateActionButton.IsEnabled = false;
+            UpdateActionButton.Content = "检查中…";
+            UpdateActionButton.ToolTip = null;
 
             try
             {
@@ -333,42 +398,35 @@ namespace IpInfo.App
                     GetAppVersion(), _updateCts.Token);
                 if (result != null && result.HasUpdate)
                 {
-                    UpdateStatusText.Text = "发现新版本 v" + result.LatestVersion;
-                    UpdateStatusText.Foreground = UiPalette.IndigoFg;
                     _updateReleaseUrl = result.ReleaseUrl;
-                    UpdateActionButton.Content = "查看更新";
-                    UpdateActionButton.Visibility = Visibility.Visible;
+                    UpdateActionButton.Content = "发现更新 v" + result.LatestVersion;
+                    UpdateActionButton.ToolTip = "点击打开 GitHub Release";
                 }
                 else if (result != null && result.HasReleaseInfo)
                 {
-                    UpdateStatusText.Text = "已是最新版本";
-                    UpdateStatusText.Foreground = UiPalette.MutedFg;
-                    UpdateActionButton.Content = "重新检查";
-                    UpdateActionButton.Visibility = Visibility.Visible;
+                    UpdateActionButton.Content = "已是最新版本";
+                    UpdateActionButton.ToolTip = "点击重新检查更新";
                 }
                 else
                 {
-                    UpdateStatusText.Text = string.IsNullOrEmpty(result == null ? null : result.Error)
+                    UpdateActionButton.Content = "检查更新";
+                    UpdateActionButton.ToolTip = string.IsNullOrEmpty(result == null ? null : result.Error)
                         ? "暂无发布版本" : result.Error;
-                    UpdateStatusText.Foreground = UiPalette.MutedFg;
-                    UpdateActionButton.Content = "重新检查";
-                    UpdateActionButton.Visibility = Visibility.Visible;
                 }
             }
             catch (OperationCanceledException)
             {
-                UpdateStatusText.Text = "已取消更新检查";
+                UpdateActionButton.Content = "检查更新";
             }
             catch (Exception ex)
             {
-                UpdateStatusText.Text = "更新检查失败：" + ex.Message;
-                UpdateStatusText.Foreground = UiPalette.WarnFg;
-                UpdateActionButton.Content = "重试";
-                UpdateActionButton.Visibility = Visibility.Visible;
+                UpdateActionButton.Content = "检查更新";
+                UpdateActionButton.ToolTip = "更新检查失败：" + ex.Message;
             }
             finally
             {
                 _updateCheckBusy = false;
+                UpdateActionButton.IsEnabled = true;
                 if (_updateCts != null)
                 {
                     _updateCts.Dispose();
@@ -387,8 +445,8 @@ namespace IpInfo.App
                 }
                 catch (Exception ex)
                 {
-                    UpdateStatusText.Text = "打开更新页面失败：" + ex.Message;
-                    UpdateStatusText.Foreground = UiPalette.WarnFg;
+                    UpdateActionButton.Content = "打开失败";
+                    UpdateActionButton.ToolTip = ex.Message;
                 }
                 return;
             }

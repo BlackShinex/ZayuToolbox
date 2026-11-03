@@ -236,7 +236,7 @@ try {
             Check "存在开机自启开关" ($serviceToggle -ne $null)
             $sunshineOfficial = Get-ElementByAutomationId $window "SunshineOfficialSiteButton"
             Check "存在 Sunshine 基地版官网按钮" ($sunshineOfficial -ne $null -and $sunshineOfficial.Current.IsEnabled)
-            $updateStatus = Get-ElementByAutomationId $window "UpdateStatusText"
+            $updateStatus = Get-ElementByAutomationId $window "UpdateActionButton"
             Check "存在版本更新检测状态" ($updateStatus -ne $null -and -not [string]::IsNullOrEmpty($updateStatus.Current.Name))
         }
 
@@ -299,7 +299,7 @@ try {
 
     $startTexts = (Get-WindowTexts $window) -join "`n"
     Check "默认打开 Sunshine 版本页" ($startTexts -match "Sunshine 版本自检")
-    $updateStatus = Get-ElementByAutomationId $window "UpdateStatusText"
+    $updateStatus = Get-ElementByAutomationId $window "UpdateActionButton"
     Check "存在版本更新检测状态" ($updateStatus -ne $null -and -not [string]::IsNullOrEmpty($updateStatus.Current.Name))
 
     # 网络检测改为手动触发：切到该页应显示未检测状态
