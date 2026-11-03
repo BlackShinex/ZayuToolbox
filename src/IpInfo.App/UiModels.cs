@@ -4,6 +4,28 @@ using IpInfo.Core;
 
 namespace IpInfo.App
 {
+    /// <summary>组件状态表的一行。</summary>
+    public sealed class ComponentStatusRow
+    {
+        public string Name { get; set; }
+        public string StatusText { get; set; }
+        public string Version { get; set; }
+        public string Detail { get; set; }
+        public string DeviceId { get; set; }
+        public bool IsSection { get; set; }
+        public Brush StatusBackground { get; set; }
+        public Brush StatusForeground { get; set; }
+
+        public ComponentStatusRow()
+        {
+            Name = string.Empty;
+            StatusText = string.Empty;
+            Version = string.Empty;
+            Detail = string.Empty;
+            DeviceId = string.Empty;
+        }
+    }
+
     /// <summary>一键自检表格的一行。</summary>
     public sealed class SelfCheckRow
     {

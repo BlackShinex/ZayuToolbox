@@ -547,6 +547,25 @@ try {
             Check "自检报告反映连通性测试" (($secondSelfTexts -match "P2P 结论") -and ($secondSelfTexts -match "内网 IPv4"))
         }
     }
+
+    # 组件状态页
+    Check "切换到组件状态页" (Select-NavItem $window "组件状态")
+    $compReady = $false
+    $compDeadline = (Get-Date).AddSeconds(45)
+    while ((Get-Date) -lt $compDeadline) {
+        Start-Sleep -Milliseconds 500
+        $compCopy = Get-ElementByAutomationId $window "ComponentCopyButton"
+        if ($compCopy -ne $null -and $compCopy.Current.IsEnabled) {
+            $compReady = $true
+            break
+        }
+    }
+    Check "组件状态检测完成" $compReady
+    if ($compReady) {
+        $compTexts = (Get-WindowTexts $window) -join "`n"
+        Check "组件页包含显示/音频/传输组件" (($compTexts -match "ZakoDisplay") -and ($compTexts -match "Steam Streaming Speakers") -and ($compTexts -match "VB-CABLE") -and ($compTexts -match "USB/IP"))
+        Check "组件页包含虚拟手柄状态" (($compTexts -match "DualSense") -and ($compTexts -match "HIDMaestro"))
+    }
 } finally {
     if ($originalClipboard -ne $null) {
         try { [System.Windows.Forms.Clipboard]::SetText($originalClipboard) } catch { }

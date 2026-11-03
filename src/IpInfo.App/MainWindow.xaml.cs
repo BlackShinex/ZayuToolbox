@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -57,6 +58,10 @@ namespace IpInfo.App
         private bool _selfCheckRevealed;
         private bool _syncingSelfCheckReveal;
         private CancellationTokenSource _selfCheckCts;
+        private ComponentStatusReport _componentStatusReport;
+        private bool _componentBusy;
+        private string _componentInstallPath;
+        private CancellationTokenSource _componentCts;
         private WebView2DetectionResult _webView2Result;
         private bool _webView2Busy;
         private WebView2InstallDialog _webView2InstallDialog;
@@ -68,6 +73,7 @@ namespace IpInfo.App
             RevealToggle.Foreground = UiPalette.IndigoFg;
             UpdatePageVisibility(NavList.SelectedIndex);
             ResetSelfCheckState();
+            ResetComponentStatusState();
 
             if (VersionCardView != null) VersionCardView.Detected += SunshineVersionCard_Detected;
 
@@ -136,6 +142,17 @@ namespace IpInfo.App
         {
             if (NavList == null) return;
             UpdatePageVisibility(NavList.SelectedIndex);
+
+            if (NavList.SelectedIndex == 4 && IsLoaded
+                && _componentStatusReport == null && !_componentBusy)
+            {
+                AutoRunComponentStatus();
+            }
+        }
+
+        private async void AutoRunComponentStatus()
+        {
+            await RunComponentStatusAsync();
         }
 
         private void UpdatePageVisibility(int index)
@@ -143,7 +160,8 @@ namespace IpInfo.App
             if (NetworkScrollViewer == null
                 || SunshineScrollViewer == null
                 || WebView2ScrollViewer == null
-                || SelfCheckScrollViewer == null)
+                || SelfCheckScrollViewer == null
+                || ComponentStatusScrollViewer == null)
             {
                 return;
             }
@@ -152,11 +170,13 @@ namespace IpInfo.App
             WebView2ScrollViewer.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
             NetworkScrollViewer.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
             SelfCheckScrollViewer.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
+            ComponentStatusScrollViewer.Visibility = index == 4 ? Visibility.Visible : Visibility.Collapsed;
 
             ScrollViewer selected = index == 0 ? SunshineScrollViewer
                 : index == 1 ? WebView2ScrollViewer
                 : index == 2 ? NetworkScrollViewer
-                : SelfCheckScrollViewer;
+                : index == 3 ? SelfCheckScrollViewer
+                : ComponentStatusScrollViewer;
             if (selected != null)
             {
                 selected.Opacity = 1;
@@ -179,6 +199,7 @@ namespace IpInfo.App
                 case "webview2": index = 1; break;
                 case "network": index = 2; break;
                 case "selfcheck": index = 3; break;
+                case "components": index = 4; break;
                 default: index = 0; break;
             }
             NavList.SelectedIndex = index;
@@ -1304,6 +1325,256 @@ namespace IpInfo.App
             SelfCheckPrivacyText.Text = _selfCheckRevealed ? "公网 IP 未打码" : "公网 IP 已打码";
         }
 
+        private async void ComponentRefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            await RunComponentStatusAsync();
+        }
+
+        private async Task RunComponentStatusAsync()
+        {
+            if (_componentBusy) return;
+
+            _componentBusy = true;
+            _componentCts = new CancellationTokenSource();
+            CancellationToken token = _componentCts.Token;
+            DateTime started = DateTime.Now;
+
+            ComponentRefreshButton.IsEnabled = false;
+            ComponentCopyButton.IsEnabled = false;
+            ComponentProgressBar.Visibility = Visibility.Visible;
+            ComponentStatusText.Text = "正在检测组件…";
+            ComponentStatusText.Foreground = UiPalette.MutedFg;
+
+            IProgress<string> progress = new Progress<string>(delegate(string message)
+            {
+                ComponentStatusText.Text = message;
+            });
+
+            try
+            {
+                ComponentStatusReport report = await Task.Run(delegate
+                {
+                    return ComponentStatusDetector.Collect(new Action<string>(progress.Report), token);
+                }, token);
+
+                if (report == null) throw new InvalidOperationException("组件检测返回了空结果。");
+                _componentStatusReport = report;
+                _componentInstallPath = report.SunshineInstallPath;
+                RenderComponentStatusReport(report);
+
+                TimeSpan elapsed = DateTime.Now - started;
+                ComponentStatusText.Text = string.IsNullOrEmpty(report.Error)
+                    ? "组件检测完成 · 用时 " + elapsed.TotalSeconds.ToString("0.0") + " 秒。"
+                    : report.Error;
+                ComponentStatusText.Foreground = string.IsNullOrEmpty(report.Error)
+                    ? UiPalette.SuccessFg : UiPalette.WarnFg;
+            }
+            catch (OperationCanceledException)
+            {
+                ComponentStatusText.Text = "组件检测已取消。";
+                ComponentStatusText.Foreground = UiPalette.MutedFg;
+            }
+            catch (Exception ex)
+            {
+                ComponentStatusText.Text = "组件检测失败：" + ex.Message;
+                ComponentStatusText.Foreground = UiPalette.WarnFg;
+            }
+            finally
+            {
+                _componentBusy = false;
+                ComponentProgressBar.Visibility = Visibility.Collapsed;
+                ComponentRefreshButton.IsEnabled = true;
+                if (_componentCts != null)
+                {
+                    _componentCts.Dispose();
+                    _componentCts = null;
+                }
+            }
+        }
+
+        private void RenderComponentStatusReport(ComponentStatusReport report)
+        {
+            if (report == null) return;
+
+            ComponentStatusList.ItemsSource = BuildComponentStatusRows(report);
+            ComponentCopyButton.IsEnabled = true;
+
+            int ready = 0;
+            int missing = 0;
+            int errors = 0;
+            for (int i = 0; i < report.Items.Count; i++)
+            {
+                ComponentStatusItem item = report.Items[i];
+                if (item.IsSection) continue;
+                if (item.Health == ComponentHealth.Ready || item.Health == ComponentHealth.Running
+                    || item.Health == ComponentHealth.Installed)
+                {
+                    ready++;
+                }
+                else if (item.Health == ComponentHealth.NotInstalled)
+                {
+                    missing++;
+                }
+                else if (item.Health == ComponentHealth.Error)
+                {
+                    errors++;
+                }
+            }
+
+            ComponentSummaryText.Text = "检测时间 " + report.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")
+                + " · 已就绪 " + ready + " 项 · 未安装 " + missing + " 项 · 异常 " + errors + " 项";
+            ComponentToolsButton.IsEnabled = !string.IsNullOrEmpty(_componentInstallPath)
+                && Directory.Exists(Path.Combine(_componentInstallPath, "tools"));
+        }
+
+        private static List<ComponentStatusRow> BuildComponentStatusRows(ComponentStatusReport report)
+        {
+            List<ComponentStatusRow> rows = new List<ComponentStatusRow>();
+            if (report == null || report.Items == null) return rows;
+
+            for (int i = 0; i < report.Items.Count; i++)
+            {
+                ComponentStatusItem item = report.Items[i];
+                ComponentStatusRow row = new ComponentStatusRow();
+                row.Name = item.Name;
+                row.IsSection = item.IsSection;
+                if (!item.IsSection)
+                {
+                    row.StatusText = item.StatusText;
+                    row.Version = item.Version;
+                    row.Detail = item.Detail;
+                    row.DeviceId = item.DeviceId;
+                    Brush background;
+                    Brush foreground;
+                    GetComponentStatusColors(item.Health, out background, out foreground);
+                    row.StatusBackground = background;
+                    row.StatusForeground = foreground;
+                }
+                rows.Add(row);
+            }
+            return rows;
+        }
+
+        private static void GetComponentStatusColors(ComponentHealth health, out Brush background, out Brush foreground)
+        {
+            switch (health)
+            {
+                case ComponentHealth.Running:
+                case ComponentHealth.Ready:
+                    background = UiPalette.SuccessBg;
+                    foreground = UiPalette.SuccessFg;
+                    break;
+                case ComponentHealth.Installed:
+                    background = UiPalette.IndigoBg;
+                    foreground = UiPalette.IndigoFg;
+                    break;
+                case ComponentHealth.Warning:
+                    background = UiPalette.WarnBg;
+                    foreground = UiPalette.WarnFg;
+                    break;
+                case ComponentHealth.Error:
+                    background = BannerRedBg;
+                    foreground = BannerRedFg;
+                    break;
+                default:
+                    background = UiPalette.GrayBg;
+                    foreground = UiPalette.GrayFg;
+                    break;
+            }
+        }
+
+        private void ComponentCopyButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_componentStatusReport == null) return;
+
+            string text = BuildComponentDiagnostics(_componentStatusReport);
+            if (CopyToClipboard(text))
+            {
+                ShowCopyFeedback((Button)sender);
+            }
+            else
+            {
+                ClipboardHelper.ShowCopyFailure((Button)sender);
+            }
+        }
+
+        private static string BuildComponentDiagnostics(ComponentStatusReport report)
+        {
+            List<string> lines = new List<string>();
+            lines.Add("杂鱼串流工具箱 · 基地版组件状态");
+            lines.Add("检测时间：" + report.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"));
+            if (!string.IsNullOrEmpty(report.SunshineInstallPath))
+            {
+                lines.Add("Sunshine 路径：" + report.SunshineInstallPath);
+            }
+            for (int i = 0; i < report.Items.Count; i++)
+            {
+                ComponentStatusItem item = report.Items[i];
+                if (item.IsSection)
+                {
+                    lines.Add("");
+                    lines.Add("[" + item.Name + "]");
+                }
+                else
+                {
+                    lines.Add(item.Name + "：" + item.StatusText
+                        + " · 版本 " + item.Version
+                        + (string.IsNullOrEmpty(item.Detail) ? string.Empty : " · " + item.Detail)
+                        + (string.IsNullOrEmpty(item.DeviceId) ? string.Empty : " · " + item.DeviceId));
+                }
+            }
+            if (!string.IsNullOrEmpty(report.Error)) lines.Add("错误：" + report.Error);
+            return string.Join(Environment.NewLine, lines.ToArray());
+        }
+
+        private void ComponentDeviceManagerButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo("devmgmt.msc") { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("打开设备管理器失败：" + ex.Message,
+                    "杂鱼串流工具箱", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void ComponentToolsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(_componentInstallPath)) return;
+                string tools = Path.Combine(_componentInstallPath, "tools");
+                if (!Directory.Exists(tools))
+                {
+                    MessageBox.Show("没有找到 Sunshine tools 目录。",
+                        "杂鱼串流工具箱", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                WebView2InstallerService.OpenFolder(tools);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("打开工具目录失败：" + ex.Message,
+                    "杂鱼串流工具箱", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void ResetComponentStatusState()
+        {
+            _componentStatusReport = null;
+            _componentInstallPath = null;
+            ComponentStatusList.ItemsSource = null;
+            ComponentCopyButton.IsEnabled = false;
+            ComponentToolsButton.IsEnabled = false;
+            ComponentRefreshButton.IsEnabled = true;
+            ComponentSummaryText.Text = "尚未检测";
+            ComponentStatusText.Text = "尚未检测，点击「刷新状态」开始。";
+            ComponentStatusText.Foreground = UiPalette.MutedFg;
+            ComponentProgressBar.Visibility = Visibility.Collapsed;
+        }
+
         private List<IpRow> BuildRows(List<IpAddressEntry> entries, bool ipv6)
         {
             List<IpRow> rows = new List<IpRow>();
@@ -1542,6 +1813,11 @@ namespace IpInfo.App
             if (_selfCheckCts != null)
             {
                 try { _selfCheckCts.Cancel(); }
+                catch { }
+            }
+            if (_componentCts != null)
+            {
+                try { _componentCts.Cancel(); }
                 catch { }
             }
             StopConnectivityTest(false);
@@ -1899,6 +2175,27 @@ namespace IpInfo.App
 
             _report = fallback;
             RenderReport(fallback);
+        }
+
+        /// <summary>离屏生成组件状态页 PNG，供文档 / 自动验证使用。</summary>
+        public async Task RenderComponentStatusSnapshotAsync(string path)
+        {
+            await _initialRefresh.Task;
+            SelectPage("components");
+            if (!_componentBusy)
+            {
+                await RunComponentStatusAsync();
+            }
+            else
+            {
+                for (int i = 0; i < 150 && _componentBusy; i++)
+                {
+                    await Task.Delay(200);
+                }
+            }
+            await Task.Delay(500);
+            RenderToPng(path);
+            Close();
         }
 
         /// <summary>离屏生成一键自检报告 PNG，供文档 / 自动验证使用。</summary>

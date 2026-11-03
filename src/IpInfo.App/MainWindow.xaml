@@ -1,4 +1,4 @@
-<Window x:Class="IpInfo.App.MainWindow"
+﻿<Window x:Class="IpInfo.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:IpInfo.App"
@@ -192,6 +192,12 @@
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="&#xE73E;" Style="{StaticResource NavIcon}"/>
                                 <TextBlock Text="一键自检" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem AutomationProperties.Name="组件状态">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE9D9;" Style="{StaticResource NavIcon}"/>
+                                <TextBlock Text="组件状态" Margin="8,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
                     </ListBox>
@@ -765,6 +771,120 @@
                                 <TextBlock x:Name="SelfCheckFooterText"
                                            Text="由 杂鱼串流工具箱生成 · 数据仅在本机处理"
                                            FontSize="10.5" Foreground="#6E687F" Margin="0,14,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="ComponentStatusScrollViewer" Visibility="Collapsed"
+                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="28,24,28,28">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <views:PageHeader Grid.Column="0" Title="组件状态"
+                                              Subtitle="检测基地版附带的显示、输入、音频与 USB 透传组件"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                        HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0,0,0">
+                                <Button x:Name="ComponentRefreshButton" Content="刷新状态"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Click="ComponentRefreshButton_Click"/>
+                                <Button x:Name="ComponentCopyButton" Content="复制诊断"
+                                        Style="{StaticResource CopyButton}" Margin="8,0,0,0"
+                                        IsEnabled="False" Click="ComponentCopyButton_Click"/>
+                                <Button x:Name="ComponentDeviceManagerButton" Content="设备管理器"
+                                        Style="{StaticResource CopyButton}" Margin="8,0,0,0"
+                                        Click="ComponentDeviceManagerButton_Click"/>
+                                <Button x:Name="ComponentToolsButton" Content="工具目录"
+                                        Style="{StaticResource CopyButton}" Margin="8,0,0,0"
+                                        Click="ComponentToolsButton_Click"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <ProgressBar x:Name="ComponentProgressBar" Height="3" IsIndeterminate="True"
+                                     Foreground="#4F46E5" Background="#E0E7FF" BorderThickness="0"
+                                     Margin="0,0,0,10" Visibility="Collapsed"/>
+                        <TextBlock x:Name="ComponentStatusText" Text="尚未检测，点击「刷新状态」开始。"
+                                   FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                   Margin="0,0,0,10"/>
+
+                        <Border Style="{StaticResource Card}" Padding="22">
+                            <StackPanel>
+                                <Grid>
+                                    <StackPanel>
+                                        <TextBlock Text="基地版组件状态" FontSize="17"
+                                                   FontWeight="SemiBold" Foreground="#0F172A"/>
+                                        <TextBlock x:Name="ComponentSummaryText" Text="尚未检测"
+                                                   FontSize="11.5" Foreground="#6E687F" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+                                            Background="#EEF2FF" CornerRadius="7" Padding="9,4">
+                                        <TextBlock Text="只读检测" FontSize="10.5" Foreground="#4338CA"/>
+                                    </Border>
+                                </Grid>
+
+                                <Border Height="1" Background="#E2E8F0" Margin="0,14,0,6"/>
+
+                                <ItemsControl x:Name="ComponentStatusList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border x:Name="ComponentRow" Background="Transparent"
+                                                    CornerRadius="6" Padding="8,6" Margin="0,1">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="120"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                                        <TextBlock x:Name="ComponentName" Text="{Binding Name}"
+                                                                   FontSize="11.5" FontWeight="SemiBold"
+                                                                   Foreground="#0F172A" TextWrapping="Wrap"/>
+                                                        <TextBlock x:Name="ComponentDetail" Text="{Binding Detail}"
+                                                                   FontSize="10.5" Foreground="#6E687F"
+                                                                   TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                        <TextBlock x:Name="ComponentDevice" Text="{Binding DeviceId}"
+                                                                   FontFamily="Consolas" FontSize="9.5"
+                                                                   Foreground="#8A8499" TextWrapping="Wrap"
+                                                                   Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                    <TextBlock x:Name="ComponentVersion" Grid.Column="1"
+                                                               Text="{Binding Version}" FontFamily="Consolas"
+                                                               FontSize="10.5" Foreground="#58536A"
+                                                               TextAlignment="Right" VerticalAlignment="Top"
+                                                               TextWrapping="Wrap"/>
+                                                    <Border x:Name="ComponentStatusBorder" Grid.Column="2"
+                                                            Background="{Binding StatusBackground}"
+                                                            CornerRadius="6" Padding="7,2"
+                                                            VerticalAlignment="Top" Margin="8,1,0,0">
+                                                        <TextBlock x:Name="ComponentHealthText" Text="{Binding StatusText}"
+                                                                   FontSize="10" FontWeight="SemiBold"
+                                                                   Foreground="{Binding StatusForeground}"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsSection}" Value="True">
+                                                    <Setter TargetName="ComponentRow" Property="Background" Value="#EEF2FF"/>
+                                                    <Setter TargetName="ComponentName" Property="FontWeight" Value="SemiBold"/>
+                                                    <Setter TargetName="ComponentName" Property="FontSize" Value="12"/>
+                                                    <Setter TargetName="ComponentName" Property="Foreground" Value="#3730A3"/>
+                                                    <Setter TargetName="ComponentDetail" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="ComponentDevice" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="ComponentVersion" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="ComponentStatusBorder" Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Text="组件安装 / 修复请使用 Foundation Sunshine 的桌面 GUI「设备中心」；本页只做只读状态检测，不会修改驱动。"
+                                           FontSize="10.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                           Margin="0,14,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

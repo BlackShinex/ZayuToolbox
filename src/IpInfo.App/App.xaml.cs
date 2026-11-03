@@ -115,6 +115,7 @@ namespace IpInfo.App
 
             string renderPath = null;
             string selfCheckRenderPath = null;
+            string componentsRenderPath = null;
             bool reveal = false;
             bool offscreen = false;
             bool full = false;
@@ -131,6 +132,12 @@ namespace IpInfo.App
                     && i + 1 < e.Args.Length)
                 {
                     selfCheckRenderPath = e.Args[i + 1];
+                    i++;
+                }
+                else if (string.Equals(e.Args[i], "--components-render", StringComparison.OrdinalIgnoreCase)
+                    && i + 1 < e.Args.Length)
+                {
+                    componentsRenderPath = e.Args[i + 1];
                     i++;
                 }
                 else if (string.Equals(e.Args[i], "--reveal", StringComparison.OrdinalIgnoreCase))
@@ -168,6 +175,7 @@ namespace IpInfo.App
 
             IsUiTestMode = !string.IsNullOrEmpty(renderPath)
                 || !string.IsNullOrEmpty(selfCheckRenderPath)
+                || !string.IsNullOrEmpty(componentsRenderPath)
                 || offscreen;
             MainWindow window = new MainWindow();
             MainWindow = window;
@@ -188,6 +196,10 @@ namespace IpInfo.App
             else if (!string.IsNullOrEmpty(selfCheckRenderPath))
             {
                 RunSelfCheckRenderMode(window, selfCheckRenderPath);
+            }
+            else if (!string.IsNullOrEmpty(componentsRenderPath))
+            {
+                RunComponentsRenderMode(window, componentsRenderPath);
             }
         }
 
@@ -228,6 +240,28 @@ namespace IpInfo.App
             try
             {
                 await window.RenderSelfCheckSnapshotAsync(path);
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    File.WriteAllText(path + ".error.txt", ex.ToString());
+                }
+                catch
+                {
+                }
+            }
+            finally
+            {
+                Shutdown();
+            }
+        }
+
+        private async void RunComponentsRenderMode(MainWindow window, string path)
+        {
+            try
+            {
+                await window.RenderComponentStatusSnapshotAsync(path);
             }
             catch (Exception ex)
             {

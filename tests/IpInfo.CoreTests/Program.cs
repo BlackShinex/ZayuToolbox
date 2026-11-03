@@ -57,6 +57,7 @@ namespace IpInfo.CoreTests
             TestSunshineDetection();
             TestSunshineService();
             TestZakoDisplay();
+            TestComponentStatus();
 
             if (live)
             {
@@ -73,6 +74,30 @@ namespace IpInfo.CoreTests
             Console.WriteLine("共检查 {0} 项，失败 {1} 项。", _checks, _failures);
             Console.WriteLine("--------------------------------------------");
             return _failures == 0 ? 0 : 1;
+        }
+
+        private static void TestComponentStatus()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[15] 基地版组件状态");
+
+            ComponentStatusReport report = ComponentStatusDetector.Collect(null, CancellationToken.None);
+            CheckTrue("返回组件状态报告", report != null);
+            if (report == null) return;
+
+            CheckTrue("包含组件状态条目", report.Items.Count > 0);
+            CheckTrue("检测到 Sunshine 安装路径", !string.IsNullOrEmpty(report.SunshineInstallPath),
+                report.SunshineInstallPath);
+
+            bool hasSection = false;
+            bool hasComponent = false;
+            for (int i = 0; i < report.Items.Count; i++)
+            {
+                if (report.Items[i].IsSection) hasSection = true;
+                else if (!string.IsNullOrEmpty(report.Items[i].Name)) hasComponent = true;
+            }
+            CheckTrue("包含分组标题", hasSection);
+            CheckTrue("包含具体组件", hasComponent);
         }
 
         private static void TestPrivacyMask()

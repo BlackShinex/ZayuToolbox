@@ -27,10 +27,16 @@
   - 汇总 WebView2 / Edge 等组件信息；
   - 支持 IP 隐私打码切换，以及把报告一键复制为截图。
 - 隐私逻辑调整：只遮罩公网 IP；局域网 IPv4、CGNAT、链路本地 IPv6、唯一本地 IPv6 保持完整，网络页、连通性矩阵和自检报告同步生效。
+- 新增左侧「组件状态」页面：
+  - 只读检测 ZakoDisplay、Zako 虚拟鼠标、DualSense / HIDMaestro 虚拟手柄；
+  - 检测 Steam Streaming Speakers（声音输出）、VB-CABLE（麦克风回传）、Sunshine Virtual Microphone；
+  - 检测 USB/IP 透传驱动与 HIDMaestro UDE 主机设备；
+  - 检测 DLSS NR / RTX Video 画质增强组件；
+  - 显示安装 / 驱动 / 运行状态、版本、设备 ID，支持复制诊断、打开设备管理器和工具目录。
 
 ### 构建与测试
 
-- 核心离线测试 165 项，UI 冒烟测试前台 83 项、后台独立桌面 76 项。
+- 核心离线测试 170 项，UI 冒烟测试前台 87 项、后台独立桌面 80 项。
 - 新增 `tools/ui-test-background.ps1`：在独立 Windows 桌面运行 UI 测试，不抢当前桌面焦点；后台模式跳过 7 项剪贴板内容校验。
 - 新增 QRCoder 嵌入资源与第三方许可说明 `THIRD-PARTY-NOTICES.md`。
 - 本次改动尚未发布，版本号暂保持 1.7。
