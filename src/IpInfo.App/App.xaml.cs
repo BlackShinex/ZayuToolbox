@@ -26,7 +26,7 @@ namespace IpInfo.App
                     FontFamily family = Current.TryFindResource("AppFont") as FontFamily;
                     if (family != null) return family;
                 }
-                return new FontFamily("Noto Sans SC");
+                return new FontFamily("思源黑体");
             }
         }
 

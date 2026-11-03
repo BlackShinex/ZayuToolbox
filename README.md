@@ -53,7 +53,7 @@
   - 有新版本时只在左下角显示「发现新版本 vX.Y」和「查看更新」，不弹窗、不打断操作
   - 已是最新时显示「已是最新版本」，网络失败时显示失败原因并允许重新检查
 - **界面字体**
-  - 界面使用随程序嵌入的 Noto Sans SC，数字 / 地址使用 Noto Sans Mono
+  - 界面使用随程序嵌入的思源黑体 Source Han Sans SC，数字 / 地址使用 Noto Sans Mono
   - 两者均为 SIL Open Font License 1.1，不依赖系统微软雅黑或 Consolas
 - **一键自检**
   - 自动汇总系统版本、CPU、内存、显卡型号与驱动版本
@@ -186,7 +186,7 @@ ip-info/
 │     ├─ ConnectivityTestDialog.xaml(.cs) 网络连通性测试窗口（二维码 + 说明 + 倒计时）
 │     ├─ QrCodeRenderer.cs       离线二维码渲染（QRCoder 模块矩阵 → WPF 位图）
 │     ├─ lib/QRCoder.dll         嵌入到 exe 的二维码生成库（MIT）
-│     ├─ Assets/Fonts/            嵌入的 Noto Sans SC / Noto Sans Mono（OFL）
+│     ├─ Assets/Fonts/            嵌入的思源黑体 / Noto Sans Mono（OFL）
 │     ├─ WebView2InstallDialog.xaml(.cs) WebView2 安装 / 修复窗口
 │     ├─ ComponentOperationDialog.xaml(.cs) 组件修复 / 卸载进度窗口
 │     ├─ UiModels.cs
@@ -321,7 +321,7 @@ ip-info/
 
 - 作者：BlackCat
 - 版本：1.7
-- **未发布（当前测试构建）**：移除多层 NAT 跃点跟踪；将 IPv6 入站自检重构为网络连通性测试，新增内网 / 外网 × IPv4 / IPv6 的 2×2 矩阵、手机扫码连接、离线二维码与 P2P 结论；新增一键自检与基地版组件状态页；界面字体改用嵌入的 Noto Sans SC / Noto Sans Mono。发布前版本号暂保持 1.7。
+- **未发布（当前测试构建）**：移除多层 NAT 跃点跟踪；将 IPv6 入站自检重构为网络连通性测试，新增内网 / 外网 × IPv4 / IPv6 的 2×2 矩阵、手机扫码连接、离线二维码与 P2P 结论；新增一键自检与基地版组件状态页；界面字体改用嵌入的思源黑体 Source Han Sans SC / Noto Sans Mono。发布前版本号暂保持 1.7。
 - v1.7：全新玻璃拟态侧边栏与分页 UI；恢复中文字体显示；更新 Sunshine 图标；新增 Sunshine 版本/服务/Zako 检测、多层 NAT 跃点跟踪；开机自启开关；修复基地版作者与剪贴板占用提示。
 - v1.6：将 Core 源码编译进单文件 exe；WebView2 安装支持取消，并加固签名校验与启动之间的 TOCTOU；核心测试增至 64 项。
 - v1.5：软件正式更名为「杂鱼串流工具箱」，同步更新窗口标题、程序名、图标文字、exe 文件名、发布包与文档。

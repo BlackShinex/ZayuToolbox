@@ -33,7 +33,7 @@
   - 检测 USB/IP 透传驱动与 HIDMaestro UDE 主机设备；
   - 检测 DLSS NR / RTX Video 画质增强组件；
   - 显示安装 / 驱动 / 运行状态、版本、设备 ID，支持复制诊断、打开设备管理器和工具目录。
-- 界面字体改为随程序嵌入的 Noto Sans SC / Noto Sans Mono（SIL OFL 1.1），不再依赖 Microsoft YaHei UI / Consolas。
+- 界面字体改为随程序嵌入的思源黑体 Source Han Sans SC / Noto Sans Mono（SIL OFL 1.1），不再依赖 Microsoft YaHei UI / Consolas。
 - 左侧「工作台」更名为「功能分区」，并把「组件状态」移动到「Sunshine 版本」下方。
 - 优化组件状态页排版：放大字号、改为卡片行布局，版本与设备信息不再错位。
 - 组件状态新增单独「修复 / 卸载」：
