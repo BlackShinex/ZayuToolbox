@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using IpInfo.Core;
@@ -8,6 +9,41 @@ namespace IpInfo.App
 {
     public partial class App : Application
     {
+        // QRCoder.dll 以嵌入资源形式打包，发布时仍然只有一个 exe；
+        // 在类型初始化阶段注册解析器，确保任何二维码代码运行前已经生效。
+        static App()
+        {
+            AppDomain.CurrentDomain.AssemblyResolve += ResolveQRCoder;
+        }
+
+        private static Assembly ResolveQRCoder(object sender, ResolveEventArgs args)
+        {
+            if (args == null || string.IsNullOrEmpty(args.Name)) return null;
+            if (!args.Name.StartsWith("QRCoder", StringComparison.Ordinal)) return null;
+
+            try
+            {
+                using (Stream stream = typeof(App).Assembly.GetManifestResourceStream("QRCoder.dll"))
+                {
+                    if (stream == null) return null;
+                    byte[] buffer = new byte[stream.Length];
+                    int read = 0;
+                    while (read < buffer.Length)
+                    {
+                        int chunk = stream.Read(buffer, read, buffer.Length - read);
+                        if (chunk <= 0) break;
+                        read += chunk;
+                    }
+                    if (read != buffer.Length) return null;
+                    return Assembly.Load(buffer);
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);

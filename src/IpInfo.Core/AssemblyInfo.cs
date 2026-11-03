@@ -1,8 +1,8 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("IpInfo.Core")]
-[assembly: AssemblyDescription("杂鱼串流工具箱核心库：本机 IP、公网出口、NAT、IPv6 入站与 WebView2 运行库检测")]
+[assembly: AssemblyDescription("杂鱼串流工具箱核心库：本机 IP、公网出口、NAT、网络连通性与 WebView2 运行库检测")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("BlackCat")]
 [assembly: AssemblyProduct("杂鱼串流工具箱")]

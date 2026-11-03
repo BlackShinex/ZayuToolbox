@@ -54,6 +54,9 @@ namespace IpInfo.Core
         /// <summary>Windows 接口索引，用于匹配系统选路结果。</summary>
         public int InterfaceIndex { get; set; }
 
+        /// <summary>该地址的前缀长度（子网掩码位数）；未知时为 0。</summary>
+        public int PrefixLength { get; set; }
+
         public bool IsPublic
         {
             get { return Scope == IpAddressScope.Public; }
@@ -180,7 +183,7 @@ namespace IpInfo.Core
         }
     }
 
-    /// <summary>Windows 防火墙当前配置（用于 IPv6 入站判断）。</summary>
+    /// <summary>Windows 防火墙当前配置（用于网络连通性 / 入站判断）。</summary>
     public enum FirewallProfile
     {
         Unknown = 0,
@@ -228,7 +231,7 @@ namespace IpInfo.Core
         public PublicIpInfo PublicIp { get; set; }
         public NatResult Nat { get; set; }
 
-        /// <summary>Windows 防火墙状态（IPv6 入站判断辅助）。</summary>
+        /// <summary>Windows 防火墙状态（网络连通性 / 入站判断辅助）。</summary>
         public FirewallInfo Firewall { get; set; }
 
         /// <summary>探测完成时间。</summary>

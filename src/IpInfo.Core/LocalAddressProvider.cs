@@ -176,6 +176,14 @@ namespace IpInfo.Core
                         entry.IsVirtual = meta.IsVirtual;
                         entry.HasGateway = meta.HasGateway;
                         entry.InterfaceIndex = meta.Index;
+                        try
+                        {
+                            entry.PrefixLength = info.PrefixLength;
+                        }
+                        catch
+                        {
+                            entry.PrefixLength = 0;
+                        }
                         result.Add(entry);
                     }
                 }

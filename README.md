@@ -1,10 +1,12 @@
-﻿# 杂鱼串流工具箱
+# 杂鱼串流工具箱
 
 > 作者：**BlackCat** · 版本：**1.7**
 
-**杂鱼串流工具箱**是一个面向串流与网络排障的 Windows 工具箱：查看本机 IPv4 / IPv6 地址、公网出口，检测当前网络是否在公网、属于哪种 NAT 类型，提供 **多层 NAT 跃点跟踪**、**IPv6 入站可达性自检**，并集成 **WebView2 运行库检测与安装修复**。默认对 IP 中间部分打码，支持一键显示和逐条复制。
+**杂鱼串流工具箱**是一个面向串流与网络排障的 Windows 工具箱：查看本机 IPv4 / IPv6 地址、公网出口，检测当前网络是否在公网、属于哪种 NAT 类型，提供 **网络连通性测试（内网 / 外网 × IPv4 / IPv6）**、**手机扫码连接**，并集成 **WebView2 运行库检测与安装修复**。默认对 IP 中间部分打码，支持一键显示和逐条复制。
 
 ![界面预览](docs/ui-preview-full.png)
+
+![网络连通性测试](docs/connectivity-dialog.png)
 
 ## 功能
 
@@ -25,18 +27,18 @@
   - 输出：映射行为（端点无关 / 端点相关）、端口是否保持、NAT 类型
   - 支持识别：公网直连（无 NAT）、对称型 NAT、锥型 NAT
   - 全锥 / 限制锥的进一步细分依赖 RFC 3489 的 CHANGE-REQUEST 过滤测试，公共 STUN 服务器基本不支持，因此通常显示「锥型 NAT（端点无关映射）」，并在「查看检测详情」中明确标注过滤行为未知
-- **多层 NAT 跃点跟踪**
-  - 使用 Windows `IcmpSendEcho` 按 TTL 逐跳探测 IPv4 路径，普通用户权限即可运行
-  - 标记每一跳的私网 / CGNAT / 公网类型，遇到首个公网地址或目标主机就停止
-  - 适合排查“接了很多路由器、层层 NAT 导致无法串流”的场景；结果默认按 IP 遮罩规则显示
+- **网络连通性测试（内网 / 外网 × IPv4 / IPv6）**
+  - 用一张 2×2 矩阵同时展示「内网 IPv4 / 内网 IPv6 / 外网 IPv4 / 外网 IPv6」四项结果
+  - **同一 Wi-Fi 模式**：二维码指向电脑的局域网地址，手机扫码后网页同时探测内网 IPv4 与 IPv6，验证同一局域网内能否直连
+  - **移动数据模式**：二维码指向公网 IPv6，手机关闭 Wi-Fi 用 4G/5G 扫码，验证公网 IPv6 入站是否被光猫 / 路由器 / Windows 防火墙拦截
+  - 电脑侧另外主动连接公共 IPv4 TCP 端口，并结合 STUN 得到的 NAT 类型，判断 IPv4 打洞可行性
+  - 结论优先推荐 IPv6 直连；IPv4 锥型 NAT 提示可打洞；对称 NAT 提示可能需要中继；IPv4 / IPv6 都不通则明确提示「无法建立有效 P2P 连接」
+  - 二维码在本机离线生成（QRCoder 嵌入 exe），测试地址带随机令牌，测试结束或 90 秒超时后自动关闭临时端口
+  - 保留手动复制地址的打开方式；说明窗口带 3 秒倒计时，关闭按钮为「完成并关闭」
+  - 显示 Windows 防火墙状态（管理员权限不足时从注册表推断，并明确标注“推断”）
 - **主地址智能选择**
   - 优先使用系统实际选路的物理网卡（`GetBestInterface` + 网关 + 地址类型综合判断）
   - 自动识别 VMware / VirtualBox / Hyper-V / WSL / Docker / VPN / Tailscale / 蓝牙等虚拟网卡，避免它们抢走「主地址」；虚拟网卡仍会列出并标注
-- **IPv6 入站可达性自检**
-  - 显示 Windows 防火墙状态（管理员权限不足时从注册表推断，并明确标注“推断”）
-  - 点击「启动入站自检」会弹出说明窗口：明确提示**必须关闭手机 Wi-Fi、改用 4G/5G 移动数据**，并将自测地址复制到手机浏览器打开
-  - 说明窗口带 3 秒倒计时，倒计时结束前无法关闭；关闭按钮文字为「了解」
-  - 程序会自动确认是否收到外部入站连接，从而判断光猫/路由器的 IPv6 防火墙是否放行
 - **WebView2 运行库检测与修复**
   - 读取 Edge Update 注册表，并与 `msedgewebview2.exe` 安装目录交叉验证，区分「已安装 / 未安装 / 安装异常」
   - 显示运行库版本、安装范围、系统架构、安装路径、检测来源、Edge 浏览器版本与当前权限
@@ -45,6 +47,7 @@
   - 普通用户可以安装到当前用户，也可以勾选「为所有用户安装」触发 UAC；也支持选择本地 WebView2 安装包离线安装
 - **单文件发布**
   - `IpInfo.Core` 的源码在构建时直接编译进主程序，发布包只需要 exe 与配置文件
+  - 二维码生成库 QRCoder 以嵌入资源形式随 exe 发布，不需要额外的 DLL
 - **高分屏适配**
   - 清单启用 Per-Monitor V2 DPI 感知，并配置 WPF `DoNotScaleForDpiChanges=false`
   - 窗口启动/跨屏移动时自动限制在当前屏幕可用区域内，125% / 150% 缩放下不会超出屏幕；内容用 ScrollViewer 兜底
@@ -55,7 +58,7 @@
 
 双击 `dist\杂鱼串流工具箱.exe` 即可。要求 Windows 10 / 11（自带 .NET Framework 4.8），无需安装 .NET SDK。
 
-> 首次运行如需联网，请允许 Windows 防火墙的“专用/公用网络”访问（程序使用 UDP 访问公共 STUN 服务器；使用 IPv6 入站自检时会临时监听一个 TCP 端口）。安装 / 修复 WebView2 时还会访问 Microsoft 官方服务器下载安装包。
+> 首次运行如需联网，请允许 Windows 防火墙的“专用/公用网络”访问（程序使用 UDP 访问公共 STUN 服务器、使用 TCP 探测公网出口；启动网络连通性测试时会临时监听 TCP 端口）。安装 / 修复 WebView2 时还会访问 Microsoft 官方服务器下载安装包。
 
 ## 下载发布版
 
@@ -80,15 +83,15 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zi
 ## 测试
 
 ```powershell
-# 1) 核心逻辑 + 真实网络探测（134 项离线检查；--live 额外 5 项联网检查）
+# 1) 核心逻辑 + 真实网络探测（161 项离线检查；--live 额外 5 项联网检查）
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 .\tests\IpInfo.CoreTests\bin\Debug\IpInfo.CoreTests.exe --live
 
-# 2) UI 冒烟测试（离屏启动，验证遮罩、复制、显示 IP、IPv6 弹窗倒计时、多层 NAT 卡片、WebView2 卡片与安装弹窗）
+# 2) UI 冒烟测试（离屏启动，验证遮罩、复制、显示 IP、二维码弹窗倒计时、回环 IPv4/IPv6 探测、WebView2 卡片与安装弹窗）
 powershell -ExecutionPolicy Bypass -STA -File .\tools\ui-smoke-test.ps1
 ```
 
-UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 61 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、IPv6 入站弹窗的「了解」按钮 3 秒倒计时、启动/停止/回环连接成功路径、多层 NAT 跃点跟踪卡片，以及 WebView2 状态卡片、诊断复制和安装窗口。
+UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 68 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 3 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论，以及 WebView2 状态卡片、诊断复制和安装窗口。
 
 > 仓库已包含 `.github/workflows/build.yml`：推送到 GitHub 后会自动构建 Release、运行离线核心测试并上传构建产物。
 
@@ -107,20 +110,24 @@ ip-info/
 │  │  ├─ Models.cs               数据模型（NetworkReport / NatResult / PublicIpInfo）
 │  │  ├─ IpPrivacy.cs            IP 遮罩
 │  │  ├─ IpClassifier.cs         地址类型判断
+│  │  ├─ IpNetworkHelper.cs      网段 / 子网判断
 │  │  ├─ LocalAddressProvider.cs 本机地址枚举 + 主地址智能选择
 │  │  ├─ WindowsFirewallReader.cs Windows 防火墙状态读取（COM + 注册表降级）
-│  │  ├─ Ipv6InboundTestServer.cs IPv6 入站自检临时监听
+│  │  ├─ ConnectivityTestServer.cs 双栈 TCP 测试服务器（内网 / 公网页面 + IPv4/IPv6 探测）
+│  │  ├─ ConnectivityProbe.cs    公网 IPv4 / IPv6 TCP 出口探测
+│  │  ├─ ConnectivityEvaluator.cs 2×2 连通性矩阵与 P2P 结论
 │  │  ├─ WebView2DetectionService.cs WebView2 注册表 / 安装目录检测
 │  │  ├─ WebView2InstallerService.cs WebView2 下载、签名校验与静默安装
 │  │  ├─ StunClient.cs           RFC 5389 STUN 客户端
 │  │  ├─ StunServers.cs          公共 STUN 服务器解析
 │  │  ├─ NatDetector.cs          NAT 映射 / 过滤行为检测
-│  │  ├─ NatHopTracer.cs         多层 NAT 跃点跟踪（IcmpSendEcho + TTL）
 │  │  └─ NetworkProbe.cs         组合完整探测报告
 │  └─ IpInfo.App/                WPF 界面
 │     ├─ App.xaml(.cs)
 │     ├─ MainWindow.xaml(.cs)
-│     ├─ InboundTestDialog.xaml(.cs)  IPv6 入站说明弹窗（3 秒倒计时）
+│     ├─ ConnectivityTestDialog.xaml(.cs) 网络连通性测试窗口（二维码 + 说明 + 倒计时）
+│     ├─ QrCodeRenderer.cs       离线二维码渲染（QRCoder 模块矩阵 → WPF 位图）
+│     ├─ lib/QRCoder.dll         嵌入到 exe 的二维码生成库（MIT）
 │     ├─ WebView2InstallDialog.xaml(.cs) WebView2 安装 / 修复窗口
 │     ├─ UiModels.cs
 │     ├─ app.config                   Per-Monitor V2 DPI 配置
@@ -133,6 +140,7 @@ ip-info/
 ├─ docs/                         截图与图标预览
 ├─ dist/                         本地发布产物（已被 .gitignore 忽略）
 ├─ CHANGELOG.md                  版本记录
+├─ THIRD-PARTY-NOTICES.md        第三方组件与许可证（QRCoder）
 ├─ GITHUB_PUBLISH.md             首次发布到 GitHub 的步骤
 ├─ LICENSE                       MIT License
 └─ README.md
@@ -158,12 +166,42 @@ ip-info/
 
 因此本工具能可靠区分「无 NAT / 锥型 NAT / 对称型 NAT」，并给出端口保持情况；全锥、限制锥、端口限制锥的细分受公共服务器能力限制，显示为「锥型 NAT」并注明过滤行为未知。
 
-### 多层 NAT 跃点跟踪
+### 网络连通性测试
 
-- 使用 Windows `IcmpSendEcho` + TTL 逐跳探测 IPv4 路径，不需要管理员权限或原始套接字。
-- 默认目标为 `223.5.5.5`（阿里公共 DNS，国内多数网络可正常 ICMP 到达），最多 30 跳，每跳超时 1 秒；遇到首个公网地址或目标主机后停止。
-- 每一跳会标注私网 / CGNAT / 公网类型。私网和 CGNAT 跃点提示可能存在 NAT 层，但 ICMP 跃点只代表三层路径，实际 NAT 设备数量仍需结合家庭/机房拓扑确认。
-- 某些路由器会过滤 ICMP 或 TTL 响应，因此路径中可能出现“无响应”跳点；这不代表该跳不存在。
+“能不能串流”最终取决于两台设备之间有没有可用的直连路径。程序用一张 2×2 矩阵分别验证：
+
+| | 内网 | 外网 |
+|---|---|---|
+| **IPv4** | 手机与电脑同一 Wi-Fi 时，扫码访问电脑局域网 IPv4 | 电脑主动连接公共 IPv4 TCP 端口，并结合 STUN NAT 类型判断打洞可行性 |
+| **IPv6** | 手机与电脑同一 Wi-Fi 时，扫码访问电脑局域网 IPv6 | 手机使用移动数据，扫码访问电脑公网 IPv6，验证入站是否放行 |
+
+**同一 Wi-Fi 模式**
+
+1. 电脑在本机局域网 IPv4（没有 IPv4 时回退 IPv6）上临时监听一个 TCP 端口；
+2. 二维码内容是 `http://电脑局域网地址:端口/t/随机令牌/lan/`；
+3. 手机连接同一 Wi-Fi 后扫码打开页面；页面里有两张隐藏图片，分别请求电脑的局域网 IPv4 与 IPv6 地址；
+4. 服务器收到请求后记录协议族与来源地址，两项都到达即判定内网 IPv4 / IPv6 均可直连。
+
+**移动数据模式**
+
+1. 电脑同时监听公网 IPv6 地址，生成 `http://[公网 IPv6]:端口/t/随机令牌/wan/`；
+2. 手机关闭 Wi-Fi、打开 4G/5G 后扫码；页面只探测公网 IPv6；
+3. 页面能加载或探测请求到达，就说明公网 IPv6 入站没有被光猫 / 路由器 IPv6 防火墙或 Windows 防火墙拦截。
+
+**判定规则**
+
+- 外网 IPv6 可达：优先使用 IPv6 直连，P2P 可用；
+- 外网 IPv6 不可达，但 IPv4 公网 TCP 出口可用且 NAT 为锥型 / 无 NAT：提示 IPv4 打洞可能成功；
+- IPv4 为对称型 NAT：提示 P2P 可能需要中继；
+- IPv4 外网不可用且没有公网 IPv6，或两者都被拦截：明确提示「无法建立有效 P2P 连接」。
+
+> 注意：IPv4 外网检查是「本机到公共 TCP 端口的出站连通性 + STUN NAT 类型」，并不等同于“外部设备一定能连进来”。IPv4 没有公网地址时，真正能否 P2P 还取决于双方 NAT 类型、打洞实现和路由器行为。
+
+二维码由 QRCoder 在本机离线生成，不经过任何二维码服务；测试地址带 16 位随机令牌，临时端口在测试窗口关闭或 90 秒超时后自动释放。二维码展示超过 8 秒仍没有收到连接时，会按「已尝试但未连通」记录，避免手机打不开页面时结果一直停在“等待中”。
+
+### 二维码生成
+
+`IpInfo.App/lib/QRCoder.dll` 以 `<EmbeddedResource>` 的形式编译进主 exe，`App` 在静态构造阶段注册 `AssemblyResolve`，运行时从嵌入资源加载。发布目录仍然只有 exe 与配置文件，不额外分发 DLL。QRCoder 使用 MIT 许可，详见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
 
 ### 主地址判定
 
@@ -174,17 +212,6 @@ ip-info/
 5. 每个协议族只标记一个「主地址」，虚拟网卡仍会显示但排在物理网卡之后。
 
 虚拟网卡识别综合了名称/描述关键字（VMware、VirtualBox、Hyper-V、WSL、Docker、VPN、Tailscale、WireGuard、蓝牙等）、接口类型（Tunnel / PPP / Loopback）以及已知虚拟化 MAC OUI（VMware/VirtualBox/Hyper-V/Parallels/Docker）。为避免误判，不使用 MAC 本地管理位单独判定（Windows 的“随机硬件地址”也会置位）。
-
-### IPv6 入站自检
-
-IPv6 没有 NAT，但光猫/路由器的 IPv6 防火墙和 Windows 防火墙仍可能拦截入站。由于无法从本机单方面证明“外部能主动连进来”，程序采用可验证的回调方式：
-
-1. 在本机临时监听一个 IPv6 TCP 端口，生成 `http://[公网 IPv6]:端口/`；
-2. 点击「启动入站自检」会弹出说明窗口：必须**关闭手机 Wi-Fi、打开 4G/5G 移动数据**，将地址复制到手机浏览器打开；
-3. 说明窗口有 3 秒倒计时，倒计时结束前无法关闭，按钮文字为「了解」；
-4. 若程序收到外部连接，会显示「检测成功」及来源地址，说明入站路径可达；若超时，则通常是光猫/路由器 IPv6 防火墙、Windows 防火墙或运营商拦截。
-
-Windows 防火墙状态优先通过 `HNetCfg.FwPolicy2` COM 读取；普通用户权限不足时，降级读取注册表中的防火墙开关，并明确标注为“推断”（默认入站策略按 Windows 默认的“阻止”推断）。
 
 ### WebView2 运行库检测
 
@@ -215,7 +242,11 @@ Windows 防火墙状态优先通过 `HNetCfg.FwPolicy2` COM 读取；普通用�
 
 - 需要 UDP 出网。公司/校园网封禁 UDP 时，公网 IP 与 NAT 类型会显示检测失败，但本机地址仍正常显示。
 - 主地址按“物理网卡 > 系统选路接口 > 有网关 > 地址类型”综合选择，多网卡环境可能仍需结合网卡名称人工确认。
-- IPv6 入站自检需要另一台设备（建议手机移动网络）访问生成的地址；无法在不借助外部设备的情况下自动证明入站可达。
+- 网络连通性测试需要另一台设备（手机）扫码访问；不扫码时只能看到电脑侧的公网 IPv4 出口探测与地址可用性。
+- 同一 Wi-Fi 模式要求手机与电脑在同一局域网；开启 AP 隔离、访客网络或使用 VPN 时可能无法访问电脑的局域网地址。
+- 移动数据模式要求电脑有公网 IPv6；没有公网 IPv6 时只能判断 IPv4 NAT 穿透可能性。
+- 外网 IPv4 检查是「本机到公共 TCP 端口的出站连通 + STUN NAT 类型」，不等同于外部设备一定能连入；对称 NAT 或本机处于 CGNAT 时可能需要中继，优先尝试 IPv6。
+- 二维码包含本次测试的地址与随机令牌，请勿截图分享；测试结束或 90 秒超时后临时端口会自动关闭。
 - Windows 防火墙完整状态通常需要管理员权限；无权限时会显示注册表推断值，并明确标注「推断」。
 - WebView2 在线安装需要访问 Microsoft 官方服务器；无法联网时可以选择本地 Evergreen Standalone Installer。
 - WebView2 检测仅覆盖 Evergreen 运行库，不检测应用私有的 Fixed Version 目录。
@@ -227,10 +258,11 @@ Windows 防火墙状态优先通过 `HNetCfg.FwPolicy2` COM 读取；普通用�
 
 - 作者：BlackCat
 - 版本：1.7
+- **未发布（当前测试构建）**：移除多层 NAT 跃点跟踪；将 IPv6 入站自检重构为网络连通性测试，新增内网 / 外网 × IPv4 / IPv6 的 2×2 矩阵、手机扫码连接、离线二维码与 P2P 结论。发布前版本号暂保持 1.7。
 - v1.7：全新玻璃拟态侧边栏与分页 UI；恢复微软雅黑字体；更新 Sunshine 图标；新增 Sunshine 版本/服务/Zako 检测、多层 NAT 跃点跟踪；开机自启开关；修复基地版作者与剪贴板占用提示。
 - v1.6：将 Core 源码编译进单文件 exe；WebView2 安装支持取消，并加固签名校验与启动之间的 TOCTOU；核心测试增至 64 项。
 - v1.5：软件正式更名为「杂鱼串流工具箱」，同步更新窗口标题、程序名、图标文字、exe 文件名、发布包与文档。
 
 ## 许可证
 
-本项目使用 [MIT License](LICENSE)。
+本项目使用 [MIT License](LICENSE)。二维码生成使用 QRCoder（MIT），许可见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。

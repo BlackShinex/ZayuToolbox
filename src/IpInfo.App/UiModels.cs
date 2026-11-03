@@ -1,19 +1,24 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Media;
 using IpInfo.Core;
 
 namespace IpInfo.App
 {
-    /// <summary>界面使用的跃点行数据。</summary>
-    public sealed class NatHopRow
+    /// <summary>网络连通性测试矩阵的一行。</summary>
+    public sealed class ConnectivityRow
     {
-        public string TtlText { get; set; }
-        public string AddressText { get; set; }
-        public string ScopeLabel { get; set; }
-        public string RoundTripText { get; set; }
-        public string Note { get; set; }
-        public Brush TagBackground { get; set; }
-        public Brush TagForeground { get; set; }
+        public string Title { get; set; }
+        public string Detail { get; set; }
+        public string StatusText { get; set; }
+        public Brush StatusBackground { get; set; }
+        public Brush StatusForeground { get; set; }
+
+        public ConnectivityRow()
+        {
+            Title = string.Empty;
+            Detail = string.Empty;
+            StatusText = string.Empty;
+        }
     }
 
     /// <summary>界面使用的 IP 行数据。</summary>

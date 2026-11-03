@@ -8,7 +8,7 @@ namespace IpInfo.Core
 {
     /// <summary>
     /// 通过 Windows 防火墙 COM 自动化接口（ProgID: HNetCfg.FwPolicy2）读取
-    /// 当前活动配置文件的开关与默认入站策略，用于 IPv6 入站可达性判断。
+    /// 当前活动配置文件的开关与默认入站策略，用于网络连通性 / 入站判断。
     /// 无权限 / COM 不可用时返回 IsSupported=false + Error，绝不抛出异常。
     /// </summary>
     public static class WindowsFirewallReader

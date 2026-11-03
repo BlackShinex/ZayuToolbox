@@ -61,6 +61,16 @@
     <Reference Include="PresentationFramework">
       <Private>False</Private>
     </Reference>
+    <Reference Include="QRCoder">
+      <HintPath>lib\QRCoder.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 单文件发布：把 QRCoder.dll 嵌入主 exe，由 App 的 AssemblyResolve 在运行时装载。 -->
+    <EmbeddedResource Include="lib\QRCoder.dll">
+      <LogicalName>QRCoder.dll</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -71,7 +81,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="InboundTestDialog.xaml">
+    <Page Include="ConnectivityTestDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -103,10 +113,11 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="InboundTestDialog.xaml.cs">
-      <DependentUpon>InboundTestDialog.xaml</DependentUpon>
+    <Compile Include="ConnectivityTestDialog.xaml.cs">
+      <DependentUpon>ConnectivityTestDialog.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="QrCodeRenderer.cs" />
     <Compile Include="PageHeader.xaml.cs">
       <DependentUpon>PageHeader.xaml</DependentUpon>
       <SubType>Code</SubType>

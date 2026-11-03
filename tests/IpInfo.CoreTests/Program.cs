@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using IpInfo.Core;
 
@@ -48,9 +49,10 @@ namespace IpInfo.CoreTests
             TestLocalAddresses();
             TestVirtualAdapters();
             TestFirewallReader();
-            TestIpv6InboundServer();
+            TestConnectivityTestServer();
+            TestIpNetworkHelper();
+            TestConnectivityEvaluator();
             TestWebView2();
-            TestNatHopTracer();
             TestSunshineClassifier();
             TestSunshineDetection();
             TestSunshineService();
@@ -173,7 +175,7 @@ namespace IpInfo.CoreTests
         private static void RunLiveProbeTests()
         {
             Console.WriteLine();
-            Console.WriteLine("[7] 联网探测（STUN / NAT / 防火墙）");
+            Console.WriteLine("[14] 联网探测（STUN / NAT / 防火墙）");
             try
             {
                 NetworkReport report = NetworkProbe.Collect(delegate(string message)
@@ -262,39 +264,76 @@ namespace IpInfo.CoreTests
             }
         }
 
-        private static void TestIpv6InboundServer()
+        private static void TestConnectivityTestServer()
         {
             Console.WriteLine();
-            Console.WriteLine("[6] IPv6 入站自检服务器（回环模式）");
-            Ipv6InboundTestServer server = new Ipv6InboundTestServer();
-            ManualResetEventSlim gate = new ManualResetEventSlim(false);
-            string remote = null;
-            server.ClientConnected += delegate(object sender, InboundTestClientEventArgs e)
+            Console.WriteLine("[6] 网络连通性测试服务器（回环模式）");
+            ConnectivityTestServer server = new ConnectivityTestServer();
+            List<ConnectivityProbeEventArgs> events = new List<ConnectivityProbeEventArgs>();
+            server.ProbeReceived += delegate(object sender, ConnectivityProbeEventArgs e)
             {
-                remote = e.RemoteEndPoint;
-                gate.Set();
+                lock (events) { events.Add(e); }
             };
 
             try
             {
-                server.Start("::1", false);
-                CheckTrue("URL 为 IPv6 格式", server.Url != null && server.Url.StartsWith("http://[::1]:", StringComparison.Ordinal));
+                ConnectivityTestOptions options = new ConnectivityTestOptions();
+                options.LanIpv4Address = "127.0.0.1";
+                options.LanIpv4PrefixLength = 8;
+                options.LanIpv6Address = "::1";
+                options.LanIpv6PrefixLength = 128;
+                options.PublicIpv6Address = "::1";
+                options.BindAllInterfaces = false;
+                options.Token = "testtoken";
+                server.Start(options);
 
-                using (TcpClient client = new TcpClient(AddressFamily.InterNetworkV6))
+                CheckTrue("已分配临时端口", server.Port > 0);
+                CheckTrue("IPv4 测试地址格式正确",
+                    server.LanIpv4Url != null && server.LanIpv4Url.StartsWith("http://127.0.0.1:", StringComparison.Ordinal));
+                CheckTrue("IPv6 测试地址格式正确",
+                    server.LanIpv6Url != null && server.LanIpv6Url.StartsWith("http://[::1]:", StringComparison.Ordinal));
+                CheckTrue("公网测试地址格式正确",
+                    server.WanUrl != null && server.WanUrl.StartsWith("http://[::1]:", StringComparison.Ordinal));
+
+                string contentType;
+                string page = HttpGet(server.LanUrl, out contentType);
+                CheckTrue("局域网页面返回 HTML", page.IndexOf("内网 IPv4", StringComparison.Ordinal) >= 0
+                    && page.IndexOf("内网 IPv6", StringComparison.Ordinal) >= 0);
+                CheckTrue("页面包含 IPv4 探测链接", page.IndexOf("/lan/p4", StringComparison.Ordinal) >= 0);
+                CheckTrue("页面包含 IPv6 探测链接", page.IndexOf("/lan/p6", StringComparison.Ordinal) >= 0);
+
+                CheckTrue("IPv4 探测返回图片", HttpGetStatus(server.LanIpv4Url + "p4") == 200);
+                CheckTrue("IPv6 探测返回图片", HttpGetStatus(server.LanIpv6Url + "p6") == 200);
+
+                string wanPage = HttpGet(server.WanUrl, out contentType);
+                CheckTrue("公网页面只测试公网 IPv6", wanPage.IndexOf("公网 IPv6", StringComparison.Ordinal) >= 0
+                    && wanPage.IndexOf("内网 IPv4", StringComparison.Ordinal) < 0);
+                CheckTrue("公网 IPv6 探测返回图片", HttpGetStatus(server.WanUrl + "p6") == 200);
+
+                Thread.Sleep(500);
+                lock (events)
                 {
-                    client.Connect(IPAddress.IPv6Loopback, server.Port);
-                    bool signaled = gate.Wait(5000);
-                    CheckTrue("可接受 IPv6 入站连接", signaled, "5 秒内没有收到连接事件");
-                    CheckTrue("记录入站来源地址", !string.IsNullOrEmpty(remote), "来源为空");
-                    if (!string.IsNullOrEmpty(remote))
+                    bool gotPage = false;
+                    bool gotIpv4 = false;
+                    bool gotIpv6 = false;
+                    bool gotWanIpv6 = false;
+                    for (int i = 0; i < events.Count; i++)
                     {
-                        Console.WriteLine("    入站来源: " + remote);
+                        ConnectivityProbeEventArgs item = events[i];
+                        if (item.Kind == ConnectivityProbeKind.Page && item.Mode == "lan") gotPage = true;
+                        if (item.Kind == ConnectivityProbeKind.Ipv4Probe && item.Mode == "lan" && !item.IsIpv6) gotIpv4 = true;
+                        if (item.Kind == ConnectivityProbeKind.Ipv6Probe && item.Mode == "lan" && item.IsIpv6) gotIpv6 = true;
+                        if (item.Kind == ConnectivityProbeKind.Ipv6Probe && item.Mode == "wan" && item.IsIpv6) gotWanIpv6 = true;
                     }
+                    CheckTrue("记录局域网页面请求", gotPage);
+                    CheckTrue("记录内网 IPv4 探测", gotIpv4);
+                    CheckTrue("记录内网 IPv6 探测", gotIpv6);
+                    CheckTrue("记录公网 IPv6 探测", gotWanIpv6);
                 }
             }
             catch (Exception ex)
             {
-                CheckTrue("入站自检服务器工作正常", false, ex.GetType().Name + ": " + ex.Message);
+                CheckTrue("连通性测试服务器工作正常", false, ex.GetType().Name + ": " + ex.Message);
             }
             finally
             {
@@ -305,10 +344,171 @@ namespace IpInfo.CoreTests
             }
         }
 
+        private static void TestIpNetworkHelper()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[7] 网段判断");
+            CheckTrue("IPv4 同 /24 网段",
+                IpNetworkHelper.SameSubnet("192.168.1.23", "192.168.1.10", 24));
+            CheckTrue("IPv4 不同 /24 网段",
+                !IpNetworkHelper.SameSubnet("192.168.2.23", "192.168.1.10", 24));
+            CheckTrue("IPv4 /16 网段",
+                IpNetworkHelper.SameSubnet("172.16.5.9", "172.16.1.1", 16));
+            CheckTrue("IPv6 同 /64 网段",
+                IpNetworkHelper.SameSubnet("240e:1:2:3::23", "240e:1:2:3::10", 64));
+            CheckTrue("IPv6 不同 /64 网段",
+                !IpNetworkHelper.SameSubnet("240e:1:2:4::23", "240e:1:2:3::10", 64));
+            CheckTrue("地址族不同返回 false",
+                !IpNetworkHelper.SameSubnet("192.168.1.1", "240e::1", 24));
+        }
+
+        private static void TestConnectivityEvaluator()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[8] 连通性结论（P2P 判断）");
+
+            NetworkReport report = new NetworkReport();
+            report.Nat.Type = NatType.FullCone;
+            report.Nat.TypeLabel = "全锥型 NAT";
+            report.Nat.ExternalIpv4 = "203.0.113.9";
+
+            ConnectivityTestOptions options = new ConnectivityTestOptions();
+            options.LanIpv4Address = "192.168.1.10";
+            options.LanIpv4PrefixLength = 24;
+            options.LanIpv6Address = "240e:1:2:3::10";
+            options.LanIpv6PrefixLength = 64;
+            options.PublicIpv6Address = "240e:1:2:3::10";
+
+            ConnectivityTestSession session = new ConnectivityTestSession(report, options);
+            session.WanIpv4Probe = new TcpConnectivityResult();
+            session.WanIpv4Probe.Success = true;
+            session.WanIpv4Probe.Endpoint = "223.5.5.5:443";
+            session.WanIpv4Probe.LatencyMilliseconds = 30;
+
+            session.Apply(MakeProbe(ConnectivityProbeKind.Page, false, "lan", "192.168.1.23"));
+            session.Apply(MakeProbe(ConnectivityProbeKind.Ipv6Probe, true, "lan", "240e:1:2:3::23"));
+            session.Apply(MakeProbe(ConnectivityProbeKind.Page, true, "wan", "240e:9:9:9::99"));
+
+            ConnectivityTestResult allPass = session.Evaluate();
+            CheckTrue("IPv6 直连优先判定为 P2P 可用",
+                allPass.Level == ConnectivityVerdictLevel.Good && allPass.P2pPossible && allPass.Ipv6Direct,
+                allPass.Level + " / " + allPass.Verdict);
+            CheckTrue("测试完成", allPass.Complete);
+            CheckTrue("四项检查齐全", allPass.Checks.Count == 4);
+            CheckTrue("内网 IPv4 通过",
+                allPass.Find("lan4") != null && allPass.Find("lan4").State == ConnectivityCheckState.Pass);
+            CheckTrue("内网 IPv6 通过",
+                allPass.Find("lan6") != null && allPass.Find("lan6").State == ConnectivityCheckState.Pass);
+            CheckTrue("外网 IPv4 通过",
+                allPass.Find("wan4") != null && allPass.Find("wan4").State == ConnectivityCheckState.Pass);
+            CheckTrue("外网 IPv6 通过",
+                allPass.Find("wan6") != null && allPass.Find("wan6").State == ConnectivityCheckState.Pass);
+
+            report.Nat.Type = NatType.Symmetric;
+            report.Nat.TypeLabel = "对称型 NAT";
+            ConnectivityTestSession symmetric = new ConnectivityTestSession(report, options);
+            symmetric.WanIpv4Probe = new TcpConnectivityResult();
+            symmetric.WanIpv4Probe.Success = true;
+            symmetric.WanIpv4Probe.Endpoint = "223.5.5.5:443";
+            symmetric.Apply(MakeProbe(ConnectivityProbeKind.Page, false, "lan", "192.168.1.23"));
+            ConnectivityTestResult symmetricResult = symmetric.Evaluate();
+            CheckTrue("对称 NAT 判为需要注意",
+                symmetricResult.Level == ConnectivityVerdictLevel.Warn && !symmetricResult.P2pPossible,
+                symmetricResult.Level + " / " + symmetricResult.Verdict);
+
+            NetworkReport noIpv6 = new NetworkReport();
+            ConnectivityTestOptions noIpv6Options = new ConnectivityTestOptions();
+            noIpv6Options.LanIpv4Address = "192.168.1.10";
+            noIpv6Options.LanIpv4PrefixLength = 24;
+            ConnectivityTestSession failed = new ConnectivityTestSession(noIpv6, noIpv6Options);
+            failed.WanIpv4Probe = new TcpConnectivityResult();
+            failed.WanIpv4Probe.Success = false;
+            failed.WanIpv4Probe.Error = "连接超时";
+            failed.Apply(MakeProbe(ConnectivityProbeKind.Page, false, "lan", "192.168.1.23"));
+            ConnectivityTestResult failedResult = failed.Evaluate();
+            CheckTrue("IPv4 / IPv6 都不通时判定无法 P2P",
+                failedResult.Level == ConnectivityVerdictLevel.Bad && !failedResult.P2pPossible,
+                failedResult.Level + " / " + failedResult.Verdict);
+
+            ConnectivityTestSession attempted = new ConnectivityTestSession(noIpv6, noIpv6Options);
+            attempted.WanIpv4Probe = new TcpConnectivityResult();
+            attempted.WanIpv4Probe.Success = false;
+            attempted.WanIpv4Probe.Error = "连接超时";
+            attempted.MarkAttempted(ConnectivityTestMode.Lan);
+            ConnectivityTestResult attemptedResult = attempted.Evaluate();
+            CheckTrue("展示了二维码但没收到连接时判定内网失败",
+                attemptedResult.Find("lan4") != null
+                && attemptedResult.Find("lan4").State == ConnectivityCheckState.Fail);
+            CheckTrue("未收到连接也能完成 P2P 判定", attemptedResult.Complete);
+
+            NetworkReport cgnatReport = new NetworkReport();
+            cgnatReport.Nat.Type = NatType.FullCone;
+            cgnatReport.Nat.TypeLabel = "全锥型 NAT";
+            cgnatReport.Nat.ExternalIpv4 = "203.0.113.9";
+            IpAddressEntry cgnatEntry = new IpAddressEntry();
+            cgnatEntry.Address = "100.64.0.10";
+            cgnatEntry.Scope = IpAddressScope.SharedCgnat;
+            cgnatEntry.IsPrimary = true;
+            cgnatReport.Ipv4Addresses.Add(cgnatEntry);
+            ConnectivityTestSession cgnatSession = new ConnectivityTestSession(cgnatReport, noIpv6Options);
+            cgnatSession.WanIpv4Probe = new TcpConnectivityResult();
+            cgnatSession.WanIpv4Probe.Success = true;
+            cgnatSession.WanIpv4Probe.Endpoint = "223.5.5.5:443";
+            cgnatSession.WanIpv4Probe.LatencyMilliseconds = 20;
+            cgnatSession.Apply(MakeProbe(ConnectivityProbeKind.Page, false, "lan", "192.168.1.23"));
+            ConnectivityTestResult cgnatResult = cgnatSession.Evaluate();
+            CheckTrue("CGNAT 环境提示 P2P 可能失败",
+                cgnatResult.Find("wan4") != null
+                && cgnatResult.Find("wan4").State == ConnectivityCheckState.Warn
+                && cgnatResult.Level == ConnectivityVerdictLevel.Warn,
+                cgnatResult.Verdict);
+        }
+
+        private static ConnectivityProbeEventArgs MakeProbe(ConnectivityProbeKind kind, bool ipv6,
+            string mode, string remote)
+        {
+            ConnectivityProbeEventArgs args = new ConnectivityProbeEventArgs();
+            args.Kind = kind;
+            args.IsIpv6 = ipv6;
+            args.Mode = mode;
+            args.RemoteAddress = remote;
+            args.LocalAddress = remote;
+            args.Timestamp = DateTime.Now;
+            return args;
+        }
+
+        private static string HttpGet(string url, out string contentType)
+        {
+            contentType = string.Empty;
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            request.Proxy = null;
+            request.Timeout = 5000;
+            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+            {
+                contentType = response.ContentType;
+                using (Stream stream = response.GetResponseStream())
+                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
+        }
+
+        private static int HttpGetStatus(string url)
+        {
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            request.Proxy = null;
+            request.Timeout = 5000;
+            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+            {
+                return (int)response.StatusCode;
+            }
+        }
+
         private static void TestWebView2()
         {
             Console.WriteLine();
-            Console.WriteLine("[7] WebView2 运行库检测");
+            Console.WriteLine("[9] WebView2 运行库检测");
 
             WebView2DetectionResult result = WebView2Detector.Detect();
             CheckTrue("返回 WebView2 检测结果", result != null);
@@ -375,27 +575,10 @@ namespace IpInfo.CoreTests
             }
         }
 
-        private static void TestNatHopTracer()
-        {
-            Console.WriteLine();
-            Console.WriteLine("[8] 多层 NAT 跃点跟踪（取消路径）");
-
-            using (CancellationTokenSource cts = new CancellationTokenSource())
-            {
-                cts.Cancel();
-                NatHopTraceResult result = NatHopTracer.Trace(null, cts.Token);
-                CheckTrue("返回跃点跟踪结果", result != null);
-                if (result == null) return;
-
-                CheckTrue("取消后标记为已停止", result.Canceled);
-                CheckTrue("取消结果摘要非空", !string.IsNullOrEmpty(result.Summary));
-            }
-        }
-
         private static void TestSunshineClassifier()
         {
             Console.WriteLine();
-            Console.WriteLine("[9] Sunshine 版本判定（离线）");
+            Console.WriteLine("[10] Sunshine 版本判定（离线）");
 
             SunshineSignature official = new SunshineSignature();
             official.CompanyName = "LizardByte";
@@ -519,7 +702,7 @@ namespace IpInfo.CoreTests
         private static void TestSunshineDetection()
         {
             Console.WriteLine();
-            Console.WriteLine("[10] Sunshine 版本自检（本机）");
+            Console.WriteLine("[11] Sunshine 版本自检（本机）");
 
             SunshineDetectionResult result = SunshineDetector.Detect();
             CheckTrue("返回 Sunshine 检测结果", result != null);
@@ -556,7 +739,7 @@ namespace IpInfo.CoreTests
         private static void TestSunshineService()
         {
             Console.WriteLine();
-            Console.WriteLine("[11] Sunshine 服务状态");
+            Console.WriteLine("[12] Sunshine 服务状态");
 
             SunshineServiceStatus status = SunshineServiceManager.Detect();
             CheckTrue("返回服务检测结果", status != null);
@@ -596,7 +779,7 @@ namespace IpInfo.CoreTests
         private static void TestZakoDisplay()
         {
             Console.WriteLine();
-            Console.WriteLine("[12] Zako 虚拟显示器");
+            Console.WriteLine("[13] Zako 虚拟显示器");
 
             ZakoDisplayStatus status = ZakoDisplayDetector.Detect();
             CheckTrue("返回 Zako 检测结果", status != null);

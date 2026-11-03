@@ -2,7 +2,7 @@
 #   1. 默认状态 IP 被遮罩（不出现完整 IPv4/IPv6）；
 #   2. 每个「复制」按钮复制的是完整 IP（同时覆盖 IPv4 与 IPv6）；
 #   3. 「显示 IP」按钮能切换为完整地址，「隐藏 IP」能恢复遮罩；
-#   4. IPv6 入站自检可启动、停止，并能从回环地址收到连接；
+#   4. 网络连通性测试可启动、显示二维码、接收回环 IPv4/IPv6 探测并给出结论；
 #   5. WebView2 运行库状态、诊断复制与安装窗口可正常打开。
 #
 # 用法（先构建 Debug）：
@@ -26,8 +26,8 @@ Add-Type -AssemblyName System.Windows.Forms
 
 $originalClipboard = $null
 try { $originalClipboard = [System.Windows.Forms.Clipboard]::GetText() } catch { }
-$originalLoopbackEnv = $env:IPINFO_INBOUND_BIND_LOOPBACK
-$env:IPINFO_INBOUND_BIND_LOOPBACK = "1"
+$originalLoopbackEnv = $env:IPINFO_CONNECTIVITY_BIND_LOOPBACK
+$env:IPINFO_CONNECTIVITY_BIND_LOOPBACK = "1"
 
 $checks = 0
 $failures = 0
@@ -98,6 +98,41 @@ function Wait-ClipboardTextMatch([string]$pattern, [int]$timeoutMs = 5000) {
         Start-Sleep -Milliseconds 150
     }
     return $false
+}
+
+function Invoke-CopyAndWait($button, [string]$pattern) {
+    if ($button -eq $null -or -not $button.Current.IsEnabled) { return $false }
+    for ($attempt = 0; $attempt -lt 3; $attempt++) {
+        Invoke-Element $button
+        if (Wait-ClipboardTextMatch $pattern 2500) { return $true }
+        Start-Sleep -Milliseconds 300
+    }
+    return $false
+}
+
+function Invoke-HttpGetText([string]$url) {
+    $request = [System.Net.WebRequest]::Create($url)
+    $request.Proxy = $null
+    $request.Timeout = 5000
+    $response = $request.GetResponse()
+    try {
+        $reader = New-Object System.IO.StreamReader($response.GetResponseStream(), [System.Text.Encoding]::UTF8)
+        return $reader.ReadToEnd()
+    } finally {
+        $response.Close()
+    }
+}
+
+function Invoke-HttpGetStatus([string]$url) {
+    $request = [System.Net.WebRequest]::Create($url)
+    $request.Proxy = $null
+    $request.Timeout = 5000
+    $response = $request.GetResponse()
+    try {
+        return [int]$response.StatusCode
+    } finally {
+        $response.Close()
+    }
 }
 
 function Select-NavItem($window, [string]$name) {
@@ -183,32 +218,17 @@ try {
     Check "默认状态显示 IPv6 遮罩" ($maskedIpv6.Count -gt 0) "没有找到形如 240e:****:…:865c 的文本"
 
     # 左侧菜单
-    $hasNav = ($joined -match "网络检测") -and ($joined -match "NAT 跃点跟踪") -and ($joined -match "Sunshine 版本") -and ($joined -match "WebView2 运行库")
-    Check "显示左侧功能菜单" $hasNav
+    $hasNav = ($joined -match "网络检测") -and ($joined -match "Sunshine 版本") -and ($joined -match "WebView2 运行库") -and ($joined -notmatch "NAT 跃点跟踪")
+    Check "显示左侧功能菜单（NAT 跃点已移除）" $hasNav
 
-    # 网络检测页：地址 / STUN / 入站
+    # 网络检测页：地址 / STUN / 连通性测试
     Check "网络检测页包含 STUN/NAT 结果" (($joined -match "公网出口 IP") -or ($joined -match "NAT 类型"))
-    Check "网络检测页包含 IPv6 入站自检" (($joined -match "IPv6 入站可达性") -and ($joined -match "启动入站自检"))
+    Check "网络检测页包含网络连通性测试" (($joined -match "网络连通性测试") -and ($joined -match "启动测试并显示二维码"))
+    Check "连通性测试包含 2x2 矩阵" (($joined -match "内网 IPv4") -and ($joined -match "内网 IPv6") -and ($joined -match "外网 IPv4") -and ($joined -match "外网 IPv6"))
+    Check "网络检测页不再包含 IPv6 入站自检" ($joined -notmatch "IPv6 入站可达性")
 
-    # NAT 跃点跟踪页
-    Check "切换到 NAT 跃点跟踪页" (Select-NavItem $window "NAT 跃点跟踪")
-    $hopReveal = Get-ElementByAutomationId $window "HopRevealToggle"
-    $hopRefresh = Get-ElementByAutomationId $window "HopRefreshButton"
-    Check "跃点页提供显示 IP 与检测按钮" ($hopReveal -ne $null -and $hopRefresh -ne $null)
-    Check "跃点页初始按钮为开始检测" ($hopRefresh -ne $null -and $hopRefresh.Current.Name -eq "开始检测") ("实际为 " + $hopRefresh.Current.Name)
-    $hopCardStart = Get-ElementByAutomationId $window "NatTraceStartButton"
-    Check "跃点卡片内不再重复开始按钮" ($hopCardStart -eq $null)
-
-    if ($hopRefresh -ne $null) {
-        Invoke-Element $hopRefresh
-        $hopReady = $false
-        for ($i = 0; $i -lt 40; $i++) {
-            Start-Sleep -Milliseconds 500
-            $hopRefresh = Get-ElementByAutomationId $window "HopRefreshButton"
-            if ($hopRefresh -ne $null -and $hopRefresh.Current.Name -eq "重新检测") { $hopReady = $true; break }
-        }
-        Check "跃点检测完成后按钮变为重新检测" $hopReady
-    }
+    # 不再有 NAT 跃点页
+    Check "NAT 跃点跟踪页已移除" (-not (Select-NavItem $window "NAT 跃点跟踪"))
 
     # Sunshine 版本页
     Check "切换到 Sunshine 版本页" (Select-NavItem $window "Sunshine 版本")
@@ -227,8 +247,7 @@ try {
         Check "非基地版时服务卡片被锁定" ($serviceCopy -ne $null -and -not $serviceCopy.Current.IsEnabled)
         Check "非基地版时开机自启被锁定" ($serviceToggle -ne $null -and -not $serviceToggle.Current.IsEnabled)
     } elseif ($serviceCopy -ne $null -and $serviceCopy.Current.IsEnabled) {
-        Invoke-Element $serviceCopy
-        Check "服务诊断信息包含服务状态" (Wait-ClipboardTextMatch "(?s)Sunshine 服务.*检测结果")
+        Check "服务诊断信息包含服务状态" (Invoke-CopyAndWait $serviceCopy "(?s)Sunshine 服务.*检测结果")
     }
 
     Check "显示 Zako 虚拟显示器卡片" (($sunshineTexts -match "Zako 虚拟显示器") -and ($sunshineTexts -match "设备状态："))
@@ -238,13 +257,11 @@ try {
     if ($baseLocked) {
         Check "非基地版时 Zako 卡片被锁定" ($zakoCopy -ne $null -and -not $zakoCopy.Current.IsEnabled)
     } elseif ($zakoCopy -ne $null -and $zakoCopy.Current.IsEnabled) {
-        Invoke-Element $zakoCopy
-        Check "Zako 诊断信息包含系统版本" (Wait-ClipboardTextMatch "(?s)Zako.*操作系统")
+        Check "Zako 诊断信息包含系统版本" (Invoke-CopyAndWait $zakoCopy "(?s)Zako.*操作系统")
     }
     Check "存在 Sunshine 诊断复制按钮" ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled)
     if ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled) {
-        Invoke-Element $sunshineCopy
-        Check "Sunshine 诊断信息包含检测结论" (Wait-ClipboardTextMatch "(?s)Sunshine.*检测结果")
+        Check "Sunshine 诊断信息包含检测结论" (Invoke-CopyAndWait $sunshineCopy "(?s)Sunshine.*检测结果")
     }
 
     # WebView2 运行库页
@@ -290,8 +307,7 @@ try {
     $webView2Copy = Get-ElementByAutomationId $window "WebView2CopyButton"
     Check "存在 WebView2 诊断复制按钮" ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled)
     if ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled) {
-        Invoke-Element $webView2Copy
-        Check "WebView2 诊断信息包含版本和路径" (Wait-ClipboardTextMatch "(?s)WebView2.*检测结果")
+        Check "WebView2 诊断信息包含版本和路径" (Invoke-CopyAndWait $webView2Copy "(?s)WebView2.*检测结果")
     }
 
     $webView2Install = Get-ElementByAutomationId $window "WebView2InstallButton"
@@ -348,102 +364,81 @@ try {
         }
     }
 
-    # IPv6 入站自检：弹窗说明 + 3 秒倒计时 + 启动/停止/回环连接
-    Write-Host "测试 IPv6 入站自检弹窗…" -ForegroundColor Cyan
+    # 网络连通性测试：二维码 + 回环 IPv4/IPv6 探测 + 结论
+    Write-Host "测试网络连通性测试…" -ForegroundColor Cyan
     $startCondition = New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::NameProperty, "启动入站自检")
+        [System.Windows.Automation.AutomationElement]::NameProperty, "启动测试并显示二维码")
     $startButton = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $startCondition)
     if ($startButton -ne $null -and $startButton.Current.IsEnabled) {
         Invoke-Element $startButton
-        Start-Sleep -Milliseconds 700
+        Start-Sleep -Milliseconds 900
 
-        $dialog = Get-WindowByTitle "IPv6 入站自检"
-        Check "点击后弹出 IPv6 入站说明窗口" ($dialog -ne $null)
+        $dialog = Get-WindowByTitle "网络连通性测试"
+        Check "点击后弹出网络连通性测试窗口" ($dialog -ne $null)
         if ($dialog -ne $null) {
             $dialogJoined = (Get-WindowTexts $dialog) -join "`n"
-            Check "弹窗提示关闭 Wi-Fi 并使用移动数据" (($dialogJoined -match "关闭手机") -and ($dialogJoined -match "移动数据"))
-            $understandCondition = New-Object System.Windows.Automation.PropertyCondition(
-                [System.Windows.Automation.AutomationElement]::NameProperty, "了解")
-            $understandButton = $dialog.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $understandCondition)
-            Check "弹窗包含「了解」按钮" ($understandButton -ne $null)
-            if ($understandButton -ne $null) {
-                Check "倒计时内「了解」按钮不可用" (-not $understandButton.Current.IsEnabled)
+            Check "弹窗包含内网/公网两种模式" (($dialogJoined -match "同一 Wi-Fi") -and ($dialogJoined -match "移动数据"))
+            Check "弹窗未显示二维码生成失败" ($dialogJoined -notmatch "二维码生成失败")
+
+            $urlBox = Get-ElementByAutomationId $dialog "UrlBox"
+            Check "弹窗生成测试地址" ($urlBox -ne $null)
+            $url = $null
+            if ($urlBox -ne $null) {
+                $url = $urlBox.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value
+            }
+            Check "测试地址为 HTTP 地址" ($url -match '^http://')
+            Check "测试地址包含随机令牌" ($url -match '/t/[0-9a-f]{16}/')
+
+            $closeButton = Get-ElementByAutomationId $dialog "CloseButton"
+            Check "弹窗包含完成按钮" ($closeButton -ne $null)
+            if ($closeButton -ne $null) {
+                Check "倒计时内完成按钮不可用" (-not $closeButton.Current.IsEnabled)
                 Start-Sleep -Milliseconds 3400
-                Check "3 秒倒计时结束后「了解」可点击" ($understandButton.Current.IsEnabled)
-                Invoke-Element $understandButton
-                $closed = $false
-                $closeDeadline = (Get-Date).AddSeconds(4)
-                while ((Get-Date) -lt $closeDeadline) {
-                    Start-Sleep -Milliseconds 200
-                    if ((Get-WindowByTitle "IPv6 入站自检") -eq $null) { $closed = $true; break }
+                Check "3 秒倒计时结束后完成按钮可点击" ($closeButton.Current.IsEnabled)
+            }
+
+            if ($url -match '^http://') {
+                try {
+                    $page = Invoke-HttpGetText $url
+                    Check "测试页面可访问" (-not [string]::IsNullOrEmpty($page))
+                    $imgs = @([regex]::Matches($page, 'src="([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
+                    Check "页面同时包含 IPv4 与 IPv6 探测" ($imgs.Count -ge 2)
+                    foreach ($img in $imgs) {
+                        $status = Invoke-HttpGetStatus $img
+                        Check ("探测请求返回 200：" + $img.Substring($img.Length - 2)) ($status -eq 200)
+                    }
+                    Start-Sleep -Milliseconds 1800
+
+                    $matrixTexts = (Get-WindowTexts $window) -join "`n"
+                    Check "收到手机来源" ($matrixTexts -match "手机来源")
+                    Check "内网 IPv4 判定为连通" ($matrixTexts -match "内网 IPv4[\s\S]*连通")
+                    Check "内网 IPv6 判定为连通" ($matrixTexts -match "内网 IPv6[\s\S]*连通")
+                    Check "连通性结论已更新" (($matrixTexts -match "测试完成") -or ($matrixTexts -match "P2P"))
+                } catch {
+                    Check "连通性测试回环连接" $false $_.Exception.Message
                 }
-                Check "点击「了解」后弹窗关闭" $closed
             }
-        }
 
-        Start-Sleep -Milliseconds 400
-        $runningTexts = Get-WindowTexts $window
-        $runningJoined = $runningTexts -join "`n"
-        Check "入站自检启动后显示等待连接" ($runningJoined -match "正在等待外部连接")
-        $urlText = ($runningTexts | Where-Object { $_ -match '^http://\[' } | Select-Object -First 1)
-        Check "生成 IPv6 自测地址" (-not [string]::IsNullOrEmpty($urlText))
-
-        $stopCondition = New-Object System.Windows.Automation.PropertyCondition(
-            [System.Windows.Automation.AutomationElement]::NameProperty, "停止")
-        $stopButton = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $stopCondition)
-        if ($stopButton -ne $null) {
-            Invoke-Element $stopButton
-            Start-Sleep -Milliseconds 700
-            $stoppedJoined = (Get-WindowTexts $window) -join "`n"
-            Check "停止后恢复初始状态" ($stoppedJoined -match "尚未启动自检")
-        } else {
-            Check "停止后恢复初始状态" $false "没有找到停止按钮"
-        }
-
-        # 第二次启动，关闭弹窗后从回环地址连接，验证成功路径
-        Invoke-Element $startButton
-        Start-Sleep -Milliseconds 700
-        $dialog2 = Get-WindowByTitle "IPv6 入站自检"
-        if ($dialog2 -ne $null) {
-            Start-Sleep -Milliseconds 3200
-            $understand2 = $dialog2.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
-                (New-Object System.Windows.Automation.PropertyCondition(
-                    [System.Windows.Automation.AutomationElement]::NameProperty, "了解")))
-            if ($understand2 -ne $null -and $understand2.Current.IsEnabled) {
-                Invoke-Element $understand2
+            if ($closeButton -ne $null -and $closeButton.Current.IsEnabled) {
+                Invoke-Element $closeButton
             }
-            Start-Sleep -Milliseconds 400
-        }
+            Start-Sleep -Milliseconds 900
+            Check "关闭后连通性测试窗口消失" ((Get-WindowByTitle "网络连通性测试") -eq $null)
 
-        $secondTexts = Get-WindowTexts $window
-        $secondUrl = ($secondTexts | Where-Object { $_ -match '^http://\[' } | Select-Object -First 1)
-        $port = 0
-        if (-not [string]::IsNullOrEmpty($secondUrl) -and $secondUrl -match ':(\d+)/') {
-            $port = [int]$Matches[1]
-        }
-        try {
-            if ($port -le 0) { throw "未解析到第二次自检端口" }
-            $client = New-Object System.Net.Sockets.TcpClient([System.Net.Sockets.AddressFamily]::InterNetworkV6)
-            $client.Connect([System.Net.IPAddress]::IPv6Loopback, $port)
-            Start-Sleep -Milliseconds 1000
-            $client.Close()
-            Start-Sleep -Milliseconds 700
-            $successJoined = (Get-WindowTexts $window) -join "`n"
-            Check "收到入站连接后显示成功" ($successJoined -match "检测成功")
-        } catch {
-            Check "收到入站连接后显示成功" $false $_.Exception.Message
+            $startAgain = Get-ElementByAutomationId $window "ConnectivityStartButton"
+            Check "关闭后可再次启动测试" ($startAgain -ne $null -and $startAgain.Current.IsEnabled)
         }
     } else {
-        Write-Host "  [SKIP] 当前没有可用的公网 IPv6，跳过入站自检 UI 测试" -ForegroundColor Yellow
+        Write-Host "  [SKIP] 当前没有可用的测试地址，跳过连通性测试 UI 测试" -ForegroundColor Yellow
     }
 } finally {
     if ($originalClipboard -ne $null) {
         try { [System.Windows.Forms.Clipboard]::SetText($originalClipboard) } catch { }
     }
     if ($null -eq $originalLoopbackEnv) {
-        Remove-Item Env:\IPINFO_INBOUND_BIND_LOOPBACK -ErrorAction SilentlyContinue
+        Remove-Item Env:\IPINFO_CONNECTIVITY_BIND_LOOPBACK -ErrorAction SilentlyContinue
     } else {
-        $env:IPINFO_INBOUND_BIND_LOOPBACK = $originalLoopbackEnv
+        $env:IPINFO_CONNECTIVITY_BIND_LOOPBACK = $originalLoopbackEnv
     }
     if ($process -ne $null -and -not $process.HasExited) {
         try { $process.Kill() } catch { }

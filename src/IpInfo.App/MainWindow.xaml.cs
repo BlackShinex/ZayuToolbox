@@ -32,6 +32,7 @@ namespace IpInfo.App
         private static readonly Brush BannerIndigoDot = UiPalette.Brush("#6366F1");
         private static readonly Brush BannerRedBg = UiPalette.Brush("#FEF2F2");
         private static readonly Brush BannerRedFg = UiPalette.Brush("#B91C1C");
+        private static readonly Brush BannerRedDot = UiPalette.Brush("#EF4444");
 
         private NetworkReport _report;
         private bool _revealed;
@@ -42,15 +43,17 @@ namespace IpInfo.App
         private DispatcherTimer _copyFeedbackTimer;
         private Button _lastCopyButton;
         private object _lastCopyContent;
-        private Ipv6InboundTestServer _inboundServer;
-        private string _inboundPublicIpv6;
-        private InboundTestDialog _inboundDialog;
+        private ConnectivityTestServer _connectivityServer;
+        private ConnectivityTestDialog _connectivityDialog;
+        private ConnectivityTestSession _connectivitySession;
+        private CancellationTokenSource _connectivityProbeCts;
+        private DispatcherTimer _connectivityTimer;
+        private bool _connectivityBusy;
+        private DateTime? _lanModeShownAt;
+        private DateTime? _wanModeShownAt;
         private WebView2DetectionResult _webView2Result;
         private bool _webView2Busy;
         private WebView2InstallDialog _webView2InstallDialog;
-        private NatHopTraceResult _natTraceResult;
-        private CancellationTokenSource _natTraceCts;
-        private bool _natTraceRunning;
 
         public MainWindow()
         {
@@ -131,7 +134,6 @@ namespace IpInfo.App
         private void UpdatePageVisibility(int index)
         {
             if (NetworkScrollViewer == null
-                || NatHopScrollViewer == null
                 || SunshineScrollViewer == null
                 || WebView2ScrollViewer == null)
             {
@@ -141,12 +143,10 @@ namespace IpInfo.App
             SunshineScrollViewer.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
             WebView2ScrollViewer.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
             NetworkScrollViewer.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
-            NatHopScrollViewer.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
 
             ScrollViewer selected = index == 0 ? SunshineScrollViewer
                 : index == 1 ? WebView2ScrollViewer
-                : index == 2 ? NetworkScrollViewer
-                : NatHopScrollViewer;
+                : NetworkScrollViewer;
             if (selected != null)
             {
                 selected.Opacity = 1;
@@ -168,7 +168,6 @@ namespace IpInfo.App
             {
                 case "webview2": index = 1; break;
                 case "network": index = 2; break;
-                case "nathop": index = 3; break;
                 default: index = 0; break;
             }
             NavList.SelectedIndex = index;
@@ -299,11 +298,7 @@ namespace IpInfo.App
             HideError();
 
             FirewallText.Text = "尚未检测";
-            InboundStatusText.Text = "尚未检测";
-            InboundStatusText.Foreground = UiPalette.MutedFg;
-            InboundStartButton.IsEnabled = false;
-            InboundUrlPanel.Visibility = Visibility.Collapsed;
-            InboundCopyButton.Visibility = Visibility.Collapsed;
+            ResetConnectivityState();
             TimestampText.Text = "检测时间 --";
         }
 
@@ -318,14 +313,11 @@ namespace IpInfo.App
 
             await RefreshWebView2Async();
 
-            if (_inboundServer != null)
-            {
-                StopInboundTest(false);
-            }
-            CancelNatTrace();
+            StopConnectivityTest(false);
 
             _busy = true;
             RefreshButton.IsEnabled = false;
+            ConnectivityStartButton.IsEnabled = false;
             DetectProgressBar.Visibility = Visibility.Visible;
             ProgressText.Visibility = Visibility.Visible;
             ProgressText.Text = "正在检测…";
@@ -374,6 +366,7 @@ namespace IpInfo.App
                 _busy = false;
                 RefreshButton.IsEnabled = true;
                 RefreshButton.Content = "重新检测";
+                ConnectivityStartButton.IsEnabled = HasConnectivityTargets(_report);
                 DetectProgressBar.Visibility = Visibility.Collapsed;
                 ProgressText.Visibility = Visibility.Collapsed;
                 _initialRefresh.TrySetResult(true);
@@ -455,161 +448,478 @@ namespace IpInfo.App
             NatDetailExpander.Visibility = steps.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
             RenderFirewall(report);
-            RenderInboundAvailability(report);
+            RenderConnectivityAvailability(report);
 
             TimestampText.Text = "检测时间 " + report.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")
                 + "  ·  耗时 " + report.Elapsed.TotalSeconds.ToString("0.0") + " 秒";
         }
 
-        private async void HopRefreshButton_Click(object sender, RoutedEventArgs e)
+        private void ConnectivityStartButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_natTraceRunning) return;
+            StartConnectivityTest();
+        }
 
-            _natTraceRunning = true;
-            _natTraceCts = new CancellationTokenSource();
-            CancellationToken token = _natTraceCts.Token;
-            _natTraceResult = null;
-            NatHopList.ItemsSource = null;
-            HopRefreshButton.IsEnabled = false;
-            HopRefreshButton.Content = "跟踪中…";
-            NatTraceStopButton.IsEnabled = true;
-            NatTraceStopButton.Visibility = Visibility.Visible;
-            NatTraceProgressBar.Visibility = Visibility.Visible;
-            SetNatTraceBanner(BannerIndigoBg, BannerIndigoFg);
-            NatTraceSummaryText.Text = "正在准备跃点跟踪…";
+        private void ConnectivityStopButton_Click(object sender, RoutedEventArgs e)
+        {
+            StopConnectivityTest(true);
+            ConnectivityStatusText.Text = "测试已停止，临时端口已关闭。";
+            ConnectivityStatusText.Foreground = UiPalette.MutedFg;
+        }
+
+        private void StartConnectivityTest()
+        {
+            if (_connectivityBusy) return;
+            if (_report == null)
+            {
+                ConnectivityStatusText.Text = "请先完成网络检测，再启动连通性测试。";
+                ConnectivityStatusText.Foreground = UiPalette.WarnFg;
+                return;
+            }
+
+            StopConnectivityTest(false);
 
             try
             {
-                IProgress<string> progress = new Progress<string>(delegate(string message)
+                bool bindAllInterfaces = !string.Equals(
+                    Environment.GetEnvironmentVariable("IPINFO_CONNECTIVITY_BIND_LOOPBACK"),
+                    "1", StringComparison.Ordinal);
+                ConnectivityTestOptions options = ConnectivityTestTargets.Create(
+                    _report, bindAllInterfaces, null);
+                if (string.IsNullOrEmpty(options.LanIpv4Address)
+                    && string.IsNullOrEmpty(options.LanIpv6Address)
+                    && string.IsNullOrEmpty(options.PublicIpv6Address))
                 {
-                    NatTraceSummaryText.Text = MaskNatTraceText(message);
-                });
-                NatHopTraceResult result = await Task.Run(delegate
-                {
-                    return NatHopTracer.Trace(new Action<string>(progress.Report), token);
-                }, token);
+                    ConnectivityStatusText.Text = "没有可用于连通性测试的 IPv4 / IPv6 地址。";
+                    ConnectivityStatusText.Foreground = UiPalette.WarnFg;
+                    return;
+                }
 
-                if (result == null) throw new InvalidOperationException("跃点跟踪返回了空结果。");
-                _natTraceResult = result;
-                RenderNatTrace(result);
-            }
-            catch (OperationCanceledException)
-            {
-                NatTraceSummaryText.Text = "跃点跟踪已停止。";
-                SetNatTraceBanner(BannerIndigoBg, BannerIndigoFg);
+                ConnectivityTestServer server = new ConnectivityTestServer();
+                server.ProbeReceived += ConnectivityServer_ProbeReceived;
+                server.ServerError += ConnectivityServer_ServerError;
+                server.Start(options);
+
+                _connectivityServer = server;
+                _connectivitySession = new ConnectivityTestSession(_report, options);
+                _connectivityBusy = true;
+                _lanModeShownAt = null;
+                _wanModeShownAt = null;
+                ConnectivityStartButton.IsEnabled = false;
+                ConnectivityStartButton.Content = "等待手机连接…";
+                ConnectivityStopButton.Visibility = Visibility.Visible;
+                ConnectivityStatusText.Text = "测试已启动：同一 Wi-Fi 选内网二维码，移动数据选公网二维码。";
+                ConnectivityStatusText.Foreground = UiPalette.WarnFg;
+
+                RenderConnectivityResult(_connectivitySession.Evaluate());
+                StartConnectivityProbes();
+                OpenConnectivityDialog(server);
+                StartConnectivityTimeout();
             }
             catch (Exception ex)
             {
-                NatTraceSummaryText.Text = "跃点跟踪失败：" + ex.Message;
-                SetNatTraceBanner(BannerRedBg, BannerRedFg);
-            }
-            finally
-            {
-                _natTraceRunning = false;
-                NatTraceProgressBar.Visibility = Visibility.Collapsed;
-                NatTraceStopButton.Visibility = Visibility.Collapsed;
-                NatTraceStopButton.IsEnabled = true;
-                HopRefreshButton.IsEnabled = true;
-                HopRefreshButton.Content = "重新检测";
-                if (_natTraceCts != null)
-                {
-                    _natTraceCts.Dispose();
-                    _natTraceCts = null;
-                }
+                StopConnectivityTest(false);
+                ConnectivityStatusText.Text = "启动连通性测试失败：" + ex.Message;
+                ConnectivityStatusText.Foreground = UiPalette.WarnFg;
             }
         }
 
-        private void NatTraceStopButton_Click(object sender, RoutedEventArgs e)
+        private void StartConnectivityProbes()
         {
-            if (_natTraceCts != null)
+            _connectivityProbeCts = new CancellationTokenSource();
+            CancellationToken token = _connectivityProbeCts.Token;
+            Task.Run(delegate
             {
-                _natTraceCts.Cancel();
-                NatTraceStopButton.IsEnabled = false;
-                NatTraceSummaryText.Text = "正在停止跃点跟踪…";
-            }
+                TcpConnectivityResult ipv4 = ConnectivityProbe.ProbeIpv4(null, token);
+                TcpConnectivityResult ipv6 = ConnectivityProbe.ProbeIpv6(null, token);
+                try
+                {
+                    Dispatcher.BeginInvoke(new Action(delegate
+                    {
+                        ApplyConnectivityProbes(ipv4, ipv6);
+                    }));
+                }
+                catch
+                {
+                }
+            }, token);
         }
 
-        private void RenderNatTrace(NatHopTraceResult result)
+        private void ApplyConnectivityProbes(TcpConnectivityResult ipv4, TcpConnectivityResult ipv6)
         {
-            List<NatHopRow> rows = new List<NatHopRow>();
-            if (result.Hops != null)
-            {
-                for (int i = 0; i < result.Hops.Count; i++)
-                {
-                    NatHop hop = result.Hops[i];
-                    NatHopRow row = new NatHopRow();
-                    row.TtlText = hop.Ttl.ToString();
-                    row.AddressText = hop.TimedOut
-                        ? "无响应"
-                        : (_revealed ? hop.Address : IpPrivacy.Mask(hop.Address));
-                    row.ScopeLabel = hop.TimedOut
-                        ? "超时"
-                        : (string.IsNullOrEmpty(hop.ScopeLabel) ? "未知" : hop.ScopeLabel);
-                    row.RoundTripText = hop.TimedOut ? "—" : hop.RoundTripMilliseconds + " ms";
-                    row.Note = hop.Note;
-                    if (hop.TimedOut)
-                    {
-                        row.TagBackground = UiPalette.GrayBg;
-                        row.TagForeground = UiPalette.GrayFg;
-                    }
-                    else
-                    {
-                        Brush background;
-                        Brush foreground;
-                        UiPalette.GetScopeColors(hop.Scope, out background, out foreground);
-                        row.TagBackground = background;
-                        row.TagForeground = foreground;
-                    }
-                    rows.Add(row);
-                }
-            }
-            NatHopList.ItemsSource = rows;
+            if (_connectivitySession == null || _connectivityServer == null) return;
+            _connectivitySession.WanIpv4Probe = ipv4;
+            _connectivitySession.WanIpv6Probe = ipv6;
+            RenderConnectivityResult(_connectivitySession.Evaluate());
+        }
 
-            if (!string.IsNullOrEmpty(result.Error))
+        private void OpenConnectivityDialog(ConnectivityTestServer server)
+        {
+            ConnectivityTestDialog dialog = new ConnectivityTestDialog(server, RecordConnectivityModeShown);
+            dialog.Owner = this;
+            _connectivityDialog = dialog;
+            dialog.Closed += delegate
             {
-                NatTraceSummaryText.Text = MaskNatTraceText(result.Error);
-                SetNatTraceBanner(BannerRedBg, BannerRedFg);
-            }
-            else if (result.Canceled)
+                if (ReferenceEquals(_connectivityDialog, dialog))
+                {
+                    _connectivityDialog = null;
+                }
+                StopConnectivityTest(true);
+            };
+            dialog.Show();
+        }
+
+        private void RecordConnectivityModeShown(ConnectivityTestMode mode)
+        {
+            if (mode == ConnectivityTestMode.Lan)
             {
-                NatTraceSummaryText.Text = MaskNatTraceText(string.IsNullOrEmpty(result.Summary)
-                    ? "跃点跟踪已停止。"
-                    : result.Summary);
-                SetNatTraceBanner(BannerIndigoBg, BannerIndigoFg);
-            }
-            else if (result.ReachedInternet)
-            {
-                NatTraceSummaryText.Text = MaskNatTraceText(result.Summary);
-                SetNatTraceBanner(BannerGreenBg, BannerGreenFg);
+                if (!_lanModeShownAt.HasValue) _lanModeShownAt = DateTime.Now;
             }
             else
             {
-                NatTraceSummaryText.Text = MaskNatTraceText(result.Summary);
-                SetNatTraceBanner(BannerAmberBg, BannerAmberFg);
+                if (!_wanModeShownAt.HasValue) _wanModeShownAt = DateTime.Now;
             }
         }
 
-        private void SetNatTraceBanner(Brush background, Brush foreground)
+        /// <summary>二维码展示了足够久但仍没有收到连接，按“已尝试但未连通”处理。</summary>
+        private void MarkConnectivityAttempts()
         {
-            NatTraceSummaryBanner.Background = background;
-            NatTraceSummaryText.Foreground = foreground;
+            if (_connectivitySession == null) return;
+
+            DateTime now = DateTime.Now;
+            TimeSpan threshold = TimeSpan.FromSeconds(8);
+            if (_lanModeShownAt.HasValue
+                && now - _lanModeShownAt.Value >= threshold
+                && !_connectivitySession.LanModeUsed
+                && !_connectivitySession.LanIpv4Reached
+                && !_connectivitySession.LanIpv6Reached)
+            {
+                _connectivitySession.MarkAttempted(ConnectivityTestMode.Lan);
+            }
+
+            if (_wanModeShownAt.HasValue
+                && now - _wanModeShownAt.Value >= threshold
+                && !_connectivitySession.WanModeUsed
+                && !_connectivitySession.WanIpv6Reached)
+            {
+                _connectivitySession.MarkAttempted(ConnectivityTestMode.Wan);
+            }
         }
 
-        private string MaskNatTraceText(string text)
+        private void StartConnectivityTimeout()
+        {
+            _connectivityTimer = new DispatcherTimer();
+            _connectivityTimer.Interval = TimeSpan.FromSeconds(90);
+            _connectivityTimer.Tick += delegate
+            {
+                if (_connectivityTimer != null)
+                {
+                    _connectivityTimer.Stop();
+                    _connectivityTimer = null;
+                }
+                if (_connectivitySession != null)
+                {
+                    _connectivitySession.FinishedAt = DateTime.Now;
+                    RenderConnectivityResult(_connectivitySession.Evaluate());
+                }
+                StopConnectivityTest(true);
+                ConnectivityStatusText.Text = "测试超时，临时端口已自动关闭。";
+                ConnectivityStatusText.Foreground = UiPalette.MutedFg;
+            };
+            _connectivityTimer.Start();
+        }
+
+        private void ConnectivityServer_ProbeReceived(object sender, ConnectivityProbeEventArgs e)
+        {
+            ConnectivityProbeEventArgs args = e;
+            try
+            {
+                Dispatcher.BeginInvoke(new Action(delegate
+                {
+                    HandleConnectivityProbe(args);
+                }));
+            }
+            catch
+            {
+            }
+        }
+
+        private void ConnectivityServer_ServerError(object sender, ConnectivityErrorEventArgs e)
+        {
+            string message = e == null ? string.Empty : e.Message;
+            try
+            {
+                Dispatcher.BeginInvoke(new Action(delegate
+                {
+                    if (_connectivitySession != null)
+                    {
+                        _connectivitySession.Error = message;
+                    }
+                    ConnectivityStatusText.Text = MaskConnectivityText(message);
+                    ConnectivityStatusText.Foreground = UiPalette.WarnFg;
+                }));
+            }
+            catch
+            {
+            }
+        }
+
+        private void HandleConnectivityProbe(ConnectivityProbeEventArgs e)
+        {
+            if (_connectivitySession == null || e == null) return;
+            _connectivitySession.Apply(e);
+            ConnectivityTestResult result = _connectivitySession.Evaluate();
+            RenderConnectivityResult(result);
+            if (_connectivityDialog != null)
+            {
+                _connectivityDialog.NotifyProbe(e);
+            }
+        }
+
+        private void StopConnectivityTest(bool preserveStatus)
+        {
+            if (_connectivityTimer != null)
+            {
+                _connectivityTimer.Stop();
+                _connectivityTimer = null;
+            }
+
+            if (_connectivityProbeCts != null)
+            {
+                try { _connectivityProbeCts.Cancel(); }
+                catch { }
+                try { _connectivityProbeCts.Dispose(); }
+                catch { }
+                _connectivityProbeCts = null;
+            }
+
+            ConnectivityTestServer server = _connectivityServer;
+            _connectivityServer = null;
+            if (server != null)
+            {
+                server.ProbeReceived -= ConnectivityServer_ProbeReceived;
+                server.ServerError -= ConnectivityServer_ServerError;
+                try { server.Stop(); }
+                catch { }
+                try { server.Dispose(); }
+                catch { }
+            }
+
+            ConnectivityTestDialog dialog = _connectivityDialog;
+            _connectivityDialog = null;
+            if (dialog != null)
+            {
+                try { dialog.ForceClose(); }
+                catch { }
+            }
+
+            _connectivityBusy = false;
+            ConnectivityStopButton.Visibility = Visibility.Collapsed;
+            ConnectivityStartButton.Content = "启动测试并显示二维码";
+            ConnectivityStartButton.IsEnabled = HasConnectivityTargets(_report);
+
+            if (_connectivitySession != null)
+            {
+                MarkConnectivityAttempts();
+                _connectivitySession.FinishedAt = DateTime.Now;
+                RenderConnectivityResult(_connectivitySession.Evaluate());
+            }
+            if (!preserveStatus)
+            {
+                _connectivitySession = null;
+                ResetConnectivityState();
+            }
+        }
+
+        private void RenderConnectivityAvailability(NetworkReport report)
+        {
+            if (_connectivityServer != null) return;
+
+            bool hasTargets = HasConnectivityTargets(report);
+            ConnectivityStartButton.IsEnabled = hasTargets;
+            if (!hasTargets)
+            {
+                ConnectivityStatusText.Text = "未检测到可用的 IPv4 / IPv6 地址，无法启动连通性测试。";
+                ConnectivityStatusText.Foreground = UiPalette.MutedFg;
+            }
+            else
+            {
+                ConnectivityStatusText.Text = "点击「启动测试并显示二维码」，用手机扫码验证内网 / 公网连通性。";
+                ConnectivityStatusText.Foreground = UiPalette.MutedFg;
+            }
+        }
+
+        private static bool HasConnectivityTargets(NetworkReport report)
+        {
+            if (report == null) return false;
+            ConnectivityTestOptions options = ConnectivityTestTargets.Create(report, true, null);
+            return !string.IsNullOrEmpty(options.LanIpv4Address)
+                || !string.IsNullOrEmpty(options.LanIpv6Address)
+                || !string.IsNullOrEmpty(options.PublicIpv6Address);
+        }
+
+        private void ResetConnectivityState()
+        {
+            ConnectivityList.ItemsSource = BuildConnectivityRows(null);
+            ConnectivityStatusText.Text = "尚未测试。点击「启动测试并显示二维码」，用手机扫码。";
+            ConnectivityStatusText.Foreground = UiPalette.MutedFg;
+            ConnectivityStopButton.Visibility = Visibility.Collapsed;
+            ConnectivityStartButton.Content = "启动测试并显示二维码";
+            ConnectivityStartButton.IsEnabled = HasConnectivityTargets(_report);
+            SetConnectivityVerdict("尚未测试",
+                "同时验证内网 / 外网的 IPv4 与 IPv6 连通性，再判断能否建立有效 P2P 连接。",
+                ConnectivityVerdictLevel.Unknown);
+        }
+
+        private void RenderConnectivityResult(ConnectivityTestResult result)
+        {
+            ConnectivityList.ItemsSource = BuildConnectivityRows(result);
+
+            string status;
+            if (result == null)
+            {
+                status = "尚未测试。";
+            }
+            else if (result.Complete)
+            {
+                status = result.Level == ConnectivityVerdictLevel.Bad
+                    ? "测试完成：未发现可用的 P2P 路径。"
+                    : "测试完成。";
+            }
+            else if (_connectivitySession != null && _connectivitySession.FinishedAt.HasValue)
+            {
+                status = "测试已停止，未完成全部场景。";
+            }
+            else
+            {
+                status = "测试进行中，等待手机扫码或等待公网探测完成…";
+            }
+            ConnectivityStatusText.Text = status;
+            ConnectivityStatusText.Foreground = result != null && result.Level == ConnectivityVerdictLevel.Bad
+                ? BannerRedFg
+                : (result != null && result.Level == ConnectivityVerdictLevel.Good
+                    ? BannerGreenFg
+                    : UiPalette.MutedFg);
+
+            if (result != null)
+            {
+                SetConnectivityVerdict(MaskConnectivityText(result.Verdict),
+                    MaskConnectivityText(result.VerdictDetail), result.Level);
+            }
+        }
+
+        private List<ConnectivityRow> BuildConnectivityRows(ConnectivityTestResult result)
+        {
+            List<ConnectivityRow> rows = new List<ConnectivityRow>();
+            AddConnectivityRow(rows, result, "lan4", "内网 IPv4", "同一 Wi-Fi 扫码后验证。");
+            AddConnectivityRow(rows, result, "lan6", "内网 IPv6", "同一 Wi-Fi 扫码后验证。");
+            AddConnectivityRow(rows, result, "wan4", "外网 IPv4", "本机主动探测公网 TCP 出口。");
+            AddConnectivityRow(rows, result, "wan6", "外网 IPv6", "移动数据扫码后验证公网入站。");
+            return rows;
+        }
+
+        private void AddConnectivityRow(List<ConnectivityRow> rows,
+            ConnectivityTestResult result, string key, string title, string defaultDetail)
+        {
+            ConnectivityCheckResult check = result == null ? null : result.Find(key);
+            ConnectivityRow row = new ConnectivityRow();
+            row.Title = title;
+
+            if (check == null)
+            {
+                row.Detail = defaultDetail;
+                row.StatusText = "待测试";
+                row.StatusBackground = UiPalette.GrayBg;
+                row.StatusForeground = UiPalette.GrayFg;
+                rows.Add(row);
+                return;
+            }
+
+            row.Detail = string.IsNullOrEmpty(check.Detail) ? "—" : MaskConnectivityText(check.Detail);
+            switch (check.State)
+            {
+                case ConnectivityCheckState.Pass:
+                    row.StatusText = "连通";
+                    row.StatusBackground = UiPalette.SuccessBg;
+                    row.StatusForeground = UiPalette.SuccessFg;
+                    break;
+                case ConnectivityCheckState.Warn:
+                    row.StatusText = "可用 · 注意";
+                    row.StatusBackground = UiPalette.WarnBg;
+                    row.StatusForeground = UiPalette.WarnFg;
+                    break;
+                case ConnectivityCheckState.Fail:
+                    row.StatusText = "不通";
+                    row.StatusBackground = BannerRedBg;
+                    row.StatusForeground = BannerRedFg;
+                    break;
+                case ConnectivityCheckState.Testing:
+                    row.StatusText = "测试中";
+                    row.StatusBackground = UiPalette.IndigoBg;
+                    row.StatusForeground = UiPalette.IndigoFg;
+                    break;
+                case ConnectivityCheckState.NotApplicable:
+                    row.StatusText = "不适用";
+                    row.StatusBackground = UiPalette.GrayBg;
+                    row.StatusForeground = UiPalette.GrayFg;
+                    break;
+                default:
+                    row.StatusText = "待测试";
+                    row.StatusBackground = UiPalette.GrayBg;
+                    row.StatusForeground = UiPalette.GrayFg;
+                    break;
+            }
+            rows.Add(row);
+        }
+
+        /// <summary>未显示 IP 时，把连通性说明中的来源 IP / 测试端点一并遮罩。</summary>
+        private string MaskConnectivityText(string text)
         {
             if (_revealed || string.IsNullOrEmpty(text)) return text;
-            return Regex.Replace(text, @"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+
+            text = Regex.Replace(text, @"\b(?:\d{1,3}\.){3}\d{1,3}\b",
                 delegate(Match match) { return IpPrivacy.Mask(match.Value); });
+            text = Regex.Replace(text,
+                @"(?<![0-9A-Fa-f])(?:[0-9A-Fa-f]{0,4}:){2,}[0-9A-Fa-f]{0,4}(?![0-9A-Fa-f])",
+                delegate(Match match) { return IpPrivacy.Mask(match.Value); });
+            return text;
         }
 
-        private void CancelNatTrace()
+        private void SetConnectivityVerdict(string verdict, string detail, ConnectivityVerdictLevel level)
         {
-            if (_natTraceCts != null)
+            Brush background;
+            Brush foreground;
+            Brush dot;
+            switch (level)
             {
-                _natTraceCts.Cancel();
+                case ConnectivityVerdictLevel.Good:
+                    background = BannerGreenBg;
+                    foreground = BannerGreenFg;
+                    dot = BannerGreenDot;
+                    break;
+                case ConnectivityVerdictLevel.Warn:
+                    background = BannerAmberBg;
+                    foreground = BannerAmberFg;
+                    dot = BannerAmberDot;
+                    break;
+                case ConnectivityVerdictLevel.Bad:
+                    background = BannerRedBg;
+                    foreground = BannerRedFg;
+                    dot = BannerRedDot;
+                    break;
+                default:
+                    background = BannerIndigoBg;
+                    foreground = BannerIndigoFg;
+                    dot = BannerIndigoDot;
+                    break;
             }
-        }
 
+            ConnectivityVerdictBanner.Background = background;
+            ConnectivityVerdictText.Foreground = foreground;
+            ConnectivityVerdictDot.Background = dot;
+            ConnectivityVerdictText.Text = string.IsNullOrEmpty(detail)
+                ? (verdict ?? string.Empty)
+                : (verdict ?? string.Empty) + "\n" + detail;
+        }
         private List<IpRow> BuildRows(List<IpAddressEntry> entries, bool ipv6)
         {
             List<IpRow> rows = new List<IpRow>();
@@ -801,7 +1111,7 @@ namespace IpInfo.App
                     || error.IndexOf("拒绝访问", StringComparison.Ordinal) >= 0
                     || error.IndexOf("权限", StringComparison.Ordinal) >= 0)
                 {
-                    FirewallText.Text = "Windows 防火墙：读取完整状态需要管理员权限，可继续用入站自检验证。";
+                    FirewallText.Text = "Windows 防火墙：读取完整状态需要管理员权限，可继续用网络连通性测试验证。";
                 }
                 else
                 {
@@ -843,173 +1153,9 @@ namespace IpInfo.App
             }
         }
 
-        private void RenderInboundAvailability(NetworkReport report)
-        {
-            _inboundPublicIpv6 = report.GetPublicIpv6();
-            bool hasIpv6 = !string.IsNullOrEmpty(_inboundPublicIpv6);
-
-            InboundStartButton.IsEnabled = hasIpv6;
-            InboundStartButton.Content = "启动入站自检";
-            InboundUrlPanel.Visibility = Visibility.Collapsed;
-            InboundCopyButton.Visibility = Visibility.Collapsed;
-            InboundStopButton.Visibility = Visibility.Collapsed;
-            InboundUrlText.Text = "--";
-
-            if (!hasIpv6)
-            {
-                InboundStatusText.Text = "未检测到公网 IPv6，无法进行入站自检。";
-                InboundStatusText.Foreground = UiPalette.MutedFg;
-                InboundHintText.Text = "提示：需要本机拥有公网 IPv6 地址才能测试入站。";
-            }
-            else
-            {
-                InboundStatusText.Text = "尚未启动自检";
-                InboundStatusText.Foreground = UiPalette.MutedFg;
-                InboundHintText.Text = "提示：自检会在本机临时打开一个 TCP 端口，检测结束后自动关闭。";
-            }
-        }
-
-        private void InboundStartButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_inboundServer != null && _inboundServer.IsRunning)
-            {
-                StopInboundTest(false);
-                return;
-            }
-            if (string.IsNullOrEmpty(_inboundPublicIpv6))
-            {
-                InboundStatusText.Text = "未检测到公网 IPv6，无法进行入站自检。";
-                InboundStatusText.Foreground = UiPalette.MutedFg;
-                return;
-            }
-
-            try
-            {
-                Ipv6InboundTestServer server = new Ipv6InboundTestServer();
-                server.ClientConnected += InboundServer_ClientConnected;
-                server.ServerError += InboundServer_ServerError;
-                // 自动化测试时可通过环境变量只监听回环地址，避免弹出防火墙授权窗口。
-                bool bindAllInterfaces = !string.Equals(
-                    Environment.GetEnvironmentVariable("IPINFO_INBOUND_BIND_LOOPBACK"),
-                    "1", StringComparison.Ordinal);
-                server.Start(_inboundPublicIpv6, bindAllInterfaces);
-
-                _inboundServer = server;
-
-                InboundUrlText.Text = server.Url;
-                InboundUrlPanel.Visibility = Visibility.Visible;
-                InboundCopyButton.Visibility = Visibility.Visible;
-                InboundStopButton.Visibility = Visibility.Visible;
-                InboundStartButton.IsEnabled = false;
-                InboundStartButton.Content = "等待连接…";
-                InboundStatusText.Text = "正在等待外部连接… 请在手机上打开上方地址（监听 TCP " + server.Port + "）。";
-                InboundStatusText.Foreground = UiPalette.WarnFg;
-                InboundHintText.Text = "如弹出 Windows 防火墙提示，请选择「允许访问」；检测结束后点击「停止」。";
-
-                InboundTestDialog dialog = new InboundTestDialog(server.Url);
-                dialog.Owner = this;
-                _inboundDialog = dialog;
-                dialog.Closed += delegate { _inboundDialog = null; };
-                dialog.Show();
-            }
-            catch (Exception ex)
-            {
-                InboundStatusText.Text = "启动自检失败：" + ex.Message;
-                InboundStatusText.Foreground = UiPalette.WarnFg;
-            }
-        }
-
-        private void InboundCopyButton_Click(object sender, RoutedEventArgs e)
-        {
-            string url = InboundUrlText.Text;
-            if (string.IsNullOrEmpty(url) || url == "--") return;
-            if (CopyToClipboard(url))
-            {
-                ShowCopyFeedback((Button)sender);
-            }
-            else
-            {
-                ClipboardHelper.ShowCopyFailure((Button)sender);
-            }
-        }
-
-        private void InboundStopButton_Click(object sender, RoutedEventArgs e)
-        {
-            StopInboundTest(false);
-        }
-
-        private void InboundServer_ClientConnected(object sender, InboundTestClientEventArgs e)
-        {
-            string remote = e.RemoteEndPoint;
-            Dispatcher.BeginInvoke(new Action(delegate { HandleInboundConnected(remote); }));
-        }
-
-        private void InboundServer_ServerError(object sender, InboundTestClientEventArgs e)
-        {
-            string message = e.RemoteEndPoint;
-            Dispatcher.BeginInvoke(new Action(delegate
-            {
-                InboundStatusText.Text = message;
-                InboundStatusText.Foreground = UiPalette.WarnFg;
-            }));
-        }
-
-        private void HandleInboundConnected(string remote)
-        {
-            InboundStatusText.Text = "检测成功！已收到来自 " + remote + " 的入站连接，IPv6 入站可达。";
-            InboundStatusText.Foreground = UiPalette.SuccessFg;
-            if (_inboundDialog != null)
-            {
-                _inboundDialog.NotifyConnected(remote);
-            }
-
-            StopInboundTest(true);
-            InboundStartButton.Content = "重新自检";
-            InboundStartButton.IsEnabled = true;
-            InboundHintText.Text = "入站路径已验证；该端口未被 Windows 防火墙或光猫/路由器的 IPv6 防火墙拦截。";
-        }
-
-        private void StopInboundTest(bool preserveStatus)
-        {
-            Ipv6InboundTestServer server = _inboundServer;
-            _inboundServer = null;
-
-            if (server != null)
-            {
-                server.ClientConnected -= InboundServer_ClientConnected;
-                server.ServerError -= InboundServer_ServerError;
-                try { server.Stop(); }
-                catch { }
-                try { server.Dispose(); }
-                catch { }
-            }
-
-            InboundStopButton.Visibility = Visibility.Collapsed;
-            InboundStartButton.IsEnabled = !string.IsNullOrEmpty(_inboundPublicIpv6);
-
-            if (!preserveStatus)
-            {
-                InboundUrlPanel.Visibility = Visibility.Collapsed;
-                InboundCopyButton.Visibility = Visibility.Collapsed;
-                InboundUrlText.Text = "--";
-                InboundStartButton.Content = "启动入站自检";
-                if (string.IsNullOrEmpty(_inboundPublicIpv6))
-                {
-                InboundStatusText.Text = "未检测到公网 IPv6，无法进行入站自检。";
-                }
-                else
-                {
-                    InboundStatusText.Text = "尚未启动自检";
-                }
-                InboundStatusText.Foreground = UiPalette.MutedFg;
-                InboundHintText.Text = "提示：自检会在本机临时打开一个 TCP 端口，检测结束后自动关闭。";
-            }
-        }
-
         private void MainWindow_Closed(object sender, EventArgs e)
         {
-            CancelNatTrace();
-            StopInboundTest(false);
+            StopConnectivityTest(false);
         }
 
         private async Task RefreshWebView2Async()
@@ -1228,25 +1374,12 @@ namespace IpInfo.App
             SetRevealed(false);
         }
 
-        private void HopRevealToggle_Checked(object sender, RoutedEventArgs e)
-        {
-            if (_syncingReveal) return;
-            SetRevealed(true);
-        }
-
-        private void HopRevealToggle_Unchecked(object sender, RoutedEventArgs e)
-        {
-            if (_syncingReveal) return;
-            SetRevealed(false);
-        }
-
         private void SetRevealed(bool revealed)
         {
             _revealed = revealed;
             SyncRevealToggle(RevealToggle, revealed);
-            SyncRevealToggle(HopRevealToggle, revealed);
             if (_report != null) RenderReport(_report);
-            if (_natTraceResult != null) RenderNatTrace(_natTraceResult);
+            if (_connectivitySession != null) RenderConnectivityResult(_connectivitySession.Evaluate());
         }
 
         private void SyncRevealToggle(ToggleButton toggle, bool revealed)
@@ -1391,7 +1524,7 @@ namespace IpInfo.App
                 RenderToPng(path);
             }
 
-            StopInboundTest(false);
+            StopConnectivityTest(false);
             Close();
         }
 
