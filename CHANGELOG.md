@@ -40,7 +40,7 @@
   - ZakoDisplay、Zako 虚拟鼠标使用基地版 tools 目录中的 INF 重新安装 / 移除设备与驱动；
   - DualSense 从基地版官方 Release 清单下载组件包，显示下载进度、速度和剩余时间，校验 SHA-256 后安装；
   - Steam Streaming Speakers 使用 Steam 自带 INF 重新安装；
-  - USB/IP 从 usbip-win2 官方 Release 下载 0.9.7.7 安装包，校验 SHA-256 后启动安装；
+  - USB/IP 从 usbip-win2 官方 Release 下载 0.9.8.1 安装包，校验 SHA-256 后启动安装；
   - Sunshine Virtual Microphone 检查并修复 DualSense 组件 + USB/IP 依赖；
   - VB-CABLE 选择 VB-Audio 官方安装包，校验数字签名后启动安装；
   - 修复 / 卸载前二次确认，需要管理员权限时弹出 UAC；

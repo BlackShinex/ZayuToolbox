@@ -22,10 +22,10 @@ namespace IpInfo.Core
     {
         private static readonly TimeSpan ProcessTimeout = TimeSpan.FromMinutes(10);
         private const string UsbIpInstallerUrl =
-            "https://github.com/vadimgrn/usbip-win2/releases/download/v.0.9.7.7/USBip-0.9.7.7-x64.exe";
+            "https://github.com/vadimgrn/usbip-win2/releases/download/v.0.9.8.1/USBip-0.9.8.1-x64.exe";
         private const string UsbIpInstallerSha256 =
-            "51620fa5f9f8be5932bc9d786deee557ce06d5407a99cab490dcfac71f185fea";
-        private const long UsbIpInstallerSize = 33226344L;
+            "38cad6d4432b52d5bb9409d9ad03b72fdffc4ada4cd3a48fbeca1a2752a8518a";
+        private const long UsbIpInstallerSize = 26083632L;
         private readonly string _sunshineInstallPath;
 
         public ComponentOperationService(string sunshineInstallPath)
@@ -140,7 +140,7 @@ namespace IpInfo.Core
             string root = Path.Combine(Path.GetTempPath(), "ZayuToolbox", "Components",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
-            string installer = Path.Combine(root, "USBip-0.9.7.7-x64.exe");
+            string installer = Path.Combine(root, "USBip-0.9.8.1-x64.exe");
             try
             {
                 await DownloadFileAsync(UsbIpInstallerUrl, installer, UsbIpInstallerSize,
@@ -483,6 +483,12 @@ namespace IpInfo.Core
                     || compatibilityPolicy != "externally-managed-v1")
                 {
                     return Fail("组件包版本 / USB-IP 兼容性不一致，已停止安装。");
+                }
+                if (VersionUpdateService.IsNewer(
+                    ComponentOperationCatalog.RequiredUsbIpVersion, runtimeUsbip))
+                {
+                    return Fail("组件包 USB/IP 版本低于基地版要求的 "
+                        + ComponentOperationCatalog.RequiredUsbIpVersion + "，已停止安装。");
                 }
 
                 string componentJson = BuildComponentManifest(

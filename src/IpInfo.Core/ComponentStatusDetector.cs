@@ -335,6 +335,13 @@ namespace IpInfo.Core
             }
 
             string version = DriverVersion(ude);
+            if (health == ComponentHealth.Ready && !string.IsNullOrEmpty(version)
+                && VersionUpdateService.IsNewer(ComponentOperationCatalog.RequiredUsbIpVersion, version))
+            {
+                health = ComponentHealth.Warning;
+                detail += " · 基地版要求 " + ComponentOperationCatalog.RequiredUsbIpVersion
+                    + "，建议修复";
+            }
             AddItem(report, "USB 透传", "USB/IP 透传驱动", health, version, detail,
                 hostDevices.Count == 0 ? string.Empty : hostDevices[0].DeviceId, ComponentOperationCatalog.UsbIp);
         }

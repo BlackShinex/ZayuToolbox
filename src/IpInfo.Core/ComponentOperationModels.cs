@@ -42,6 +42,7 @@ namespace IpInfo.Core
     /// <summary>支持修复 / 卸载的组件白名单及显示信息。</summary>
     public static class ComponentOperationCatalog
     {
+        public const string RequiredUsbIpVersion = "0.9.8.1";
         public const string ZakoDisplay = "zako-display";
         public const string ZakoMouse = "zako-mouse";
         public const string DualSense = "dualsense";
@@ -113,7 +114,7 @@ namespace IpInfo.Core
                 case SunshineMicrophone:
                     return "会检查并修复 DualSense 组件与 USB/IP 驱动依赖；虚拟麦克风会随串流设备按需创建。";
                 case UsbIp:
-                    return "会从 usbip-win2 官方 Release 下载 0.9.7.7 安装程序，校验 SHA-256 后启动安装。";
+                    return "会从 usbip-win2 官方 Release 下载 0.9.8.1 安装程序，校验 SHA-256 后启动安装。";
                 default:
                     return "该操作会修复组件文件。";
             }
