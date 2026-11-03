@@ -1,4 +1,4 @@
-﻿<Window x:Class="IpInfo.App.MainWindow"
+<Window x:Class="IpInfo.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:IpInfo.App"
@@ -8,7 +8,7 @@
         WindowStartupLocation="CenterScreen"
         FocusVisualStyle="{x:Null}"
         Background="{StaticResource BgBrush}"
-        FontFamily="Microsoft YaHei UI"
+        FontFamily="{StaticResource AppFont}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Ideal"
@@ -112,7 +112,7 @@
                     BorderBrush="#80FFFFFF" BorderThickness="1" CornerRadius="18"
                     Effect="{DynamicResource SidebarShadow}">
                 <DockPanel Margin="12,16,12,12">
-                    <TextBlock DockPanel.Dock="Top" Text="工作台" FontSize="10.5" FontWeight="SemiBold"
+                    <TextBlock DockPanel.Dock="Top" Text="功能分区" FontSize="10.5" FontWeight="SemiBold"
                                Foreground="#5F5A70" Margin="10,0,0,10"/>
 
                     <Border DockPanel.Dock="Bottom" Margin="0,12,0,0" Background="#66FFFFFF"
@@ -176,6 +176,12 @@
                                 <TextBlock Text="Sunshine 版本" Margin="8,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
+                        <ListBoxItem AutomationProperties.Name="组件状态">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE9D9;" Style="{StaticResource NavIcon}"/>
+                                <TextBlock Text="组件状态" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </ListBoxItem>
                         <ListBoxItem AutomationProperties.Name="WebView2 运行库">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="&#xE774;" Style="{StaticResource NavIcon}"/>
@@ -192,12 +198,6 @@
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="&#xE73E;" Style="{StaticResource NavIcon}"/>
                                 <TextBlock Text="一键自检" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </ListBoxItem>
-                        <ListBoxItem AutomationProperties.Name="组件状态">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE9D9;" Style="{StaticResource NavIcon}"/>
-                                <TextBlock Text="组件状态" Margin="8,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
                     </ListBox>
@@ -277,7 +277,7 @@
                                                     <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
                                                 <TextBlock Grid.Row="0" Text="{Binding DisplayAddress}"
-                                                           FontFamily="Consolas" FontSize="{Binding AddressFontSize}"
+                                                           FontFamily="{StaticResource MonoFont}" FontSize="{Binding AddressFontSize}"
                                                            FontWeight="SemiBold" Foreground="#0F172A"
                                                            TextTrimming="CharacterEllipsis"/>
                                                 <DockPanel Grid.Row="1" Margin="0,5,0,0">
@@ -371,7 +371,7 @@
                                                     <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
                                                 <TextBlock Grid.Row="0" Text="{Binding DisplayAddress}"
-                                                           FontFamily="Consolas" FontSize="{Binding AddressFontSize}"
+                                                           FontFamily="{StaticResource MonoFont}" FontSize="{Binding AddressFontSize}"
                                                            FontWeight="SemiBold" Foreground="#0F172A"
                                                            TextTrimming="CharacterEllipsis"/>
                                                 <DockPanel Grid.Row="1" Margin="0,5,0,0">
@@ -469,7 +469,7 @@
                                             <TextBlock Text="IPv4" FontSize="10.5" FontWeight="SemiBold" Foreground="#4338CA"/>
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
-                                            <TextBlock x:Name="ExternalIpv4Text" Text="--" FontFamily="Consolas"
+                                            <TextBlock x:Name="ExternalIpv4Text" Text="--" FontFamily="{StaticResource MonoFont}"
                                                        FontSize="13.5" FontWeight="SemiBold" Foreground="#0F172A"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <Border x:Name="Ipv4StatusChip" Background="#F1F5F9" CornerRadius="5"
@@ -497,7 +497,7 @@
                                             <TextBlock Text="IPv6" FontSize="10.5" FontWeight="SemiBold" Foreground="#7E22CE"/>
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
-                                            <TextBlock x:Name="ExternalIpv6Text" Text="--" FontFamily="Consolas"
+                                            <TextBlock x:Name="ExternalIpv6Text" Text="--" FontFamily="{StaticResource MonoFont}"
                                                        FontSize="13.5" FontWeight="SemiBold" Foreground="#0F172A"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <Border x:Name="Ipv6StatusChip" Background="#F1F5F9" CornerRadius="5"
@@ -808,21 +808,21 @@
                                      Foreground="#4F46E5" Background="#E0E7FF" BorderThickness="0"
                                      Margin="0,0,0,10" Visibility="Collapsed"/>
                         <TextBlock x:Name="ComponentStatusText" Text="尚未检测，点击「刷新状态」开始。"
-                                   FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                   FontSize="12" Foreground="#6E687F" TextWrapping="Wrap"
                                    Margin="0,0,0,10"/>
 
                         <Border Style="{StaticResource Card}" Padding="22">
                             <StackPanel>
                                 <Grid>
                                     <StackPanel>
-                                        <TextBlock Text="基地版组件状态" FontSize="17"
+                                        <TextBlock Text="基地版组件状态" FontSize="17.5"
                                                    FontWeight="SemiBold" Foreground="#0F172A"/>
                                         <TextBlock x:Name="ComponentSummaryText" Text="尚未检测"
-                                                   FontSize="11.5" Foreground="#6E687F" Margin="0,4,0,0"/>
+                                                   FontSize="12" Foreground="#6E687F" Margin="0,4,0,0"/>
                                     </StackPanel>
                                     <Border HorizontalAlignment="Right" VerticalAlignment="Top"
                                             Background="#EEF2FF" CornerRadius="7" Padding="9,4">
-                                        <TextBlock Text="只读检测" FontSize="10.5" Foreground="#4338CA"/>
+                                        <TextBlock Text="只读检测" FontSize="11" Foreground="#4338CA"/>
                                     </Border>
                                 </Grid>
 
@@ -831,51 +831,67 @@
                                 <ItemsControl x:Name="ComponentStatusList">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border x:Name="ComponentRow" Background="Transparent"
-                                                    CornerRadius="6" Padding="8,6" Margin="0,1">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="120"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                            <Border x:Name="ComponentRow" Background="#66FFFFFF"
+                                                    BorderBrush="#70E2E8F0" BorderThickness="1"
+                                                    CornerRadius="9" Padding="12,9" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <Grid>
                                                         <TextBlock x:Name="ComponentName" Text="{Binding Name}"
-                                                                   FontSize="11.5" FontWeight="SemiBold"
-                                                                   Foreground="#0F172A" TextWrapping="Wrap"/>
-                                                        <TextBlock x:Name="ComponentDetail" Text="{Binding Detail}"
-                                                                   FontSize="10.5" Foreground="#6E687F"
-                                                                   TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                                        <TextBlock x:Name="ComponentDevice" Text="{Binding DeviceId}"
-                                                                   FontFamily="Consolas" FontSize="9.5"
-                                                                   Foreground="#8A8499" TextWrapping="Wrap"
-                                                                   Margin="0,2,0,0"/>
-                                                    </StackPanel>
-                                                    <TextBlock x:Name="ComponentVersion" Grid.Column="1"
-                                                               Text="{Binding Version}" FontFamily="Consolas"
-                                                               FontSize="10.5" Foreground="#58536A"
-                                                               TextAlignment="Right" VerticalAlignment="Top"
-                                                               TextWrapping="Wrap"/>
-                                                    <Border x:Name="ComponentStatusBorder" Grid.Column="2"
-                                                            Background="{Binding StatusBackground}"
-                                                            CornerRadius="6" Padding="7,2"
-                                                            VerticalAlignment="Top" Margin="8,1,0,0">
-                                                        <TextBlock x:Name="ComponentHealthText" Text="{Binding StatusText}"
-                                                                   FontSize="10" FontWeight="SemiBold"
-                                                                   Foreground="{Binding StatusForeground}"/>
-                                                    </Border>
-                                                </Grid>
+                                                                   FontSize="13" FontWeight="SemiBold"
+                                                                   Foreground="#0F172A" TextWrapping="Wrap"
+                                                                   Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                        <Border x:Name="ComponentStatusBorder"
+                                                                Background="{Binding StatusBackground}"
+                                                                CornerRadius="7" Padding="8,3"
+                                                                HorizontalAlignment="Right"
+                                                                VerticalAlignment="Center">
+                                                            <TextBlock x:Name="ComponentHealthText"
+                                                                       Text="{Binding StatusText}" FontSize="11"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{Binding StatusForeground}"/>
+                                                        </Border>
+                                                    </Grid>
+                                                    <TextBlock x:Name="ComponentDetail" Text="{Binding Detail}"
+                                                               FontSize="12" Foreground="#6E687F"
+                                                               TextWrapping="Wrap" LineHeight="18"
+                                                               Margin="0,5,0,0"/>
+                                                    <Grid x:Name="ComponentMeta" Margin="0,4,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock x:Name="ComponentDevice" Grid.Column="0"
+                                                                   Text="{Binding DeviceId}"
+                                                                   FontFamily="{StaticResource MonoFont}"
+                                                                   FontSize="10.5" Foreground="#8A8499"
+                                                                   TextWrapping="Wrap" Margin="0,0,14,0"/>
+                                                        <TextBlock x:Name="ComponentVersion" Grid.Column="1"
+                                                                   Text="{Binding Version, StringFormat=版本 {0}}"
+                                                                   FontFamily="{StaticResource MonoFont}"
+                                                                   FontSize="10.5" Foreground="#58536A"
+                                                                   TextAlignment="Right" VerticalAlignment="Top"
+                                                                   TextWrapping="Wrap"/>
+                                                    </Grid>
+                                                </StackPanel>
                                             </Border>
                                             <DataTemplate.Triggers>
                                                 <DataTrigger Binding="{Binding IsSection}" Value="True">
                                                     <Setter TargetName="ComponentRow" Property="Background" Value="#EEF2FF"/>
+                                                    <Setter TargetName="ComponentRow" Property="BorderBrush" Value="#C7D2FE"/>
+                                                    <Setter TargetName="ComponentRow" Property="Padding" Value="11,7"/>
+                                                    <Setter TargetName="ComponentRow" Property="Margin" Value="0,7,0,4"/>
                                                     <Setter TargetName="ComponentName" Property="FontWeight" Value="SemiBold"/>
-                                                    <Setter TargetName="ComponentName" Property="FontSize" Value="12"/>
+                                                    <Setter TargetName="ComponentName" Property="FontSize" Value="12.5"/>
                                                     <Setter TargetName="ComponentName" Property="Foreground" Value="#3730A3"/>
                                                     <Setter TargetName="ComponentDetail" Property="Visibility" Value="Collapsed"/>
-                                                    <Setter TargetName="ComponentDevice" Property="Visibility" Value="Collapsed"/>
-                                                    <Setter TargetName="ComponentVersion" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="ComponentMeta" Property="Visibility" Value="Collapsed"/>
                                                     <Setter TargetName="ComponentStatusBorder" Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding DeviceId}" Value="">
+                                                    <Setter TargetName="ComponentDevice" Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Version}" Value="">
+                                                    <Setter TargetName="ComponentVersion" Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
                                             </DataTemplate.Triggers>
                                         </DataTemplate>
@@ -883,7 +899,7 @@
                                 </ItemsControl>
 
                                 <TextBlock Text="组件安装 / 修复请使用 Foundation Sunshine 的桌面 GUI「设备中心」；本页只做只读状态检测，不会修改驱动。"
-                                           FontSize="10.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                           FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
                                            Margin="0,14,0,0"/>
                             </StackPanel>
                         </Border>

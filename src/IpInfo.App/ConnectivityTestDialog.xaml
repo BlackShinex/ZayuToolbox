@@ -10,7 +10,7 @@
         ShowInTaskbar="False"
         FocusVisualStyle="{x:Null}"
         Background="#F5F5F8"
-        FontFamily="Microsoft YaHei UI"
+        FontFamily="{StaticResource AppFont}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
     <Border Margin="20" Background="#E6FFFFFF" CornerRadius="18" BorderBrush="#80FFFFFF" BorderThickness="1"
@@ -46,7 +46,7 @@
 
                 <TextBlock Text="测试地址（包含本次随机令牌，仅用于本次测试，请勿分享）" FontSize="11"
                            Foreground="#6E687F" Margin="0,14,0,0"/>
-                <TextBox x:Name="UrlBox" FocusVisualStyle="{x:Null}" IsReadOnly="True" FontFamily="Consolas"
+                <TextBox x:Name="UrlBox" FocusVisualStyle="{x:Null}" IsReadOnly="True" FontFamily="{StaticResource MonoFont}"
                          FontSize="11" Foreground="#4338CA" Background="#F8FAFC" BorderBrush="#E2E8F0"
                          BorderThickness="1" Padding="9,7" Margin="0,6,0,0"
                          TextWrapping="Wrap" HorizontalScrollBarVisibility="Disabled"

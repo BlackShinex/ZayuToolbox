@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using IpInfo.Core;
 
@@ -14,6 +15,33 @@ namespace IpInfo.App
     {
         /// <summary>自动化 UI 测试模式：所有窗口都放到屏幕外且不激活，避免打扰桌面。</summary>
         public static bool IsUiTestMode { get; private set; }
+
+        /// <summary>随程序嵌入的开源界面字体，避免依赖系统微软雅黑。</summary>
+        public static FontFamily AppFontFamily
+        {
+            get
+            {
+                if (Current != null)
+                {
+                    FontFamily family = Current.TryFindResource("AppFont") as FontFamily;
+                    if (family != null) return family;
+                }
+                return new FontFamily("Noto Sans SC");
+            }
+        }
+
+        public static FontFamily MonoFontFamily
+        {
+            get
+            {
+                if (Current != null)
+                {
+                    FontFamily family = Current.TryFindResource("MonoFont") as FontFamily;
+                    if (family != null) return family;
+                }
+                return new FontFamily("Noto Sans Mono");
+            }
+        }
 
         private const int GwlExStyle = -20;
         private const int WsExNoActivate = 0x08000000;

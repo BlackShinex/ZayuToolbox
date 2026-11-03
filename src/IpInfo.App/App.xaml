@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnLastWindowClose">
     <Application.Resources>
+        <FontFamily x:Key="AppFont">pack://application:,,,/Assets/Fonts/#Noto Sans SC</FontFamily>
+        <FontFamily x:Key="MonoFont">pack://application:,,,/Assets/Fonts/#Noto Sans Mono</FontFamily>
         <SolidColorBrush x:Key="BgBrush" Color="#F4F0FF"/>
         <SolidColorBrush x:Key="TextPrimary" Color="#1D1D1F"/>
         <SolidColorBrush x:Key="TextSecondary" Color="#5F5A70"/>

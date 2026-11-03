@@ -147,6 +147,8 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\sunshine-logo.png" />
+    <Resource Include="Assets\Fonts\NotoSansSC-VF.ttf" />
+    <Resource Include="Assets\Fonts\NotoSansMono-Regular.ttf" />
   </ItemGroup>
   <ItemGroup>
     <!-- 直接编译 Core 源码，发布时只生成单个 杂鱼串流工具箱.exe，不再输出 IpInfo.Core.dll。 -->

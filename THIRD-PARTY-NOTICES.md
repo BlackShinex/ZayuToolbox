@@ -2,6 +2,14 @@
 
 本项目「杂鱼串流工具箱」（ZayuToolbox）包含以下第三方组件，其版权归各自作者所有。
 
+## Noto Sans SC / Noto Sans Mono
+
+- 组件：Noto Sans SC（界面字体）、Noto Sans Mono（地址 / 版本等等宽字体）
+- 用途：随程序嵌入，替代 Microsoft YaHei UI / Consolas，规避字体侵权风险
+- 许可：SIL Open Font License 1.1
+- 项目主页：https://github.com/notofonts/noto-cjk
+- 完整许可见 [LICENSES/NotoSans-OFL.txt](LICENSES/NotoSans-OFL.txt)
+
 ## QRCoder
 
 - 组件：QRCoder 1.4.3（net40 构建，以嵌入资源形式随主程序发布）

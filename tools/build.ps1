@@ -61,6 +61,10 @@ if ($Package) {
     Copy-Item (Join-Path $root "LICENSE") $dist -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $root "CHANGELOG.md") $dist -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $root "THIRD-PARTY-NOTICES.md") $dist -ErrorAction SilentlyContinue
+    $licenses = Join-Path $root "LICENSES"
+    if (Test-Path $licenses) {
+        Copy-Item $licenses (Join-Path $dist "LICENSES") -Recurse
+    }
     Copy-Item (Join-Path $root "GITHUB_PUBLISH.md") $dist -ErrorAction SilentlyContinue
     $docs = Join-Path $root "docs"
     if (Test-Path $docs) {

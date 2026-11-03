@@ -143,7 +143,7 @@ namespace IpInfo.App
             if (NavList == null) return;
             UpdatePageVisibility(NavList.SelectedIndex);
 
-            if (NavList.SelectedIndex == 4 && IsLoaded
+            if (NavList.SelectedIndex == 1 && IsLoaded
                 && _componentStatusReport == null && !_componentBusy)
             {
                 AutoRunComponentStatus();
@@ -167,16 +167,16 @@ namespace IpInfo.App
             }
 
             SunshineScrollViewer.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
-            WebView2ScrollViewer.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
-            NetworkScrollViewer.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
-            SelfCheckScrollViewer.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
-            ComponentStatusScrollViewer.Visibility = index == 4 ? Visibility.Visible : Visibility.Collapsed;
+            ComponentStatusScrollViewer.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
+            WebView2ScrollViewer.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
+            NetworkScrollViewer.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
+            SelfCheckScrollViewer.Visibility = index == 4 ? Visibility.Visible : Visibility.Collapsed;
 
             ScrollViewer selected = index == 0 ? SunshineScrollViewer
-                : index == 1 ? WebView2ScrollViewer
-                : index == 2 ? NetworkScrollViewer
-                : index == 3 ? SelfCheckScrollViewer
-                : ComponentStatusScrollViewer;
+                : index == 1 ? ComponentStatusScrollViewer
+                : index == 2 ? WebView2ScrollViewer
+                : index == 3 ? NetworkScrollViewer
+                : SelfCheckScrollViewer;
             if (selected != null)
             {
                 selected.Opacity = 1;
@@ -187,6 +187,22 @@ namespace IpInfo.App
                     selected.BeginAnimation(UIElement.OpacityProperty, fade);
                 }
             }
+            UpdatePageFooter(index);
+        }
+
+        private void UpdatePageFooter(int index)
+        {
+            if (TimestampText == null) return;
+            if (index == 1 && _componentStatusReport != null)
+            {
+                TimestampText.Text = "组件检测时间 "
+                    + _componentStatusReport.Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
+            }
+            else if (index == 3 && _report != null)
+            {
+                TimestampText.Text = "检测时间 "
+                    + _report.Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
+            }
         }
 
         /// <summary>选择左侧导航页面，供截图模式与自动化使用。</summary>
@@ -196,10 +212,10 @@ namespace IpInfo.App
             int index = 0;
             switch (pageKey.ToLowerInvariant())
             {
-                case "webview2": index = 1; break;
-                case "network": index = 2; break;
-                case "selfcheck": index = 3; break;
-                case "components": index = 4; break;
+                case "components": index = 1; break;
+                case "webview2": index = 2; break;
+                case "network": index = 3; break;
+                case "selfcheck": index = 4; break;
                 default: index = 0; break;
             }
             NavList.SelectedIndex = index;
@@ -1285,7 +1301,7 @@ namespace IpInfo.App
         private static FormattedText CreateSelfCheckText(string text, double size, Brush brush,
             bool semibold, double maxWidth, double pixelsPerDip)
         {
-            Typeface typeface = new Typeface(new FontFamily("Microsoft YaHei UI"),
+            Typeface typeface = new Typeface(App.AppFontFamily,
                 FontStyles.Normal,
                 semibold ? FontWeights.SemiBold : FontWeights.Normal,
                 FontStretches.Normal);
@@ -1425,6 +1441,7 @@ namespace IpInfo.App
                 + " · 已就绪 " + ready + " 项 · 未安装 " + missing + " 项 · 异常 " + errors + " 项";
             ComponentToolsButton.IsEnabled = !string.IsNullOrEmpty(_componentInstallPath)
                 && Directory.Exists(Path.Combine(_componentInstallPath, "tools"));
+            UpdatePageFooter(NavList.SelectedIndex);
         }
 
         private static List<ComponentStatusRow> BuildComponentStatusRows(ComponentStatusReport report)
@@ -1518,7 +1535,7 @@ namespace IpInfo.App
                 else
                 {
                     lines.Add(item.Name + "：" + item.StatusText
-                        + " · 版本 " + item.Version
+                        + " · 版本 " + (string.IsNullOrEmpty(item.Version) ? "—" : item.Version)
                         + (string.IsNullOrEmpty(item.Detail) ? string.Empty : " · " + item.Detail)
                         + (string.IsNullOrEmpty(item.DeviceId) ? string.Empty : " · " + item.DeviceId));
                 }
@@ -2351,7 +2368,7 @@ namespace IpInfo.App
 
         private static FormattedText CreateFooterText(string text)
         {
-            Typeface typeface = new Typeface(new FontFamily("Microsoft YaHei UI"),
+            Typeface typeface = new Typeface(App.AppFontFamily,
                 FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
             return new FormattedText(
                 string.IsNullOrEmpty(text) ? string.Empty : text,

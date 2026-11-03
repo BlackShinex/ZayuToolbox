@@ -50,8 +50,9 @@ namespace IpInfo.Core
                     sunshine == null ? string.Empty : sunshine.InstallPath);
                 AddItem(report, "基础环境", "Sunshine 服务",
                     service == null || service.Status == null || !service.Status.IsFound ? ComponentHealth.NotInstalled : ComponentHealth.Ready,
-                    service == null || service.Status == null ? "—" : service.Status.StartModeLabel,
-                    service == null || service.Status == null ? "未检测到服务" : service.Status.StateLabel,
+                    string.Empty,
+                    service == null || service.Status == null ? "未检测到服务"
+                        : service.Status.StateLabel + " · 启动类型 " + service.Status.StartModeLabel,
                     service == null || service.Status == null ? string.Empty : service.Status.ServiceName);
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -648,7 +649,7 @@ namespace IpInfo.Core
             item.Name = name;
             item.Health = health;
             item.StatusText = HealthText(health);
-            item.Version = string.IsNullOrEmpty(version) ? "—" : version;
+            item.Version = version ?? string.Empty;
             item.Detail = detail ?? string.Empty;
             item.DeviceId = deviceId ?? string.Empty;
             report.Items.Add(item);
