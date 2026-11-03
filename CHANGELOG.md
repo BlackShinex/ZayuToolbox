@@ -38,7 +38,9 @@
 - 优化组件状态页排版：放大字号、改为卡片行布局，版本与设备信息不再错位。
 - 组件状态新增单独「修复 / 卸载」：
   - ZakoDisplay、Zako 虚拟鼠标使用基地版 tools 目录中的 INF 重新安装 / 移除设备与驱动；
-  - DualSense 按基地版 `ds5-sidecar-package.json` 的官方 Release 地址下载完整 `Sunshine.Ds5Sidecar.x64.zip`，校验 SHA-256、组件版本、协议与 USB/IP 0.9.8.1 兼容性后安装；
+  - DualSense 按基地版 `ds5-sidecar-package.json` 的官方 Release 地址下载完整 `Sunshine.Ds5Sidecar.x64.zip`，校验 SHA-256、组件版本、协议、HIDMaestro 版本与 USB/IP 0.9.8.1 兼容性后安装；
+  - 生成与基地版 Control Panel 一致的 `component.json`，包含 `hidmaestro_version`、`sidecar_package_sha256` 和 `sidecar_source`；
+  - 新增 ViGEmBus 虚拟手柄驱动检测：读取驱动文件版本、PnP 总线状态与服务状态，要求 v1.17+；使用基地版 scripts 安装 / 修复 / 卸载；
   - Steam Streaming Speakers 使用 Steam 自带 INF 重新安装；
   - USB/IP 从 usbip-win2 官方 Release 下载 0.9.8.1 安装包，校验 SHA-256 后启动安装；
   - Sunshine Virtual Microphone 检查并修复 DualSense 组件 + USB/IP 依赖；
@@ -50,7 +52,7 @@
 
 ### 构建与测试
 
-- 核心离线测试 184 项，UI 冒烟测试前台 90 项、后台独立桌面 83 项。
+- 核心离线测试 185 项，UI 冒烟测试前台 90 项、后台独立桌面 83 项。
 - 新增 `tools/ui-test-background.ps1`：在独立 Windows 桌面运行 UI 测试，不抢当前桌面焦点；后台模式跳过 7 项剪贴板内容校验。
 - UI 冒烟测试新增 `-Only` 快速模式：支持 `components`、`sunshine`、`webview2`、`selfcheck`，跳过网络探测和连通性测试，单个分区约 4～8 秒。
 - 新增 QRCoder 嵌入资源与第三方许可说明 `THIRD-PARTY-NOTICES.md`。

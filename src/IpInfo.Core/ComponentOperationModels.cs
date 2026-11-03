@@ -46,6 +46,7 @@ namespace IpInfo.Core
         public const string ZakoDisplay = "zako-display";
         public const string ZakoMouse = "zako-mouse";
         public const string DualSense = "dualsense";
+        public const string ViGEm = "vigem";
         public const string SteamSpeakers = "steam-speakers";
         public const string VbCable = "vb-cable";
         public const string SunshineMicrophone = "sunshine-mic";
@@ -54,13 +55,15 @@ namespace IpInfo.Core
         public static bool CanRepair(string key)
         {
             return key == ZakoDisplay || key == ZakoMouse || key == DualSense
+                || key == ViGEm
                 || key == SteamSpeakers || key == VbCable
                 || key == SunshineMicrophone || key == UsbIp;
         }
 
         public static bool CanUninstall(string key)
         {
-            return key == ZakoDisplay || key == ZakoMouse || key == DualSense;
+            return key == ZakoDisplay || key == ZakoMouse || key == DualSense
+                || key == ViGEm;
         }
 
         public static bool NeedsLocalInstaller(string key)
@@ -75,6 +78,7 @@ namespace IpInfo.Core
                 case ZakoDisplay: return "ZakoDisplay 虚拟显示器";
                 case ZakoMouse: return "Zako 虚拟鼠标";
                 case DualSense: return "DualSense / HIDMaestro 虚拟手柄";
+                case ViGEm: return "ViGEmBus 虚拟手柄驱动";
                 case SteamSpeakers: return "Steam Streaming Speakers";
                 case VbCable: return "VB-CABLE";
                 case SunshineMicrophone: return "Sunshine Virtual Microphone";
@@ -93,6 +97,8 @@ namespace IpInfo.Core
                     return "会移除 Zako 虚拟鼠标设备和驱动包，远程鼠标功能会暂时不可用。";
                 case DualSense:
                     return "会移除 DualSense 组件包；HIDMaestro 与 USB/IP 系统驱动会保留，不影响其他组件。";
+                case ViGEm:
+                    return "会卸载 ViGEmBus 虚拟手柄驱动，依赖它的 Xbox 360 / DS4 虚拟手柄功能会暂时不可用。";
                 default:
                     return "该操作会修改系统组件。";
             }
@@ -107,6 +113,8 @@ namespace IpInfo.Core
                     return "会使用基地版 tools 目录中的 INF 重新安装驱动，过程中会请求管理员权限。";
                 case DualSense:
                     return "会从基地版官方 Release 重新下载组件包，校验 SHA-256 后覆盖安装到工具目录。";
+                case ViGEm:
+                    return "会调用基地版 scripts\\install-gamepad.bat 安装或修复 ViGEmBus，需要管理员权限。";
                 case SteamSpeakers:
                     return "会从 Steam 自带的 Windows10 音频驱动重新安装 Steam Streaming Speakers，过程中会请求管理员权限。";
                 case VbCable:

@@ -56,6 +56,8 @@ namespace IpInfo.Core
                     return await RepairInfAsync(key, "vmouse", "ZakoVirtualMouse.inf", progress, cancellationToken);
                 if (key == ComponentOperationCatalog.DualSense)
                     return await RepairDualSenseAsync(progress, cancellationToken);
+                if (key == ComponentOperationCatalog.ViGEm)
+                    return await RepairViGEmAsync(progress, cancellationToken);
                 if (key == ComponentOperationCatalog.SteamSpeakers)
                     return await RepairSteamSpeakersAsync(progress, cancellationToken);
                 if (key == ComponentOperationCatalog.UsbIp)
@@ -93,6 +95,8 @@ namespace IpInfo.Core
                     return await UninstallInfAsync("ZakoVirtualMouse.inf", deviceId, progress, cancellationToken);
                 if (key == ComponentOperationCatalog.DualSense)
                     return await UninstallDualSenseAsync(progress, cancellationToken);
+                if (key == ComponentOperationCatalog.ViGEm)
+                    return await UninstallViGEmAsync(progress, cancellationToken);
 
                 return Fail("未实现该组件的卸载。");
             }
@@ -104,6 +108,49 @@ namespace IpInfo.Core
             {
                 return Fail("卸载失败：" + ex.Message);
             }
+        }
+
+        private async Task<ComponentOperationResult> RepairViGEmAsync(
+            IProgress<ComponentOperationProgress> progress, CancellationToken cancellationToken)
+        {
+            string batch = Path.Combine(_sunshineInstallPath, "scripts", "install-gamepad.bat");
+            if (!File.Exists(batch))
+                return Fail("找不到基地版 scripts\\install-gamepad.bat，请确认 Sunshine 安装完整。");
+
+            Report(progress, "正在安装 / 修复 ViGEmBus（UAC）…", true, 0, false);
+            string arguments = "/c \"\"" + batch + "\" force\"";
+            int code = await RunElevatedAsync(
+                Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+                arguments, progress, cancellationToken).ConfigureAwait(false);
+            if (code == -1223) return Fail("已取消 UAC 授权。");
+            if (code != 0 && code != 3010)
+                return Fail("ViGEmBus 安装脚本退出码 " + code + "。");
+
+            await Task.Delay(1500, cancellationToken).ConfigureAwait(false);
+            Report(progress, "ViGEmBus 安装脚本已结束", false, 100, false);
+            return code == 3010
+                ? Success("ViGEmBus 已安装；系统提示需要重启时请重启后再刷新状态。")
+                : Success("ViGEmBus 安装 / 修复已完成。");
+        }
+
+        private async Task<ComponentOperationResult> UninstallViGEmAsync(
+            IProgress<ComponentOperationProgress> progress, CancellationToken cancellationToken)
+        {
+            string batch = Path.Combine(_sunshineInstallPath, "scripts", "uninstall-gamepad.bat");
+            if (!File.Exists(batch))
+                return Fail("找不到基地版 scripts\\uninstall-gamepad.bat，请确认 Sunshine 安装完整。");
+
+            Report(progress, "正在卸载 ViGEmBus（UAC）…", true, 0, false);
+            string arguments = "/c \"\"" + batch + "\"\"";
+            int code = await RunElevatedAsync(
+                Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+                arguments, progress, cancellationToken).ConfigureAwait(false);
+            if (code == -1223) return Fail("已取消 UAC 授权。");
+            if (code != 0 && code != 3010)
+                return Fail("ViGEmBus 卸载脚本退出码 " + code + "。");
+
+            Report(progress, "ViGEmBus 卸载脚本已结束", false, 100, false);
+            return Success("ViGEmBus 卸载脚本已结束；如提示重启请重启。");
         }
 
         private async Task<ComponentOperationResult> RepairSteamSpeakersAsync(
@@ -154,14 +201,22 @@ namespace IpInfo.Core
                     return Fail("USB/IP 安装程序校验失败，已停止安装。");
                 }
 
-                Report(progress, "请在 USB/IP 安装程序中完成安装…", true, 0, false);
-                int code = await RunInstallerAsync(installer, progress, cancellationToken)
-                    .ConfigureAwait(false);
+                Report(progress, "正在安装 USB/IP 0.9.8.1（UAC）…", true, 0, false);
+                int code = await RunElevatedAsync(installer,
+                    "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /RESTARTEXITCODE=3010 /SP-",
+                    progress, cancellationToken).ConfigureAwait(false);
                 if (code == -1223) return Fail("已取消 UAC 授权。");
-                if (code != 0) return Fail("USB/IP 安装程序退出码 " + code + "。");
+                if (code != 0 && code != 3010)
+                    return Fail("USB/IP 安装程序退出码 " + code + "。");
 
-                Report(progress, "USB/IP 安装程序已结束", false, 100, false);
-                return Success("USB/IP 安装程序已结束；如提示重启，请重启后再刷新状态。");
+                await Task.Delay(1500, cancellationToken).ConfigureAwait(false);
+                if (!IsUsbIpReady())
+                {
+                    return Fail("USB/IP 安装程序已结束，但 0.9.8.1 驱动尚未注册；请重启后重试。");
+                }
+
+                Report(progress, "USB/IP 0.9.8.1 已就绪", false, 100, false);
+                return Success("USB/IP 0.9.8.1 已安装。");
             }
             finally
             {
@@ -181,7 +236,7 @@ namespace IpInfo.Core
                 if (component == null || !component.Success) return component ?? Fail("DualSense 组件安装失败。");
             }
 
-            if (!AreUsbIpDriversRunning())
+            if (!IsUsbIpReady())
             {
                 ComponentOperationResult usbip = await RepairUsbIpAsync(progress, cancellationToken)
                     .ConfigureAwait(false);
@@ -237,6 +292,20 @@ namespace IpInfo.Core
             }
         }
 
+        private static string GetFileVersion(string path)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(path) || !File.Exists(path)) return string.Empty;
+                FileVersionInfo info = FileVersionInfo.GetVersionInfo(path);
+                return string.IsNullOrEmpty(info.FileVersion) ? string.Empty : info.FileVersion;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
         private static bool AreUsbIpDriversRunning()
         {
             try
@@ -265,6 +334,41 @@ namespace IpInfo.Core
             {
                 return false;
             }
+        }
+
+        private static bool IsUsbIpReady()
+        {
+            if (!AreUsbIpDriversRunning()) return false;
+            string version = InstalledUsbIpVersion();
+            return !string.IsNullOrEmpty(version)
+                && !VersionUpdateService.IsNewer(ComponentOperationCatalog.RequiredUsbIpVersion, version);
+        }
+
+        private static string InstalledUsbIpVersion()
+        {
+            try
+            {
+                using (System.Management.ManagementObjectSearcher searcher =
+                    new System.Management.ManagementObjectSearcher(
+                        "SELECT PathName FROM Win32_SystemDriver WHERE Name='usbip2_ude'"))
+                using (System.Management.ManagementObjectCollection items = searcher.Get())
+                {
+                    foreach (System.Management.ManagementObject item in items)
+                    {
+                        using (item)
+                        {
+                            string path = Environment.ExpandEnvironmentVariables(
+                                Convert.ToString(item["PathName"]).Trim('"'));
+                            string version = GetFileVersion(path);
+                            if (!string.IsNullOrEmpty(version)) return version;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+            return string.Empty;
         }
 
         private static string FindFile(string root, string name)
@@ -446,6 +550,14 @@ namespace IpInfo.Core
             if (expectedSha.Length != 64)
                 return Fail("组件清单缺少有效的 SHA-256。");
 
+            if (!IsUsbIpReady())
+            {
+                Report(progress, "正在准备匹配的 USB/IP 0.9.8.1 传输…", true, 0, false);
+                ComponentOperationResult usbip = await RepairUsbIpAsync(progress, cancellationToken)
+                    .ConfigureAwait(false);
+                if (usbip == null || !usbip.Success) return usbip ?? Fail("USB/IP 准备失败。");
+            }
+
             string root = Path.Combine(Path.GetTempPath(), "ZayuToolbox", "Components", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             string zipPath = Path.Combine(root, assetName);
@@ -477,7 +589,9 @@ namespace IpInfo.Core
                 string componentVersion = JsonString(runtimeText, "component_version");
                 int runtimeProtocol = JsonInt(runtimeText, "protocol");
                 string runtimeUsbip = JsonString(runtimeText, "usbip_version");
+                string runtimeTarget = JsonString(runtimeText, "target");
                 string compatibilityVersion = JsonString(compatibilityText, "component_version");
+                string hidmaestroVersion = JsonString(compatibilityText, "hidmaestro_version");
                 string compatibilityUsbip = JsonNestedString(compatibilityText, "usbip", "version");
                 string compatibilityPolicy = JsonNestedString(compatibilityText, "usbip", "policy");
                 if (string.IsNullOrEmpty(componentVersion)
@@ -486,6 +600,10 @@ namespace IpInfo.Core
                     || compatibilityPolicy != "externally-managed-v1")
                 {
                     return Fail("组件包版本 / USB-IP 兼容性不一致，已停止安装。");
+                }
+                if (string.IsNullOrEmpty(hidmaestroVersion))
+                {
+                    return Fail("组件包缺少 HIDMaestro 版本信息，已停止安装。");
                 }
                 if (!string.IsNullOrEmpty(manifestVersion)
                     && !string.Equals(componentVersion, manifestVersion, StringComparison.Ordinal))
@@ -501,6 +619,11 @@ namespace IpInfo.Core
                 {
                     return Fail("组件包缺少协议或 USB/IP 版本信息，已停止安装。");
                 }
+                if (!string.Equals(runtimeTarget, "win-x64-self-contained",
+                    StringComparison.Ordinal))
+                {
+                    return Fail("组件包目标平台与基地版不一致，已停止安装。");
+                }
                 if (VersionUpdateService.IsNewer(
                     ComponentOperationCatalog.RequiredUsbIpVersion, runtimeUsbip))
                 {
@@ -508,9 +631,36 @@ namespace IpInfo.Core
                         + ComponentOperationCatalog.RequiredUsbIpVersion + "，已停止安装。");
                 }
 
+                if (Process.GetProcessesByName("Sunshine.Ds5Sidecar").Length > 0)
+                {
+                    return Fail("DualSense Sidecar 正在运行；请先结束当前串流再修复组件。");
+                }
+
+                Report(progress, "正在验证 Sidecar 运行时能力…", true, 0, false);
+                ProcessResult probe = await RunProcessAsync(sidecar, "--probe", null,
+                    Path.GetDirectoryName(sidecar), cancellationToken).ConfigureAwait(false);
+                if (!probe.Success || probe.ExitCode != 0)
+                {
+                    return Fail("Sidecar 运行时探测失败，组件不会激活。");
+                }
+                if (!JsonBool(probe.Output, "standard")
+                    || !JsonBool(probe.Output, "composite")
+                    || !JsonBool(probe.Output, "genshin_compatibility_identity")
+                    || JsonInt(probe.Output, "protocol") != runtimeProtocol
+                    || !string.Equals(JsonString(probe.Output, "component_version"), componentVersion,
+                        StringComparison.Ordinal)
+                    || !string.Equals(JsonString(probe.Output, "usbip_policy"), compatibilityPolicy,
+                        StringComparison.Ordinal)
+                    || !string.Equals(JsonString(probe.Output, "usbip_version"), runtimeUsbip,
+                        StringComparison.Ordinal))
+                {
+                    return Fail("Sidecar 探测结果与基地版兼容组合不一致，组件不会激活。");
+                }
+
                 string componentJson = BuildComponentManifest(
-                    runtimeProtocol, componentVersion, runtimeUsbip,
-                    Sha256File(sidecar), Sha256File(core), Sha256File(compatibility));
+                    runtimeProtocol, componentVersion, hidmaestroVersion, runtimeUsbip,
+                    Sha256File(sidecar), Sha256File(core), Sha256File(compatibility),
+                    expectedSha, downloadUrl);
                 File.WriteAllText(Path.Combine(staging, "component.json"), componentJson,
                     new UTF8Encoding(false));
 
@@ -722,6 +872,12 @@ namespace IpInfo.Core
         private static Task<ProcessResult> RunProcessAsync(string fileName, string arguments,
             Action<string> log, CancellationToken cancellationToken)
         {
+            return RunProcessAsync(fileName, arguments, log, null, cancellationToken);
+        }
+
+        private static Task<ProcessResult> RunProcessAsync(string fileName, string arguments,
+            Action<string> log, string workingDirectory, CancellationToken cancellationToken)
+        {
             return Task.Run(delegate
             {
             ProcessResult result = new ProcessResult();
@@ -732,6 +888,7 @@ namespace IpInfo.Core
                 info.CreateNoWindow = true;
                 info.RedirectStandardOutput = true;
                 info.RedirectStandardError = true;
+                if (!string.IsNullOrEmpty(workingDirectory)) info.WorkingDirectory = workingDirectory;
                 using (Process process = new Process())
                 {
                     process.StartInfo = info;
@@ -794,19 +951,23 @@ namespace IpInfo.Core
             }
         }
 
-        private static string BuildComponentManifest(int protocol, string version, string usbipVersion,
-            string sidecarSha, string coreSha, string compatibilitySha)
+        private static string BuildComponentManifest(int protocol, string version, string hidmaestroVersion,
+            string usbipVersion, string sidecarSha, string coreSha, string compatibilitySha,
+            string packageSha, string sidecarSource)
         {
             StringBuilder builder = new StringBuilder();
             builder.AppendLine("{");
             builder.AppendLine("  \"protocol\": " + protocol + ",");
             builder.AppendLine("  \"component_version\": \"" + JsonEscape(version) + "\",");
+            builder.AppendLine("  \"hidmaestro_version\": \"" + JsonEscape(hidmaestroVersion) + "\",");
             builder.AppendLine("  \"usbip_policy\": \"externally-managed-v1\",");
             builder.AppendLine("  \"usbip_version\": \"" + JsonEscape(usbipVersion) + "\",");
             builder.AppendLine("  \"sidecar_file\": \"Sunshine.Ds5Sidecar.exe\",");
             builder.AppendLine("  \"sidecar_sha256\": \"" + sidecarSha.ToLowerInvariant() + "\",");
             builder.AppendLine("  \"sha256\": \"" + coreSha.ToLowerInvariant() + "\",");
-            builder.AppendLine("  \"compatibility_sha256\": \"" + compatibilitySha.ToLowerInvariant() + "\"");
+            builder.AppendLine("  \"compatibility_sha256\": \"" + compatibilitySha.ToLowerInvariant() + "\",");
+            builder.AppendLine("  \"sidecar_package_sha256\": \"" + (packageSha ?? string.Empty).ToLowerInvariant() + "\",");
+            builder.AppendLine("  \"sidecar_source\": \"" + JsonEscape(sidecarSource) + "\"");
             builder.AppendLine("}");
             return builder.ToString();
         }
@@ -837,6 +998,13 @@ namespace IpInfo.Core
             Match match = Regex.Match(json, "\"" + Regex.Escape(key) + "\"\\s*:\\s*(\\d+)");
             int value;
             return match.Success && int.TryParse(match.Groups[1].Value, out value) ? value : 0;
+        }
+
+        private static bool JsonBool(string json, string key)
+        {
+            Match match = Regex.Match(json, "\"" + Regex.Escape(key) + "\"\\s*:\\s*(true|false)");
+            return match.Success && string.Equals(match.Groups[1].Value, "true",
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static string JsonEscape(string value)

@@ -217,7 +217,7 @@ try {
             Check "组件状态检测完成" $compReady
             if ($compReady) {
                 $compTexts = (Get-WindowTexts $window) -join "`n"
-                Check "组件页包含显示/音频/传输组件" (($compTexts -match "ZakoDisplay") -and ($compTexts -match "Steam Streaming Speakers") -and ($compTexts -match "VB-CABLE") -and ($compTexts -match "USB/IP"))
+                Check "组件页包含显示/音频/传输组件" (($compTexts -match "ZakoDisplay") -and ($compTexts -match "ViGEmBus") -and ($compTexts -match "Steam Streaming Speakers") -and ($compTexts -match "VB-CABLE") -and ($compTexts -match "USB/IP"))
                 Check "组件页包含虚拟手柄状态" (($compTexts -match "DualSense") -and ($compTexts -match "HIDMaestro"))
                 $repairButton = Get-ElementByButtonName $window "修复组件"
                 $uninstallButton = Get-ElementByButtonName $window "卸载组件"
@@ -667,7 +667,7 @@ try {
     Check "组件状态检测完成" $compReady
     if ($compReady) {
         $compTexts = (Get-WindowTexts $window) -join "`n"
-        Check "组件页包含显示/音频/传输组件" (($compTexts -match "ZakoDisplay") -and ($compTexts -match "Steam Streaming Speakers") -and ($compTexts -match "VB-CABLE") -and ($compTexts -match "USB/IP"))
+        Check "组件页包含显示/音频/传输组件" (($compTexts -match "ZakoDisplay") -and ($compTexts -match "ViGEmBus") -and ($compTexts -match "Steam Streaming Speakers") -and ($compTexts -match "VB-CABLE") -and ($compTexts -match "USB/IP"))
         Check "组件页包含虚拟手柄状态" (($compTexts -match "DualSense") -and ($compTexts -match "HIDMaestro"))
         $repairButton = Get-ElementByButtonName $window "修复组件"
         $uninstallButton = Get-ElementByButtonName $window "卸载组件"

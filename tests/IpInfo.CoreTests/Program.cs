@@ -131,6 +131,9 @@ namespace IpInfo.CoreTests
             CheckTrue("音频 / 传输组件不提供一键卸载",
                 !ComponentOperationCatalog.CanUninstall(ComponentOperationCatalog.SteamSpeakers)
                 && !ComponentOperationCatalog.CanUninstall(ComponentOperationCatalog.UsbIp));
+            CheckTrue("ViGEmBus 支持安装 / 修复 / 卸载",
+                ComponentOperationCatalog.CanRepair(ComponentOperationCatalog.ViGEm)
+                && ComponentOperationCatalog.CanUninstall(ComponentOperationCatalog.ViGEm));
         }
 
         private static void TestVersionUpdate()

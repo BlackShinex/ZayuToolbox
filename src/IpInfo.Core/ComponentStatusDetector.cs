@@ -64,6 +64,7 @@ namespace IpInfo.Core
                 AddSection(report, "显示与输入");
                 AddZakoDisplay(report, installPath);
                 AddZakoMouse(report, installPath, devices);
+                AddViGEm(report, devices, drivers);
                 AddDualSense(report, installPath, devices);
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -158,6 +159,66 @@ namespace IpInfo.Core
                 PnpDetail(device), device.DeviceId, ComponentOperationCatalog.ZakoMouse);
         }
 
+        private static void AddViGEm(ComponentStatusReport report, List<PnpDevice> devices,
+            Dictionary<string, DriverInfo> drivers)
+        {
+            string driverPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.System),
+                "drivers", "ViGEmBus.sys");
+            string version = File.Exists(driverPath) ? GetFileVersion(driverPath) : string.Empty;
+            bool installed = File.Exists(driverPath);
+
+            PnpDevice device = FindFirst(devices, delegate(PnpDevice d)
+            {
+                return Contains(d.Name, "Virtual Gamepad Emulation")
+                    || Contains(d.Name, "ViGEm")
+                    || Contains(d.DeviceId, "ViGEm");
+            });
+            DriverInfo service = GetDriver(drivers, "ViGEmBus");
+            bool running = (device != null && HealthFromPnp(device) == ComponentHealth.Ready)
+                || IsDriverRunning(service);
+            bool versionOk = IsVigemVersionOk(version);
+
+            ComponentHealth health;
+            string detail;
+            if (!installed)
+            {
+                health = ComponentHealth.NotInstalled;
+                detail = "未安装 ViGEmBus";
+            }
+            else if (!versionOk)
+            {
+                health = ComponentHealth.Warning;
+                detail = "版本过旧，基地版要求 v1.17 或更高";
+            }
+            else if (running)
+            {
+                health = ComponentHealth.Ready;
+                detail = device == null ? "驱动运行中" : PnpDetail(device);
+            }
+            else
+            {
+                health = ComponentHealth.Warning;
+                detail = "已安装但驱动未运行，可能需要重启或修复";
+            }
+
+            string deviceId = device == null ? string.Empty : device.DeviceId;
+            AddItem(report, "显示与输入", "ViGEmBus 虚拟手柄驱动", health, version,
+                detail, deviceId, ComponentOperationCatalog.ViGEm);
+        }
+
+        private static bool IsVigemVersionOk(string version)
+        {
+            if (string.IsNullOrEmpty(version)) return false;
+            string[] parts = version.Split('.');
+            int major;
+            int minor;
+            return parts.Length >= 2
+                && int.TryParse(parts[0], out major)
+                && int.TryParse(parts[1], out minor)
+                && (major > 1 || (major == 1 && minor >= 17));
+        }
+
         private static void AddDualSense(ComponentStatusReport report, string installPath, List<PnpDevice> devices)
         {
             string activeRoot = Path.Combine(installPath, "tools", "sunshine-ds5-component", "active");
@@ -171,7 +232,10 @@ namespace IpInfo.Core
             bool hasSidecar = File.Exists(sidecarPath);
             bool hasCore = File.Exists(corePath);
             string componentVersion = ReadJsonString(manifestPath, "component_version");
+            string hidmaestroVersion = ReadJsonString(manifestPath, "hidmaestro_version");
             string usbipVersion = ReadJsonString(manifestPath, "usbip_version");
+            string compatibilityVersion = ReadJsonString(compatibilityPath, "component_version");
+            string compatibilityHidmaestro = ReadJsonString(compatibilityPath, "hidmaestro_version");
             string coreVersion = GetFileVersion(corePath);
             string sidecarVersion = GetFileVersion(sidecarPath);
 
@@ -202,6 +266,22 @@ namespace IpInfo.Core
                 health = ComponentHealth.Error;
                 detail = "组件文件不完整";
             }
+            else if (string.IsNullOrEmpty(hidmaestroVersion)
+                || string.IsNullOrEmpty(compatibilityHidmaestro)
+                || !string.Equals(hidmaestroVersion, compatibilityHidmaestro, StringComparison.Ordinal)
+                || !string.Equals(componentVersion, compatibilityVersion, StringComparison.Ordinal))
+            {
+                health = ComponentHealth.Error;
+                detail = "组件清单缺少 HIDMaestro 版本或版本不匹配，Sunshine 会判为异常";
+            }
+            else if (!string.IsNullOrEmpty(usbipVersion)
+                && VersionUpdateService.IsNewer(
+                    ComponentOperationCatalog.RequiredUsbIpVersion, usbipVersion))
+            {
+                health = ComponentHealth.Error;
+                detail = "组件声明的 USB/IP " + usbipVersion + " 低于基地版要求 "
+                    + ComponentOperationCatalog.RequiredUsbIpVersion;
+            }
             else if (sidecarRunning)
             {
                 health = ComponentHealth.Running;
@@ -220,7 +300,13 @@ namespace IpInfo.Core
 
             string version = componentVersion;
             if (string.IsNullOrEmpty(version)) version = sidecarVersion;
-            if (!string.IsNullOrEmpty(coreVersion))
+            if (!string.IsNullOrEmpty(hidmaestroVersion))
+            {
+                version = string.IsNullOrEmpty(version)
+                    ? "HIDMaestro " + hidmaestroVersion
+                    : version + " / HIDMaestro " + hidmaestroVersion;
+            }
+            else if (!string.IsNullOrEmpty(coreVersion))
             {
                 version = string.IsNullOrEmpty(version)
                     ? "HIDMaestro " + coreVersion
@@ -482,6 +568,7 @@ namespace IpInfo.Core
                 || Contains(device.Name, "VB-Audio")
                 || Contains(device.Name, "CABLE ")
                 || Contains(device.Name, "Sunshine Virtual")
+                || Contains(device.Name, "Virtual Gamepad Emulation")
                 || Contains(device.DeviceId, "HIDMAESTRO")
                 || Contains(device.DeviceId, "USBIP")
                 || Contains(device.DeviceId, "VID_1ACE&PID_0002");
