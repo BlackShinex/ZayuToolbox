@@ -327,14 +327,14 @@ namespace IpInfo.Core
             });
             if (matches.Count == 0)
             {
-                AddItem(report, "音频", "Steam Streaming Speakers（声音输出）",
-                    ComponentHealth.NotInstalled, "—", "未检测到 Steam 虚拟扬声器", string.Empty, ComponentOperationCatalog.SteamSpeakers);
+                AddItem(report, "音频", "Steam Streaming Speakers（Steam 虚拟声卡）",
+                    ComponentHealth.NotInstalled, "—", "负责串流音频输出与主机端静音；未检测到虚拟声卡", string.Empty, ComponentOperationCatalog.SteamSpeakers);
                 return;
             }
 
             ComponentHealth health = BestHealth(matches);
-            string detail = DescribeDevices(matches);
-            AddItem(report, "音频", "Steam Streaming Speakers（声音输出）",
+            string detail = "负责串流音频输出与主机端静音 · " + DescribeDevices(matches);
+            AddItem(report, "音频", "Steam Streaming Speakers（Steam 虚拟声卡）",
                 health, "—", detail, matches[0].DeviceId, ComponentOperationCatalog.SteamSpeakers);
         }
 
@@ -350,14 +350,14 @@ namespace IpInfo.Core
             });
             if (matches.Count == 0)
             {
-                AddItem(report, "音频", "VB-CABLE（麦克风回传）",
-                    ComponentHealth.NotInstalled, "—", "未检测到 VB-Audio Virtual Cable", string.Empty, ComponentOperationCatalog.VbCable);
+                AddItem(report, "音频", "VB-CABLE（虚拟麦克风）",
+                    ComponentHealth.NotInstalled, "—", "负责把串流设备麦克风声音发送到主机；未检测到 VB-Audio Virtual Cable", string.Empty, ComponentOperationCatalog.VbCable);
                 return;
             }
 
             ComponentHealth health = BestHealth(matches);
-            AddItem(report, "音频", "VB-CABLE（麦克风回传）",
-                health, "—", DescribeDevices(matches), matches[0].DeviceId, ComponentOperationCatalog.VbCable);
+            AddItem(report, "音频", "VB-CABLE（虚拟麦克风）",
+                health, "—", "负责把串流设备麦克风声音发送到主机 · " + DescribeDevices(matches), matches[0].DeviceId, ComponentOperationCatalog.VbCable);
         }
 
         private static void AddSunshineMicrophone(ComponentStatusReport report, List<PnpDevice> devices,
@@ -375,16 +375,18 @@ namespace IpInfo.Core
 
             if (matches.Count == 0)
             {
-                AddItem(report, "音频", "Sunshine Virtual Microphone（麦克风输入）",
-                    ComponentHealth.NotInstalled,
+                AddItem(report, "音频", "Sunshine Virtual Microphone（USB/IP 虚拟麦克风）",
+                    usbipReady ? ComponentHealth.NotInstalled : ComponentHealth.Warning,
                     "—",
-                    usbipReady ? "未检测到虚拟麦克风端点" : "未安装，且 USB/IP 驱动未就绪",
-                    string.Empty, ComponentOperationCatalog.SunshineMicrophone);
+                    usbipReady
+                        ? "不是独立驱动；串流时由虚拟设备宿主创建。当前 USB/IP 0.9.8.1 已就绪，开始串流后会自动出现"
+                        : "不是独立驱动；需要 DualSense 组件与 USB/IP 0.9.8.1，串流时由虚拟设备宿主创建",
+                    string.Empty);
                 return;
             }
 
-            AddItem(report, "音频", "Sunshine Virtual Microphone（麦克风输入）",
-                BestHealth(matches), "—", DescribeDevices(matches), matches[0].DeviceId, ComponentOperationCatalog.SunshineMicrophone);
+            AddItem(report, "音频", "Sunshine Virtual Microphone（USB/IP 虚拟麦克风）",
+                BestHealth(matches), "—", "把串流客户端麦克风作为 Windows 录音设备 · " + DescribeDevices(matches), matches[0].DeviceId);
         }
 
         private static void AddUsbIp(ComponentStatusReport report, Dictionary<string, DriverInfo> drivers,

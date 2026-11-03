@@ -57,7 +57,7 @@ namespace IpInfo.Core
             return key == ZakoDisplay || key == ZakoMouse || key == DualSense
                 || key == ViGEm
                 || key == SteamSpeakers || key == VbCable
-                || key == SunshineMicrophone || key == UsbIp;
+                || key == UsbIp;
         }
 
         public static bool CanUninstall(string key)

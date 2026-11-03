@@ -77,6 +77,11 @@ namespace IpInfo.Core
                 AddSection(report, "组件");
                 CollectWebView2(report);
 
+                cancellationToken.ThrowIfCancellationRequested();
+                Report(progress, "正在检查可选组件…");
+                AddSection(report, "组件信息（可选）");
+                CollectFeatureComponents(report, progress, cancellationToken);
+
                 report.Timestamp = DateTime.Now;
             }
             catch (OperationCanceledException)
@@ -494,6 +499,73 @@ namespace IpInfo.Core
             {
                 return 0;
             }
+        }
+
+        private static void CollectFeatureComponents(SelfCheckReport report, Action<string> progress,
+            CancellationToken cancellationToken)
+        {
+            AddItem(report, "说明",
+                "以下均为可选组件：缺失只影响对应功能，不影响 Sunshine 正常运行。");
+            try
+            {
+                ComponentStatusReport components = ComponentStatusDetector.Collect(progress, cancellationToken);
+                if (components == null || components.Items == null || components.Items.Count == 0)
+                {
+                    AddItem(report, "组件检测", "未获取到组件状态");
+                    return;
+                }
+
+                for (int i = 0; i < components.Items.Count; i++)
+                {
+                    ComponentStatusItem item = components.Items[i];
+                    if (item.IsSection) continue;
+                    if (item.Name == "Sunshine" || item.Name == "Sunshine 服务") continue;
+
+                    string value = item.StatusText;
+                    if (!string.IsNullOrEmpty(item.Version)) value += " · " + item.Version;
+                    if (!string.IsNullOrEmpty(item.Detail)) value += " · " + item.Detail;
+                    string impact = FeatureImpact(item.Name);
+                    if (!string.IsNullOrEmpty(impact)) value += "（" + impact + "）";
+                    AddItem(report, item.Name, value);
+                }
+
+                if (!string.IsNullOrEmpty(components.Error))
+                {
+                    AddItem(report, "组件检测", components.Error);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                AddItem(report, "组件检测", "失败：" + ex.Message);
+            }
+        }
+
+        private static string FeatureImpact(string name)
+        {
+            if (name.IndexOf("ZakoDisplay", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "可选，仅影响虚拟显示 / HDR，不影响 Sunshine 正常运行";
+            if (name.IndexOf("Zako 虚拟鼠标", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "可选，仅影响远程鼠标，不影响 Sunshine 正常运行";
+            if (name.IndexOf("ViGEmBus", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "可选，仅影响 X360 / DS4 虚拟手柄，不影响 Sunshine 正常运行";
+            if (name.IndexOf("DualSense", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "可选，仅影响 DualSense 虚拟手柄，不影响 Sunshine 正常运行";
+            if (name.IndexOf("Steam Streaming Speakers", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "可选，仅影响串流音频输出与主机静音，不影响 Sunshine 正常运行";
+            if (name.IndexOf("VB-CABLE", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "可选，仅影响串流麦克风回传，不影响 Sunshine 正常运行";
+            if (name.IndexOf("Sunshine Virtual Microphone", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "可选，仅影响 USB/IP 虚拟麦克风，不影响 Sunshine 正常运行";
+            if (name.IndexOf("USB/IP", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "可选，仅影响 USB 转发 / DS5 复合 / 虚拟麦克风，不影响 Sunshine 正常运行";
+            if (name.IndexOf("DLSS", StringComparison.OrdinalIgnoreCase) >= 0
+                || name.IndexOf("RTX Video", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "可选，仅影响画质增强，不影响 Sunshine 正常运行";
+            return string.Empty;
         }
 
         private static void AddSection(SelfCheckReport report, string title)

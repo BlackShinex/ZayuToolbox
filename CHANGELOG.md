@@ -44,8 +44,10 @@
   - USB/IP 版本改为读取卸载注册表（与基地版一致），已安装 0.9.8.1 时跳过重复安装；安装结束后继续安装 Sidecar，不再因驱动未立即运行而中断；
   - Steam Streaming Speakers 使用 Steam 自带 INF 重新安装；
   - USB/IP 从 usbip-win2 官方 Release 下载 0.9.8.1 安装包，校验 SHA-256 后启动安装；
-  - Sunshine Virtual Microphone 检查并修复 DualSense 组件 + USB/IP 依赖；
+  - 音频组件文案润色：Steam Streaming Speakers（Steam 虚拟声卡）标明负责串流音频输出与主机静音；VB-CABLE（虚拟麦克风）标明负责把串流设备麦克风声音发送到主机；
+  - 明确 Sunshine Virtual Microphone 不是独立驱动，由 DualSense 虚拟设备宿主在串流时通过 USB/IP 创建，不再提供单独安装按钮；
   - VB-CABLE 直接提示打开 VB-Audio 官网下载，安装完成后刷新状态；
+  - 一键自检新增「组件信息（可选）」：列出各功能组件状态，并标明缺失只影响对应功能、不影响 Sunshine 正常运行；
   - 未安装组件只显示「安装」，已安装组件显示「修复 / 卸载」；
   - DualSense 安装完成后统一显示「就绪」，不再显示「已安装」，虚拟手柄仍在串流时创建；
   - 修复 / 卸载前二次确认，需要管理员权限时弹出 UAC；
@@ -55,7 +57,7 @@
 
 ### 构建与测试
 
-- 核心离线测试 185 项，UI 冒烟测试前台 90 项、后台独立桌面 83 项。
+- 核心离线测试 186 项，UI 冒烟测试前台 90 项、后台独立桌面 83 项。
 - 新增 `tools/ui-test-background.ps1`：在独立 Windows 桌面运行 UI 测试，不抢当前桌面焦点；后台模式跳过 7 项剪贴板内容校验。
 - UI 冒烟测试新增 `-Only` 快速模式：支持 `components`、`sunshine`、`webview2`、`selfcheck`，跳过网络探测和连通性测试，单个分区约 4～8 秒。
 - 新增 QRCoder 嵌入资源与第三方许可说明 `THIRD-PARTY-NOTICES.md`。

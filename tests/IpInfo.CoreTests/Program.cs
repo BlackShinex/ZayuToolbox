@@ -121,13 +121,13 @@ namespace IpInfo.CoreTests
                 !string.IsNullOrEmpty(ComponentOperationCatalog.RepairImpact(ComponentOperationCatalog.DualSense)));
             CheckTrue("卸载说明非空",
                 !string.IsNullOrEmpty(ComponentOperationCatalog.UninstallImpact(ComponentOperationCatalog.ZakoDisplay)));
-            CheckTrue("Steam 音频 / USB/IP / 虚拟麦克风支持修复",
+            CheckTrue("Steam 音频 / USB/IP 支持修复",
                 ComponentOperationCatalog.CanRepair(ComponentOperationCatalog.SteamSpeakers)
-                && ComponentOperationCatalog.CanRepair(ComponentOperationCatalog.UsbIp)
-                && ComponentOperationCatalog.CanRepair(ComponentOperationCatalog.SunshineMicrophone));
-            CheckTrue("VB-CABLE 需要本地官方安装包",
-                ComponentOperationCatalog.CanRepair(ComponentOperationCatalog.VbCable)
-                && ComponentOperationCatalog.NeedsLocalInstaller(ComponentOperationCatalog.VbCable));
+                && ComponentOperationCatalog.CanRepair(ComponentOperationCatalog.UsbIp));
+            CheckTrue("Sunshine 虚拟麦克风不提供独立安装",
+                !ComponentOperationCatalog.CanRepair(ComponentOperationCatalog.SunshineMicrophone));
+            CheckTrue("VB-CABLE 提供官网安装入口",
+                ComponentOperationCatalog.CanRepair(ComponentOperationCatalog.VbCable));
             CheckTrue("音频 / 传输组件不提供一键卸载",
                 !ComponentOperationCatalog.CanUninstall(ComponentOperationCatalog.SteamSpeakers)
                 && !ComponentOperationCatalog.CanUninstall(ComponentOperationCatalog.UsbIp));

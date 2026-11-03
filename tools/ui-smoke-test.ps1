@@ -271,7 +271,7 @@ try {
                     $selfTexts = (Get-WindowTexts $window) -join "`n"
                     Check "报告包含系统信息" (($selfTexts -match "系统信息") -and ($selfTexts -match "CPU") -and ($selfTexts -match "内存"))
                     Check "报告包含 Sunshine 服务与虚拟显示器" (($selfTexts -match "Sunshine") -and ($selfTexts -match "服务") -and ($selfTexts -match "虚拟显示器"))
-                    Check "报告包含网络与组件信息" (($selfTexts -match "NAT 类型") -and ($selfTexts -match "本机 IPv4") -and ($selfTexts -match "WebView2"))
+                    Check "报告包含网络与组件信息" (($selfTexts -match "NAT 类型") -and ($selfTexts -match "本机 IPv4") -and ($selfTexts -match "WebView2") -and ($selfTexts -match "组件信息") -and ($selfTexts -match "ViGEmBus"))
                 }
             }
         }
@@ -495,7 +495,7 @@ try {
             $selfTexts = (Get-WindowTexts $window) -join "`n"
             Check "报告包含系统信息" (($selfTexts -match "系统信息") -and ($selfTexts -match "CPU") -and ($selfTexts -match "内存") -and ($selfTexts -match "显卡"))
             Check "报告包含 Sunshine 服务与虚拟显示器" (($selfTexts -match "Sunshine") -and ($selfTexts -match "服务") -and ($selfTexts -match "虚拟显示器"))
-            Check "报告包含网络与组件信息" (($selfTexts -match "NAT 类型") -and ($selfTexts -match "本机 IPv4") -and ($selfTexts -match "WebView2"))
+            Check "报告包含网络与组件信息" (($selfTexts -match "NAT 类型") -and ($selfTexts -match "本机 IPv4") -and ($selfTexts -match "WebView2") -and ($selfTexts -match "组件信息") -and ($selfTexts -match "ViGEmBus"))
             Check "报告默认打码 IP" ($selfTexts -match '\*\.\*')
 
             $selfReveal = Get-ElementByAutomationId $window "SelfCheckRevealToggle"
