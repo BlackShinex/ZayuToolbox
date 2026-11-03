@@ -74,7 +74,7 @@ namespace Zayu.App
             InitializeComponent();
             RevealToggle.Content = "显示 IP";
             RevealToggle.Foreground = UiPalette.IndigoFg;
-            AppVersionText.Text = "v" + GetAppVersion() + " beta · 本地运行";
+            AppVersionText.Text = "v" + GetAppVersion() + " · 本地运行";
             UpdatePageVisibility(NavList.SelectedIndex);
             ResetSelfCheckState();
             ResetComponentStatusState();
@@ -83,7 +83,7 @@ namespace Zayu.App
 
             Version appVersion = typeof(MainWindow).Assembly.GetName().Version;
             VersionText.Text = "杂鱼串流工具箱 v" + appVersion.Major + "." + appVersion.Minor
-                + " beta · 作者 BlackCat · 数据仅在本机处理";
+                + " · 作者 BlackCat · 数据仅在本机处理";
 
             Loaded += MainWindow_Loaded;
             Closed += MainWindow_Closed;

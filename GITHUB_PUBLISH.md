@@ -17,8 +17,8 @@ dist\杂鱼串流工具箱.exe
 ## 创建 Release
 
 1. 在仓库页面打开 **Releases → Draft a new release**；
-2. Tag 填 `v1.8-beta`，Target 选 `main`；
-3. 标题填 `杂鱼串流工具箱 v1.8 beta`；
+2. Tag 填 `v1.8`，Target 选 `main`；
+3. 标题填 `杂鱼串流工具箱 v1.8`；
 4. 把 `dist\杂鱼串流工具箱.exe` 拖入附件；
 5. 更新说明直接从 `RELEASE_NOTES.md` 复制；
 6. 发布。
