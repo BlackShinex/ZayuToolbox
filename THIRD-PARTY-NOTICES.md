@@ -2,14 +2,15 @@
 
 本项目「杂鱼串流工具箱」（ZayuToolbox）包含以下第三方组件，其版权归各自作者所有。
 
-## Source Han Sans SC（思源黑体）/ Noto Sans Mono
+## MiSans / Noto Sans Mono
 
-- 组件：Source Han Sans SC（界面字体）、Noto Sans Mono（地址 / 版本等等宽字体）
+- 组件：MiSans（界面字体）、Noto Sans Mono（地址 / 版本等等宽字体）
 - 用途：随程序嵌入，替代 Microsoft YaHei UI / Consolas，规避字体侵权风险
-- 许可：SIL Open Font License 1.1
-- Source Han Sans 项目主页：https://github.com/adobe-fonts/source-han-sans
+- MiSans 许可：小米 MiSans 全球免费商用字体，允许随软件嵌入并在软件中注明使用了 MiSans
+- MiSans 官方主页：https://hyperos.mi.com/font/
+- MiSans 官方 FAQ：https://hyperos.mi.com/font/en/faq/
 - Noto Sans Mono 项目主页：https://github.com/notofonts/noto-cjk
-- 完整许可见 [LICENSES/SourceHanSans-OFL.txt](LICENSES/SourceHanSans-OFL.txt) 与 [LICENSES/NotoSans-OFL.txt](LICENSES/NotoSans-OFL.txt)
+- 相关说明见 [LICENSES/MiSans-LICENSE.txt](LICENSES/MiSans-LICENSE.txt) 与 [LICENSES/NotoSans-OFL.txt](LICENSES/NotoSans-OFL.txt)
 
 ## QRCoder
 

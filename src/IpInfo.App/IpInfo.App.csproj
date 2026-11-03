@@ -161,8 +161,7 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\sunshine-logo.png" />
-    <Resource Include="Assets\Fonts\SourceHanSansSC-Regular.otf" />
-    <Resource Include="Assets\Fonts\SourceHanSansSC-Bold.otf" />
+    <Resource Include="Assets\Fonts\MiSans-Regular.ttf" />
     <Resource Include="Assets\Fonts\NotoSansMono-Regular.ttf" />
   </ItemGroup>
   <ItemGroup>
