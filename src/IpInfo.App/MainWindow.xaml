@@ -832,7 +832,7 @@
                                     </StackPanel>
                                     <Border HorizontalAlignment="Right" VerticalAlignment="Top"
                                             Background="#EEF2FF" CornerRadius="7" Padding="9,4">
-                                        <TextBlock Text="只读检测" FontSize="11" Foreground="#4338CA"/>
+                                        <TextBlock Text="检测 + 修复" FontSize="11" Foreground="#4338CA"/>
                                     </Border>
                                 </Grid>
 
@@ -885,7 +885,7 @@
                                                     <StackPanel x:Name="ComponentActions" Orientation="Horizontal"
                                                                 HorizontalAlignment="Right" Margin="0,8,0,0"
                                                                 Visibility="Collapsed">
-                                                        <Button x:Name="ComponentRepairButton" Content="修复"
+                                                        <Button x:Name="ComponentRepairButton" Content="{Binding RepairLabel}"
                                                                 Style="{StaticResource CopyButton}"
                                                                 Padding="12,4" FontSize="11"
                                                                 Background="#EEF2FF" BorderBrush="#C7D2FE"

@@ -7,6 +7,7 @@ using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -20,6 +21,11 @@ namespace IpInfo.Core
     public sealed class ComponentOperationService
     {
         private static readonly TimeSpan ProcessTimeout = TimeSpan.FromMinutes(10);
+        private const string UsbIpInstallerUrl =
+            "https://github.com/vadimgrn/usbip-win2/releases/download/v.0.9.7.7/USBip-0.9.7.7-x64.exe";
+        private const string UsbIpInstallerSha256 =
+            "51620fa5f9f8be5932bc9d786deee557ce06d5407a99cab490dcfac71f185fea";
+        private const long UsbIpInstallerSize = 33226344L;
         private readonly string _sunshineInstallPath;
 
         public ComponentOperationService(string sunshineInstallPath)
@@ -29,6 +35,13 @@ namespace IpInfo.Core
 
         public async Task<ComponentOperationResult> RepairAsync(string key, string deviceId,
             IProgress<ComponentOperationProgress> progress, CancellationToken cancellationToken)
+        {
+            return await RepairAsync(key, deviceId, null, progress, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task<ComponentOperationResult> RepairAsync(string key, string deviceId,
+            string localInstallerPath, IProgress<ComponentOperationProgress> progress,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -43,6 +56,14 @@ namespace IpInfo.Core
                     return await RepairInfAsync(key, "vmouse", "ZakoVirtualMouse.inf", progress, cancellationToken);
                 if (key == ComponentOperationCatalog.DualSense)
                     return await RepairDualSenseAsync(progress, cancellationToken);
+                if (key == ComponentOperationCatalog.SteamSpeakers)
+                    return await RepairSteamSpeakersAsync(progress, cancellationToken);
+                if (key == ComponentOperationCatalog.UsbIp)
+                    return await RepairUsbIpAsync(progress, cancellationToken);
+                if (key == ComponentOperationCatalog.SunshineMicrophone)
+                    return await RepairSunshineMicrophoneAsync(progress, cancellationToken);
+                if (key == ComponentOperationCatalog.VbCable)
+                    return await RepairVbCableAsync(localInstallerPath, progress, cancellationToken);
 
                 return Fail("未实现该组件的修复。");
             }
@@ -82,6 +103,232 @@ namespace IpInfo.Core
             catch (Exception ex)
             {
                 return Fail("卸载失败：" + ex.Message);
+            }
+        }
+
+        private async Task<ComponentOperationResult> RepairSteamSpeakersAsync(
+            IProgress<ComponentOperationProgress> progress, CancellationToken cancellationToken)
+        {
+            string common = Environment.GetEnvironmentVariable("CommonProgramFiles(x86)");
+            if (string.IsNullOrEmpty(common))
+            {
+                common = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                    "Common Files");
+            }
+            string infPath = Path.Combine(common, "Steam", "drivers", "Windows10", "x64",
+                "SteamStreamingSpeakers.inf");
+            if (!File.Exists(infPath))
+            {
+                return Fail("未找到 Steam 音频驱动；请先安装 Steam，或从 Steam 安装目录修复。");
+            }
+
+            Report(progress, "正在安装 Steam Streaming Speakers（UAC）…", true, 0, false);
+            int code = await RunElevatedAsync(
+                Path.Combine(Environment.SystemDirectory, "pnputil.exe"),
+                "/add-driver \"" + infPath + "\" /install",
+                progress, cancellationToken).ConfigureAwait(false);
+            if (code == -1223) return Fail("已取消 UAC 授权。");
+            if (code != 0) return Fail("Steam 音频驱动安装失败，pnputil 退出码 " + code + "。");
+
+            Report(progress, "Steam Streaming Speakers 已安装", false, 100, false);
+            return Success("Steam Streaming Speakers 已重新安装。");
+        }
+
+        private async Task<ComponentOperationResult> RepairUsbIpAsync(
+            IProgress<ComponentOperationProgress> progress, CancellationToken cancellationToken)
+        {
+            string root = Path.Combine(Path.GetTempPath(), "ZayuToolbox", "Components",
+                Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            string installer = Path.Combine(root, "USBip-0.9.7.7-x64.exe");
+            try
+            {
+                await DownloadFileAsync(UsbIpInstallerUrl, installer, UsbIpInstallerSize,
+                    progress, cancellationToken).ConfigureAwait(false);
+
+                Report(progress, "正在校验 USB/IP 安装程序…", true, 0, false);
+                if (new FileInfo(installer).Length != UsbIpInstallerSize
+                    || !string.Equals(Sha256File(installer), UsbIpInstallerSha256,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return Fail("USB/IP 安装程序校验失败，已停止安装。");
+                }
+
+                Report(progress, "请在 USB/IP 安装程序中完成安装…", true, 0, false);
+                int code = await RunInstallerAsync(installer, progress, cancellationToken)
+                    .ConfigureAwait(false);
+                if (code == -1223) return Fail("已取消 UAC 授权。");
+                if (code != 0) return Fail("USB/IP 安装程序退出码 " + code + "。");
+
+                Report(progress, "USB/IP 安装程序已结束", false, 100, false);
+                return Success("USB/IP 安装程序已结束；如提示重启，请重启后再刷新状态。");
+            }
+            finally
+            {
+                TryDeleteDirectory(root);
+            }
+        }
+
+        private async Task<ComponentOperationResult> RepairSunshineMicrophoneAsync(
+            IProgress<ComponentOperationProgress> progress, CancellationToken cancellationToken)
+        {
+            string active = Path.Combine(_sunshineInstallPath, "tools", "sunshine-ds5-component",
+                "active", "Sunshine.Ds5Sidecar.exe");
+            if (!File.Exists(active))
+            {
+                ComponentOperationResult component = await RepairDualSenseAsync(progress, cancellationToken)
+                    .ConfigureAwait(false);
+                if (component == null || !component.Success) return component ?? Fail("DualSense 组件安装失败。");
+            }
+
+            if (!AreUsbIpDriversRunning())
+            {
+                ComponentOperationResult usbip = await RepairUsbIpAsync(progress, cancellationToken)
+                    .ConfigureAwait(false);
+                if (usbip == null || !usbip.Success) return usbip ?? Fail("USB/IP 安装失败。");
+            }
+
+            Report(progress, "虚拟麦克风依赖已就绪", false, 100, false);
+            return Success("DualSense 组件与 USB/IP 依赖已就绪；虚拟麦克风会在串流时创建。");
+        }
+
+        private async Task<ComponentOperationResult> RepairVbCableAsync(string localInstallerPath,
+            IProgress<ComponentOperationProgress> progress, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(localInstallerPath) || !File.Exists(localInstallerPath))
+            {
+                return Fail("请先选择 VB-Audio 官方安装包（VBCABLE_Setup_x64.exe 或官方 ZIP）。");
+            }
+
+            string root = Path.Combine(Path.GetTempPath(), "ZayuToolbox", "Components",
+                Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                string setup = localInstallerPath;
+                if (string.Equals(Path.GetExtension(localInstallerPath), ".zip",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    Report(progress, "正在解压 VB-CABLE 安装包…", true, 0, false);
+                    string staging = Path.Combine(root, "staging");
+                    ExtractZipSafe(localInstallerPath, staging);
+                    setup = FindFile(staging, "VBCABLE_Setup_x64.exe");
+                    if (string.IsNullOrEmpty(setup)) setup = FindFile(staging, "VBCABLE_Setup.exe");
+                    if (string.IsNullOrEmpty(setup)) return Fail("安装包中没有找到 VBCABLE_Setup 程序。");
+                }
+
+                if (!IsVbCableSigned(setup))
+                {
+                    return Fail("VB-CABLE 安装程序数字签名校验失败，已停止运行。");
+                }
+
+                Report(progress, "请在 VB-CABLE 安装程序中完成安装…", true, 0, false);
+                int code = await RunInstallerAsync(setup, progress, cancellationToken)
+                    .ConfigureAwait(false);
+                if (code == -1223) return Fail("已取消 UAC 授权。");
+                if (code != 0) return Fail("VB-CABLE 安装程序退出码 " + code + "。");
+
+                Report(progress, "VB-CABLE 安装程序已结束", false, 100, false);
+                return Success("VB-CABLE 安装程序已结束；如提示重启，请重启后再刷新状态。");
+            }
+            finally
+            {
+                TryDeleteDirectory(root);
+            }
+        }
+
+        private static bool AreUsbIpDriversRunning()
+        {
+            try
+            {
+                using (System.Management.ManagementObjectSearcher searcher =
+                    new System.Management.ManagementObjectSearcher(
+                        "SELECT Name,State FROM Win32_SystemDriver WHERE Name='usbip2_ude' OR Name='usbip2_filter'"))
+                using (System.Management.ManagementObjectCollection items = searcher.Get())
+                {
+                    int running = 0;
+                    foreach (System.Management.ManagementObject item in items)
+                    {
+                        using (item)
+                        {
+                            if (string.Equals(Convert.ToString(item["State"]), "Running",
+                                StringComparison.OrdinalIgnoreCase))
+                            {
+                                running++;
+                            }
+                        }
+                    }
+                    return running >= 2;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static string FindFile(string root, string name)
+        {
+            try
+            {
+                string[] files = Directory.GetFiles(root, name, SearchOption.AllDirectories);
+                return files.Length == 0 ? string.Empty : files[0];
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static bool IsVbCableSigned(string path)
+        {
+            try
+            {
+                using (X509Certificate certificate = X509Certificate.CreateFromSignedFile(path))
+                {
+                    string subject = certificate.Subject ?? string.Empty;
+                    return subject.IndexOf("VB-Audio", StringComparison.OrdinalIgnoreCase) >= 0
+                        || subject.IndexOf("Vincent Burel", StringComparison.OrdinalIgnoreCase) >= 0;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private async Task<int> RunInstallerAsync(string installerPath,
+            IProgress<ComponentOperationProgress> progress, CancellationToken cancellationToken)
+        {
+            try
+            {
+                ProcessStartInfo info = new ProcessStartInfo(installerPath);
+                info.UseShellExecute = true;
+                info.WorkingDirectory = Path.GetDirectoryName(installerPath);
+                if (!WebView2InstallerService.IsAdministrator())
+                {
+                    info.Verb = "runas";
+                }
+                using (Process process = Process.Start(info))
+                {
+                    if (process == null) return -1;
+                    return await Task.Run(delegate
+                    {
+                        while (!process.WaitForExit(250))
+                        {
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                try { process.Kill(); } catch { }
+                                cancellationToken.ThrowIfCancellationRequested();
+                            }
+                        }
+                        return process.ExitCode;
+                    }, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Win32Exception ex)
+            {
+                return ex.NativeErrorCode == 1223 ? -1223 : -ex.NativeErrorCode;
             }
         }
 

@@ -16,6 +16,7 @@ namespace IpInfo.App
         public bool CanRepair { get; set; }
         public bool CanUninstall { get; set; }
         public bool HasActions { get; set; }
+        public string RepairLabel { get; set; }
         public bool IsSection { get; set; }
         public Brush StatusBackground { get; set; }
         public Brush StatusForeground { get; set; }
@@ -28,6 +29,7 @@ namespace IpInfo.App
             Detail = string.Empty;
             DeviceId = string.Empty;
             Key = string.Empty;
+            RepairLabel = string.Empty;
         }
     }
 

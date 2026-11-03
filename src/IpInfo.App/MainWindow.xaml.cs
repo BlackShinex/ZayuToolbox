@@ -17,6 +17,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using IpInfo.Core;
+using Microsoft.Win32;
 
 namespace IpInfo.App
 {
@@ -1435,15 +1436,44 @@ namespace IpInfo.App
             ComponentStatusRow row = GetComponentRow(sender);
             if (row == null || !row.CanRepair || string.IsNullOrEmpty(row.Key)) return;
 
+            string localInstaller = null;
+            if (ComponentOperationCatalog.NeedsLocalInstaller(row.Key))
+            {
+                OpenFileDialog picker = new OpenFileDialog();
+                picker.Title = "选择 VB-CABLE 官方安装包";
+                picker.Filter = "VB-CABLE 安装包 (*.exe;*.zip)|*.exe;*.zip|所有文件 (*.*)|*.*";
+                if (picker.ShowDialog(this) != true)
+                {
+                    MessageBoxResult open = MessageBox.Show(
+                        "VB-CABLE 由 VB-Audio 提供，需要先下载官方安装包。\n\n是否打开官方下载页？",
+                        "VB-CABLE",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Information);
+                    if (open == MessageBoxResult.Yes)
+                    {
+                        try
+                        {
+                            Process.Start(new ProcessStartInfo("https://vb-audio.com/Cable/")
+                            { UseShellExecute = true });
+                        }
+                        catch
+                        {
+                        }
+                    }
+                    return;
+                }
+                localInstaller = picker.FileName;
+            }
+
             MessageBoxResult confirm = MessageBox.Show(
-                "将修复 " + row.Name + "。\n\n"
+                "将安装 / 修复 " + row.Name + "。\n\n"
                 + ComponentOperationCatalog.RepairImpact(row.Key) + "\n\n继续吗？",
-                "修复组件",
+                "安装 / 修复组件",
                 MessageBoxButton.OKCancel,
                 MessageBoxImage.Question);
             if (confirm != MessageBoxResult.OK) return;
 
-            StartComponentOperation(row, ComponentOperationKind.Repair);
+            StartComponentOperation(row, ComponentOperationKind.Repair, localInstaller);
         }
 
         private void ComponentUninstallButton_Click(object sender, RoutedEventArgs e)
@@ -1468,11 +1498,13 @@ namespace IpInfo.App
             return button == null ? null : button.DataContext as ComponentStatusRow;
         }
 
-        private async void StartComponentOperation(ComponentStatusRow row, ComponentOperationKind kind)
+        private async void StartComponentOperation(ComponentStatusRow row, ComponentOperationKind kind,
+            string localInstallerPath = null)
         {
             if (row == null) return;
             ComponentOperationDialog dialog = new ComponentOperationDialog(
                 row.Key, row.Name, row.DeviceId, kind, _componentInstallPath);
+            dialog.LocalInstallerPath = localInstallerPath;
             dialog.Owner = this;
             dialog.ShowDialog();
             await RunComponentStatusAsync();
@@ -1602,6 +1634,9 @@ namespace IpInfo.App
                     row.CanRepair = item.CanRepair;
                     row.CanUninstall = item.CanUninstall;
                     row.HasActions = item.CanRepair || item.CanUninstall;
+                    row.RepairLabel = item.CanRepair
+                        ? (item.Health == ComponentHealth.NotInstalled ? "安装" : "修复")
+                        : string.Empty;
                     Brush background;
                     Brush foreground;
                     GetComponentStatusColors(item.Health, out background, out foreground);

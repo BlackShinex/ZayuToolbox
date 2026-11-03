@@ -20,6 +20,8 @@ namespace IpInfo.App
         private bool _success;
         private string _lastLoggedStage;
 
+        public string LocalInstallerPath { get; set; }
+
         public ComponentOperationDialog(string key, string displayName, string deviceId,
             ComponentOperationKind kind, string sunshineInstallPath)
             : this(key, displayName, deviceId, kind, sunshineInstallPath, false)
@@ -35,12 +37,13 @@ namespace IpInfo.App
             _deviceId = deviceId;
             _kind = kind;
             _sunshineInstallPath = sunshineInstallPath;
+            LocalInstallerPath = string.Empty;
 
-            string action = kind == ComponentOperationKind.Repair ? "修复" : "卸载";
+            string action = kind == ComponentOperationKind.Repair ? "安装 / 修复" : "卸载";
             Title = action + "组件";
             OperationTitleText.Text = action + " " + displayName;
             OperationSubtitleText.Text = kind == ComponentOperationKind.Repair
-                ? "重新安装或修复该组件，不会影响其他组件。"
+                ? "安装或修复该组件，不会影响其他组件。"
                 : "移除该组件，操作前会再次确认。";
             OperationImpactText.Text = kind == ComponentOperationKind.Repair
                 ? ComponentOperationCatalog.RepairImpact(key)
@@ -115,7 +118,7 @@ namespace IpInfo.App
             CloseButton.Visibility = Visibility.Collapsed;
             OperationProgressBar.IsIndeterminate = true;
             OperationProgressBar.Value = 0;
-            Log("开始" + (_kind == ComponentOperationKind.Repair ? "修复" : "卸载") + "：" + _displayName);
+            Log("开始" + (_kind == ComponentOperationKind.Repair ? "安装 / 修复" : "卸载") + "：" + _displayName);
 
             IProgress<ComponentOperationProgress> progress =
                 new Progress<ComponentOperationProgress>(UpdateProgress);
@@ -126,7 +129,7 @@ namespace IpInfo.App
                 ComponentOperationService service = new ComponentOperationService(_sunshineInstallPath);
                 if (_kind == ComponentOperationKind.Repair)
                 {
-                    result = await service.RepairAsync(_key, _deviceId, progress, token);
+                    result = await service.RepairAsync(_key, _deviceId, LocalInstallerPath, progress, token);
                 }
                 else
                 {

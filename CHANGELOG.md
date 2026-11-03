@@ -39,6 +39,10 @@
 - 组件状态新增单独「修复 / 卸载」：
   - ZakoDisplay、Zako 虚拟鼠标使用基地版 tools 目录中的 INF 重新安装 / 移除设备与驱动；
   - DualSense 从基地版官方 Release 清单下载组件包，显示下载进度、速度和剩余时间，校验 SHA-256 后安装；
+  - Steam Streaming Speakers 使用 Steam 自带 INF 重新安装；
+  - USB/IP 从 usbip-win2 官方 Release 下载 0.9.7.7 安装包，校验 SHA-256 后启动安装；
+  - Sunshine Virtual Microphone 检查并修复 DualSense 组件 + USB/IP 依赖；
+  - VB-CABLE 选择 VB-Audio 官方安装包，校验数字签名后启动安装；
   - 修复 / 卸载前二次确认，需要管理员权限时弹出 UAC；
   - 其他组件暂不开放破坏性操作。
 - Sunshine 服务卡片去掉重复状态展示：右上角明确标注「服务运行中 / 服务已停止」，大标题改为服务名，开机自启只由开关本身表达，不再额外显示「已开启」。
@@ -46,7 +50,7 @@
 
 ### 构建与测试
 
-- 核心离线测试 180 项，UI 冒烟测试前台 90 项、后台独立桌面 83 项。
+- 核心离线测试 183 项，UI 冒烟测试前台 90 项、后台独立桌面 83 项。
 - 新增 `tools/ui-test-background.ps1`：在独立 Windows 桌面运行 UI 测试，不抢当前桌面焦点；后台模式跳过 7 项剪贴板内容校验。
 - UI 冒烟测试新增 `-Only` 快速模式：支持 `components`、`sunshine`、`webview2`、`selfcheck`，跳过网络探测和连通性测试，单个分区约 4～8 秒。
 - 新增 QRCoder 嵌入资源与第三方许可说明 `THIRD-PARTY-NOTICES.md`。

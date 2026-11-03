@@ -242,14 +242,14 @@ namespace IpInfo.Core
             if (matches.Count == 0)
             {
                 AddItem(report, "音频", "Steam Streaming Speakers（声音输出）",
-                    ComponentHealth.NotInstalled, "—", "未检测到 Steam 虚拟扬声器", string.Empty);
+                    ComponentHealth.NotInstalled, "—", "未检测到 Steam 虚拟扬声器", string.Empty, ComponentOperationCatalog.SteamSpeakers);
                 return;
             }
 
             ComponentHealth health = BestHealth(matches);
             string detail = DescribeDevices(matches);
             AddItem(report, "音频", "Steam Streaming Speakers（声音输出）",
-                health, "—", detail, matches[0].DeviceId);
+                health, "—", detail, matches[0].DeviceId, ComponentOperationCatalog.SteamSpeakers);
         }
 
         private static void AddVbCable(ComponentStatusReport report, List<PnpDevice> devices)
@@ -265,13 +265,13 @@ namespace IpInfo.Core
             if (matches.Count == 0)
             {
                 AddItem(report, "音频", "VB-CABLE（麦克风回传）",
-                    ComponentHealth.NotInstalled, "—", "未检测到 VB-Audio Virtual Cable", string.Empty);
+                    ComponentHealth.NotInstalled, "—", "未检测到 VB-Audio Virtual Cable", string.Empty, ComponentOperationCatalog.VbCable);
                 return;
             }
 
             ComponentHealth health = BestHealth(matches);
             AddItem(report, "音频", "VB-CABLE（麦克风回传）",
-                health, "—", DescribeDevices(matches), matches[0].DeviceId);
+                health, "—", DescribeDevices(matches), matches[0].DeviceId, ComponentOperationCatalog.VbCable);
         }
 
         private static void AddSunshineMicrophone(ComponentStatusReport report, List<PnpDevice> devices,
@@ -293,12 +293,12 @@ namespace IpInfo.Core
                     ComponentHealth.NotInstalled,
                     "—",
                     usbipReady ? "未检测到虚拟麦克风端点" : "未安装，且 USB/IP 驱动未就绪",
-                    string.Empty);
+                    string.Empty, ComponentOperationCatalog.SunshineMicrophone);
                 return;
             }
 
             AddItem(report, "音频", "Sunshine Virtual Microphone（麦克风输入）",
-                BestHealth(matches), "—", DescribeDevices(matches), matches[0].DeviceId);
+                BestHealth(matches), "—", DescribeDevices(matches), matches[0].DeviceId, ComponentOperationCatalog.SunshineMicrophone);
         }
 
         private static void AddUsbIp(ComponentStatusReport report, Dictionary<string, DriverInfo> drivers,
@@ -336,7 +336,7 @@ namespace IpInfo.Core
 
             string version = DriverVersion(ude);
             AddItem(report, "USB 透传", "USB/IP 透传驱动", health, version, detail,
-                hostDevices.Count == 0 ? string.Empty : hostDevices[0].DeviceId);
+                hostDevices.Count == 0 ? string.Empty : hostDevices[0].DeviceId, ComponentOperationCatalog.UsbIp);
         }
 
         private static void AddHdrComponent(ComponentStatusReport report, string installPath,
