@@ -4,18 +4,27 @@ using System.Net.Sockets;
 
 namespace IpInfo.Core
 {
-    /// <summary>IP 地址隐私遮罩：隐藏中间部分，保留首尾，方便用户辨认。</summary>
+    /// <summary>
+    /// IP 地址隐私遮罩：只遮罩公网 IP，局域网 / 私有 / 链路本地 / ULA 地址保持原样。
+    /// 这样本机内网地址可以直接用于排查，公网出口仍默认隐藏。
+    /// </summary>
     public static class IpPrivacy
     {
-        /// <summary>按地址族自动遮罩。</summary>
+        /// <summary>按地址类型自动遮罩：仅公网 IPv4 / IPv6 打码。</summary>
         public static string Mask(string address)
         {
             if (string.IsNullOrEmpty(address)) return string.Empty;
-            if (address.IndexOf(':') >= 0) return MaskIpv6(address);
+
+            string plain = StripScopeId(address);
+            IPAddress ip;
+            if (!IPAddress.TryParse(plain, out ip)) return address;
+            if (IpClassifier.Classify(ip) != IpAddressScope.Public) return address;
+
+            if (ip.AddressFamily == AddressFamily.InterNetworkV6) return MaskIpv6(address);
             return MaskIpv4(address);
         }
 
-        /// <summary>IPv4 遮罩，例如 192.168.1.100 → 192.*.*.100。</summary>
+        /// <summary>IPv4 遮罩，例如 125.113.211.223 → 125.*.*.223。</summary>
         public static string MaskIpv4(string address)
         {
             if (string.IsNullOrEmpty(address)) return string.Empty;

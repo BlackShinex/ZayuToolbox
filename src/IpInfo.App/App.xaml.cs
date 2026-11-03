@@ -114,6 +114,7 @@ namespace IpInfo.App
                 new KeyboardFocusChangedEventHandler(OnPreviewGotKeyboardFocus));
 
             string renderPath = null;
+            string selfCheckRenderPath = null;
             bool reveal = false;
             bool offscreen = false;
             bool full = false;
@@ -124,6 +125,12 @@ namespace IpInfo.App
                 if (string.Equals(e.Args[i], "--render", StringComparison.OrdinalIgnoreCase) && i + 1 < e.Args.Length)
                 {
                     renderPath = e.Args[i + 1];
+                    i++;
+                }
+                else if (string.Equals(e.Args[i], "--selfcheck-render", StringComparison.OrdinalIgnoreCase)
+                    && i + 1 < e.Args.Length)
+                {
+                    selfCheckRenderPath = e.Args[i + 1];
                     i++;
                 }
                 else if (string.Equals(e.Args[i], "--reveal", StringComparison.OrdinalIgnoreCase))
@@ -159,7 +166,9 @@ namespace IpInfo.App
                 return;
             }
 
-            IsUiTestMode = !string.IsNullOrEmpty(renderPath) || offscreen;
+            IsUiTestMode = !string.IsNullOrEmpty(renderPath)
+                || !string.IsNullOrEmpty(selfCheckRenderPath)
+                || offscreen;
             MainWindow window = new MainWindow();
             MainWindow = window;
             if (!string.IsNullOrEmpty(pageKey)) window.SelectPage(pageKey);
@@ -175,6 +184,10 @@ namespace IpInfo.App
             if (!string.IsNullOrEmpty(renderPath))
             {
                 RunRenderMode(window, renderPath, reveal, full);
+            }
+            else if (!string.IsNullOrEmpty(selfCheckRenderPath))
+            {
+                RunSelfCheckRenderMode(window, selfCheckRenderPath);
             }
         }
 
@@ -193,6 +206,28 @@ namespace IpInfo.App
             try
             {
                 await window.RenderSnapshotAsync(path, reveal, full);
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    File.WriteAllText(path + ".error.txt", ex.ToString());
+                }
+                catch
+                {
+                }
+            }
+            finally
+            {
+                Shutdown();
+            }
+        }
+
+        private async void RunSelfCheckRenderMode(MainWindow window, string path)
+        {
+            try
+            {
+                await window.RenderSelfCheckSnapshotAsync(path);
             }
             catch (Exception ex)
             {

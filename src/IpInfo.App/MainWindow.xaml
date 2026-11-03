@@ -188,6 +188,12 @@
                                 <TextBlock Text="网络检测" Margin="8,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
+                        <ListBoxItem AutomationProperties.Name="一键自检">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource NavIcon}"/>
+                                <TextBlock Text="一键自检" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </ListBoxItem>
                     </ListBox>
                 </DockPanel>
             </Border>
@@ -207,7 +213,7 @@
                                 HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0,0,0">
                         <ToggleButton x:Name="RevealToggle" Content="显示 IP" Style="{StaticResource ToolToggle}"
                                       Checked="RevealToggle_Checked" Unchecked="RevealToggle_Unchecked"
-                                      ToolTip="默认隐藏 IP 中间部分，点击显示完整地址"/>
+                                      ToolTip="默认只遮罩公网 IP，点击可显示完整地址"/>
                         <Button x:Name="RefreshButton" Content="开始检测" Style="{StaticResource PrimaryButton}"
                                 Click="RefreshButton_Click" Margin="8,0,0,0"/>
                     </StackPanel>
@@ -303,7 +309,7 @@
                         <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="16">
                             <StackPanel>
                                 <TextBlock Text="小提示" FontSize="12" FontWeight="SemiBold" Foreground="#475569"/>
-                                <TextBlock Text="· 默认隐藏 IP 中间部分，点击右上角「显示 IP」查看完整地址。"
+                                <TextBlock Text="· 默认只遮罩公网 IP，局域网 IPv4 保持完整；点击右上角「显示 IP」查看完整公网地址。"
                                            FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,6,0,0"/>
                                 <TextBlock Text="· 每个地址右侧的「复制」按钮复制完整 IP。"
                                            FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap" Margin="0,3,0,0"/>
@@ -664,6 +670,105 @@
 
             </StackPanel>
         </ScrollViewer>
+
+                <ScrollViewer x:Name="SelfCheckScrollViewer" Visibility="Collapsed"
+                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="28,24,28,28">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <views:PageHeader Grid.Column="0" Title="一键自检"
+                                              Subtitle="汇总系统、Sunshine、网络与组件信息，快速定位串流问题"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                        HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0,0,0">
+                                <ToggleButton x:Name="SelfCheckRevealToggle" Content="显示 IP"
+                                              Style="{StaticResource ToolToggle}"
+                                              Checked="SelfCheckRevealToggle_Checked"
+                                              Unchecked="SelfCheckRevealToggle_Unchecked"
+                                              ToolTip="默认只遮罩报告中的公网 IP，局域网 IPv4 保持完整"/>
+                                <Button x:Name="SelfCheckStartButton" Content="开始自检"
+                                        Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
+                                        Click="SelfCheckStartButton_Click"/>
+                                <Button x:Name="SelfCheckCopyButton" Content="复制为截图"
+                                        Style="{StaticResource CopyButton}" Margin="8,0,0,0"
+                                        IsEnabled="False" Click="SelfCheckCopyButton_Click"
+                                        ToolTip="把当前报告表格复制为图片"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <ProgressBar x:Name="SelfCheckProgressBar" Height="3" IsIndeterminate="True"
+                                     Foreground="#4F46E5" Background="#E0E7FF" BorderThickness="0"
+                                     Margin="0,0,0,10" Visibility="Collapsed"/>
+                        <TextBlock x:Name="SelfCheckStatusText" Text="尚未自检，点击「开始自检」生成诊断报告。"
+                                   FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
+                                   Margin="0,0,0,10"/>
+
+                        <Border x:Name="SelfCheckReportCard" Background="#FFFFFF" BorderBrush="#E2E8F0"
+                                BorderThickness="1" CornerRadius="16" Padding="22">
+                            <StackPanel>
+                                <Grid>
+                                    <StackPanel>
+                                        <TextBlock Text="杂鱼串流工具箱 · 一键自检报告"
+                                                   FontSize="18" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                        <TextBlock x:Name="SelfCheckMetaText" Text="尚未生成报告"
+                                                   FontSize="11.5" Foreground="#6E687F" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+                                            Background="#EEF2FF" CornerRadius="7" Padding="9,4">
+                                        <TextBlock x:Name="SelfCheckPrivacyText" Text="公网 IP 已打码"
+                                                   FontSize="10.5" Foreground="#4338CA"/>
+                                    </Border>
+                                </Grid>
+
+                                <Border Height="1" Background="#E2E8F0" Margin="0,14,0,6"/>
+
+                                <TextBlock x:Name="SelfCheckEmptyText"
+                                           Text="点击右上角「开始自检」，自动收集系统、Sunshine、网络、连通性和组件信息。"
+                                           FontSize="12" Foreground="#6E687F" TextWrapping="Wrap"
+                                           Margin="0,10,0,10"/>
+
+                                <ItemsControl x:Name="SelfCheckRowsList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border x:Name="SelfCheckRowBorder" Background="Transparent"
+                                                    CornerRadius="6" Padding="8,5" Margin="0,1">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="150"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock x:Name="SelfCheckLabel" Text="{Binding Label}"
+                                                               FontSize="11.5" Foreground="#475569"
+                                                               VerticalAlignment="Top"/>
+                                                    <TextBlock x:Name="SelfCheckValue" Grid.Column="1"
+                                                               Text="{Binding Value}" FontSize="11.5"
+                                                               Foreground="#0F172A" TextWrapping="Wrap"
+                                                               VerticalAlignment="Top"/>
+                                                </Grid>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsSection}" Value="True">
+                                                    <Setter TargetName="SelfCheckRowBorder" Property="Background" Value="#EEF2FF"/>
+                                                    <Setter TargetName="SelfCheckLabel" Property="FontWeight" Value="SemiBold"/>
+                                                    <Setter TargetName="SelfCheckLabel" Property="FontSize" Value="12"/>
+                                                    <Setter TargetName="SelfCheckLabel" Property="Foreground" Value="#3730A3"/>
+                                                    <Setter TargetName="SelfCheckValue" Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock x:Name="SelfCheckFooterText"
+                                           Text="由 杂鱼串流工具箱生成 · 数据仅在本机处理"
+                                           FontSize="10.5" Foreground="#6E687F" Margin="0,14,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
 
                 <ScrollViewer x:Name="WebView2ScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled" Padding="28,24,28,28">

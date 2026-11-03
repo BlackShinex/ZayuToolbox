@@ -4,6 +4,20 @@ using IpInfo.Core;
 
 namespace IpInfo.App
 {
+    /// <summary>一键自检表格的一行。</summary>
+    public sealed class SelfCheckRow
+    {
+        public string Label { get; set; }
+        public string Value { get; set; }
+        public bool IsSection { get; set; }
+
+        public SelfCheckRow()
+        {
+            Label = string.Empty;
+            Value = string.Empty;
+        }
+    }
+
     /// <summary>网络连通性测试矩阵的一行。</summary>
     public sealed class ConnectivityRow
     {

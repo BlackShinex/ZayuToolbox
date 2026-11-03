@@ -210,14 +210,24 @@ try {
     $texts = Get-WindowTexts $window
     $joined = $texts -join "`n"
 
-    # 默认遮罩：不应出现独立的完整 IPv4 文本
-    $plainIpv4 = @($texts | Where-Object { $_ -match '^\d{1,3}(\.\d{1,3}){3}$' })
+    # 默认遮罩：局域网 IPv4 显示完整，公网 IP 才打码
+    $privateIpv4 = @($texts | Where-Object { $_ -match '^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|100\.(6[4-9]|[7-9][0-9]|1[0-2][0-9])\.)' })
     $maskedIpv4 = @($texts | Where-Object { $_ -match '^\d{1,3}\.\*\.\*\.\d{1,3}$' })
     $maskedIpv6 = @($texts | Where-Object { $_ -match '^[0-9a-fA-F]+(?::\*+){6}:[0-9a-fA-F]+$' })
-    $leak = @($texts | Where-Object { $_ -match '\d{1,3}(\.\d{1,3}){3}' -and $_ -notmatch 'STUN 服务器' -and $_ -notmatch '0\.0\.0\.0' })
+    $leak = @($texts | Where-Object {
+        $_ -match '\d{1,3}(\.\d{1,3}){3}' -and
+        $_ -notmatch 'STUN 服务器' -and
+        $_ -notmatch '0\.0\.0\.0' -and
+        $_ -notmatch '\b10\.' -and
+        $_ -notmatch '\b192\.168\.' -and
+        $_ -notmatch '\b172\.(1[6-9]|2[0-9]|3[0-1])\.' -and
+        $_ -notmatch '\b100\.(6[4-9]|[7-9][0-9]|1[0-2][0-9])\.' -and
+        $_ -notmatch '\b169\.254\.'
+    })
 
-    Check "默认状态显示 IPv4 遮罩" ($maskedIpv4.Count -gt 0) "没有找到形如 192.*.*.100 的文本"
-    Check "默认状态不出现完整 IPv4" ($leak.Count -eq 0) ("发现未遮罩的 IP 文本：" + ($leak -join " / "))
+    Check "局域网 IPv4 显示完整" ($privateIpv4.Count -gt 0) "没有找到未打码的局域网 IPv4"
+    Check "默认状态显示公网 IPv4 遮罩" ($maskedIpv4.Count -gt 0) "没有找到形如 125.*.*.223 的文本"
+    Check "默认状态不出现完整公网 IPv4" ($leak.Count -eq 0) ("发现未遮罩的公网 IP 文本：" + ($leak -join " / "))
     Check "默认状态显示 IPv6 遮罩" ($maskedIpv6.Count -gt 0) "没有找到形如 240e:****:…:865c 的文本"
 
     # 左侧菜单
@@ -357,6 +367,63 @@ try {
         }
     }
 
+    # 一键自检
+    Write-Host "测试一键自检…" -ForegroundColor Cyan
+    Check "切换到一键自检页" (Select-NavItem $window "一键自检")
+    $selfStart = Get-ElementByAutomationId $window "SelfCheckStartButton"
+    Check "存在开始自检按钮" ($selfStart -ne $null -and $selfStart.Current.IsEnabled)
+    if ($selfStart -ne $null -and $selfStart.Current.IsEnabled) {
+        Invoke-Element $selfStart
+        $selfReady = $false
+        $selfDeadline = (Get-Date).AddSeconds(45)
+        while ((Get-Date) -lt $selfDeadline) {
+            Start-Sleep -Milliseconds 500
+            $selfCopyButton = Get-ElementByAutomationId $window "SelfCheckCopyButton"
+            if ($selfCopyButton -ne $null -and $selfCopyButton.Current.IsEnabled) {
+                $selfReady = $true
+                break
+            }
+        }
+        Check "一键自检完成" $selfReady
+
+        if ($selfReady) {
+            Start-Sleep -Milliseconds 500
+            $selfTexts = (Get-WindowTexts $window) -join "`n"
+            Check "报告包含系统信息" (($selfTexts -match "系统信息") -and ($selfTexts -match "CPU") -and ($selfTexts -match "内存") -and ($selfTexts -match "显卡"))
+            Check "报告包含 Sunshine 服务与虚拟显示器" (($selfTexts -match "Sunshine") -and ($selfTexts -match "服务") -and ($selfTexts -match "虚拟显示器"))
+            Check "报告包含网络与组件信息" (($selfTexts -match "NAT 类型") -and ($selfTexts -match "本机 IPv4") -and ($selfTexts -match "WebView2"))
+            Check "报告默认打码 IP" ($selfTexts -match '\*\.\*')
+
+            $selfReveal = Get-ElementByAutomationId $window "SelfCheckRevealToggle"
+            if ($selfReveal -ne $null) {
+                $selfReveal.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()
+                Start-Sleep -Milliseconds 700
+                $selfRevealedTexts = (Get-WindowTexts $window) -join "`n"
+                Check "报告可取消打码" ($selfRevealedTexts -notmatch '\*\.\*')
+            }
+
+            if (-not $SkipClipboard) {
+                $selfCopyButton = Get-ElementByAutomationId $window "SelfCheckCopyButton"
+                if ($selfCopyButton -ne $null -and $selfCopyButton.Current.IsEnabled) {
+                    Invoke-Element $selfCopyButton
+                    $imageCopied = $false
+                    $imageDeadline = (Get-Date).AddSeconds(4)
+                    while ((Get-Date) -lt $imageDeadline) {
+                        Start-Sleep -Milliseconds 250
+                        try {
+                            if ([System.Windows.Forms.Clipboard]::ContainsImage()) {
+                                $imageCopied = $true
+                                break
+                            }
+                        } catch {
+                        }
+                    }
+                    Check "报告可复制为截图" $imageCopied
+                }
+            }
+        }
+    }
+
     Select-NavItem $window "网络检测" | Out-Null
 
     # 显示 IP
@@ -456,6 +523,29 @@ try {
         }
     } else {
         Write-Host "  [SKIP] 当前没有可用的测试地址，跳过连通性测试 UI 测试" -ForegroundColor Yellow
+    }
+
+    # 连通性测试完成后，再次自检应把 2x2 结果与 P2P 结论带入报告
+    Check "回到一键自检页" (Select-NavItem $window "一键自检")
+    $selfStartAgain = Get-ElementByAutomationId $window "SelfCheckStartButton"
+    if ($selfStartAgain -ne $null -and $selfStartAgain.Current.IsEnabled) {
+        Invoke-Element $selfStartAgain
+        $secondSelfReady = $false
+        $secondSelfDeadline = (Get-Date).AddSeconds(45)
+        while ((Get-Date) -lt $secondSelfDeadline) {
+            Start-Sleep -Milliseconds 500
+            $selfCopyAgain = Get-ElementByAutomationId $window "SelfCheckCopyButton"
+            if ($selfCopyAgain -ne $null -and $selfCopyAgain.Current.IsEnabled) {
+                $secondSelfReady = $true
+                break
+            }
+        }
+        Check "连通性测试后二次自检完成" $secondSelfReady
+        if ($secondSelfReady) {
+            Start-Sleep -Milliseconds 500
+            $secondSelfTexts = (Get-WindowTexts $window) -join "`n"
+            Check "自检报告反映连通性测试" (($secondSelfTexts -match "P2P 结论") -and ($secondSelfTexts -match "内网 IPv4"))
+        }
     }
 } finally {
     if ($originalClipboard -ne $null) {

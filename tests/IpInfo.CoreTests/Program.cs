@@ -77,15 +77,19 @@ namespace IpInfo.CoreTests
 
         private static void TestPrivacyMask()
         {
-            Console.WriteLine("[1] IP 隐私遮罩");
-            CheckEqual("IPv4 遮罩 192.168.1.100", IpPrivacy.Mask("192.168.1.100"), "192.*.*.100");
-            CheckEqual("IPv4 遮罩 10.0.0.5", IpPrivacy.Mask("10.0.0.5"), "10.*.*.5");
+            Console.WriteLine("[1] IP 隐私遮罩（只遮公网）");
+            CheckEqual("局域网 IPv4 不遮罩 192.168.1.100", IpPrivacy.Mask("192.168.1.100"), "192.168.1.100");
+            CheckEqual("局域网 IPv4 不遮罩 10.0.0.5", IpPrivacy.Mask("10.0.0.5"), "10.0.0.5");
+            CheckEqual("局域网 IPv4 不遮罩 172.16.5.9", IpPrivacy.Mask("172.16.5.9"), "172.16.5.9");
+            CheckEqual("CGNAT IPv4 不遮罩", IpPrivacy.Mask("100.64.0.1"), "100.64.0.1");
+            CheckEqual("公网 IPv4 遮罩 125.113.211.223", IpPrivacy.Mask("125.113.211.223"), "125.*.*.223");
+            CheckEqual("公网 IPv4 遮罩 8.8.8.8", IpPrivacy.Mask("8.8.8.8"), "8.*.*.8");
             CheckEqual(
-                "IPv6 遮罩 2400:3200:1234:5678:9abc:def0:1111:2222",
+                "公网 IPv6 遮罩 2400:3200:1234:5678:9abc:def0:1111:2222",
                 IpPrivacy.Mask("2400:3200:1234:5678:9abc:def0:1111:2222"),
                 "2400:****:****:****:****:****:****:2222");
-            CheckEqual("IPv6 遮罩 fe80::1%18", IpPrivacy.Mask("fe80::1%18"), "fe80:****:****:****:****:****:****:1");
-            CheckEqual("自动分派 IPv4", IpPrivacy.Mask("172.16.5.9"), "172.*.*.9");
+            CheckEqual("链路本地 IPv6 不遮罩", IpPrivacy.Mask("fe80::1%18"), "fe80::1%18");
+            CheckEqual("唯一本地 IPv6 不遮罩", IpPrivacy.Mask("fd12:3456:789a::1"), "fd12:3456:789a::1");
             CheckEqual("空字符串安全", IpPrivacy.Mask(""), "");
         }
 

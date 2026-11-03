@@ -51,6 +51,12 @@ namespace IpInfo.App
         private bool _connectivityBusy;
         private DateTime? _lanModeShownAt;
         private DateTime? _wanModeShownAt;
+        private ConnectivityTestResult _lastConnectivityResult;
+        private SelfCheckReport _selfCheckReport;
+        private bool _selfCheckBusy;
+        private bool _selfCheckRevealed;
+        private bool _syncingSelfCheckReveal;
+        private CancellationTokenSource _selfCheckCts;
         private WebView2DetectionResult _webView2Result;
         private bool _webView2Busy;
         private WebView2InstallDialog _webView2InstallDialog;
@@ -61,6 +67,7 @@ namespace IpInfo.App
             RevealToggle.Content = "显示 IP";
             RevealToggle.Foreground = UiPalette.IndigoFg;
             UpdatePageVisibility(NavList.SelectedIndex);
+            ResetSelfCheckState();
 
             if (VersionCardView != null) VersionCardView.Detected += SunshineVersionCard_Detected;
 
@@ -135,7 +142,8 @@ namespace IpInfo.App
         {
             if (NetworkScrollViewer == null
                 || SunshineScrollViewer == null
-                || WebView2ScrollViewer == null)
+                || WebView2ScrollViewer == null
+                || SelfCheckScrollViewer == null)
             {
                 return;
             }
@@ -143,10 +151,12 @@ namespace IpInfo.App
             SunshineScrollViewer.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
             WebView2ScrollViewer.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
             NetworkScrollViewer.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
+            SelfCheckScrollViewer.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
 
             ScrollViewer selected = index == 0 ? SunshineScrollViewer
                 : index == 1 ? WebView2ScrollViewer
-                : NetworkScrollViewer;
+                : index == 2 ? NetworkScrollViewer
+                : SelfCheckScrollViewer;
             if (selected != null)
             {
                 selected.Opacity = 1;
@@ -168,6 +178,7 @@ namespace IpInfo.App
             {
                 case "webview2": index = 1; break;
                 case "network": index = 2; break;
+                case "selfcheck": index = 3; break;
                 default: index = 0; break;
             }
             NavList.SelectedIndex = index;
@@ -772,6 +783,7 @@ namespace IpInfo.App
 
         private void RenderConnectivityResult(ConnectivityTestResult result)
         {
+            _lastConnectivityResult = result;
             ConnectivityList.ItemsSource = BuildConnectivityRows(result);
 
             string status;
@@ -874,7 +886,13 @@ namespace IpInfo.App
         /// <summary>未显示 IP 时，把连通性说明中的来源 IP / 测试端点一并遮罩。</summary>
         private string MaskConnectivityText(string text)
         {
-            if (_revealed || string.IsNullOrEmpty(text)) return text;
+            if (_revealed) return text;
+            return MaskIpText(text);
+        }
+
+        private static string MaskIpText(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
 
             text = Regex.Replace(text, @"\b(?:\d{1,3}\.){3}\d{1,3}\b",
                 delegate(Match match) { return IpPrivacy.Mask(match.Value); });
@@ -920,6 +938,372 @@ namespace IpInfo.App
                 ? (verdict ?? string.Empty)
                 : (verdict ?? string.Empty) + "\n" + detail;
         }
+        private async void SelfCheckStartButton_Click(object sender, RoutedEventArgs e)
+        {
+            await RunSelfCheckAsync();
+        }
+
+        private async Task RunSelfCheckAsync()
+        {
+            if (_selfCheckBusy) return;
+            if (_busy)
+            {
+                SelfCheckStatusText.Text = "网络检测正在进行中，请稍后再试。";
+                SelfCheckStatusText.Foreground = UiPalette.WarnFg;
+                return;
+            }
+
+            _selfCheckBusy = true;
+            _selfCheckCts = new CancellationTokenSource();
+            CancellationToken token = _selfCheckCts.Token;
+            DateTime started = DateTime.Now;
+
+            SelfCheckStartButton.IsEnabled = false;
+            SelfCheckStartButton.Content = "正在自检…";
+            SelfCheckCopyButton.IsEnabled = false;
+            SelfCheckProgressBar.Visibility = Visibility.Visible;
+            SelfCheckStatusText.Text = "正在收集诊断信息…";
+            SelfCheckStatusText.Foreground = UiPalette.MutedFg;
+
+            IProgress<string> progress = new Progress<string>(delegate(string message)
+            {
+                SelfCheckStatusText.Text = message;
+            });
+
+            try
+            {
+                ConnectivityTestResult connectivity = _lastConnectivityResult;
+                SelfCheckReport report = await Task.Run(delegate
+                {
+                    return SelfCheckCollector.Collect(_report, connectivity,
+                        new Action<string>(progress.Report), token);
+                }, token);
+
+                if (report == null) throw new InvalidOperationException("自检返回了空报告。");
+
+                _selfCheckReport = report;
+                if (_report == null && report.NetworkReport != null)
+                {
+                    _report = report.NetworkReport;
+                    RenderReport(_report);
+                }
+
+                SelfCheckMetaText.Text = "生成时间 " + report.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")
+                    + " · 网络数据：" + (report.NetworkIncluded ? "已包含" : "未获取")
+                    + " · 连通性：" + (report.ConnectivityIncluded
+                        ? (report.ConnectivityComplete ? "已包含上次测试" : "包含上次未完成测试")
+                        : "未测试（已跳过）");
+                SelfCheckEmptyText.Visibility = Visibility.Collapsed;
+                RenderSelfCheckRows();
+                SelfCheckCopyButton.IsEnabled = true;
+
+                TimeSpan elapsed = DateTime.Now - started;
+                if (string.IsNullOrEmpty(report.Error))
+                {
+                    SelfCheckStatusText.Text = "自检完成 · 用时 " + elapsed.TotalSeconds.ToString("0.0") + " 秒。";
+                    SelfCheckStatusText.Foreground = UiPalette.SuccessFg;
+                }
+                else
+                {
+                    SelfCheckStatusText.Text = report.Error;
+                    SelfCheckStatusText.Foreground = UiPalette.WarnFg;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                SelfCheckStatusText.Text = "自检已取消。";
+                SelfCheckStatusText.Foreground = UiPalette.MutedFg;
+            }
+            catch (Exception ex)
+            {
+                SelfCheckStatusText.Text = "自检失败：" + ex.Message;
+                SelfCheckStatusText.Foreground = UiPalette.WarnFg;
+            }
+            finally
+            {
+                _selfCheckBusy = false;
+                SelfCheckProgressBar.Visibility = Visibility.Collapsed;
+                SelfCheckStartButton.IsEnabled = true;
+                SelfCheckStartButton.Content = _selfCheckReport == null ? "开始自检" : "重新自检";
+                if (_selfCheckCts != null)
+                {
+                    _selfCheckCts.Dispose();
+                    _selfCheckCts = null;
+                }
+            }
+        }
+
+        private void SelfCheckRevealToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_syncingSelfCheckReveal) return;
+            _selfCheckRevealed = true;
+            SyncSelfCheckRevealToggle();
+            RenderSelfCheckRows();
+        }
+
+        private void SelfCheckRevealToggle_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (_syncingSelfCheckReveal) return;
+            _selfCheckRevealed = false;
+            SyncSelfCheckRevealToggle();
+            RenderSelfCheckRows();
+        }
+
+        private void SyncSelfCheckRevealToggle()
+        {
+            if (SelfCheckRevealToggle == null) return;
+            SelfCheckRevealToggle.Content = _selfCheckRevealed ? "隐藏 IP" : "显示 IP";
+            SelfCheckRevealToggle.Foreground = UiPalette.IndigoFg;
+            if (SelfCheckRevealToggle.IsChecked != _selfCheckRevealed)
+            {
+                _syncingSelfCheckReveal = true;
+                SelfCheckRevealToggle.IsChecked = _selfCheckRevealed;
+                _syncingSelfCheckReveal = false;
+            }
+        }
+
+        private void RenderSelfCheckRows()
+        {
+            if (_selfCheckReport == null) return;
+
+            SelfCheckRowsList.ItemsSource = BuildSelfCheckRows(_selfCheckReport, _selfCheckRevealed);
+            SelfCheckPrivacyText.Text = _selfCheckRevealed ? "公网 IP 未打码" : "公网 IP 已打码";
+        }
+
+        private static List<SelfCheckRow> BuildSelfCheckRows(SelfCheckReport report, bool revealed)
+        {
+            List<SelfCheckRow> rows = new List<SelfCheckRow>();
+            if (report == null || report.Items == null) return rows;
+
+            for (int i = 0; i < report.Items.Count; i++)
+            {
+                SelfCheckItem item = report.Items[i];
+                SelfCheckRow row = new SelfCheckRow();
+                row.Label = item.Label;
+                row.IsSection = item.IsSection;
+                if (!item.IsSection)
+                {
+                    row.Value = item.Sensitive && !revealed ? MaskIpText(item.Value) : item.Value;
+                }
+                rows.Add(row);
+            }
+            return rows;
+        }
+
+        private void SelfCheckCopyButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selfCheckReport == null) return;
+
+            try
+            {
+                BitmapSource bitmap = RenderSelfCheckCardBitmap();
+                if (bitmap == null)
+                {
+                    ClipboardHelper.ShowCopyFailure(SelfCheckCopyButton);
+                    return;
+                }
+
+                if (CopyImageToClipboard(bitmap))
+                {
+                    SelfCheckCopyButton.Content = "已复制截图";
+                    DispatcherTimer reset = new DispatcherTimer();
+                    reset.Interval = TimeSpan.FromMilliseconds(1500);
+                    reset.Tick += delegate
+                    {
+                        reset.Stop();
+                        SelfCheckCopyButton.Content = "复制为截图";
+                    };
+                    reset.Start();
+                }
+                else
+                {
+                    ClipboardHelper.ShowCopyFailure(SelfCheckCopyButton);
+                }
+            }
+            catch
+            {
+                ClipboardHelper.ShowCopyFailure(SelfCheckCopyButton);
+            }
+        }
+
+        private static bool CopyImageToClipboard(BitmapSource image)
+        {
+            for (int attempt = 0; attempt < 6; attempt++)
+            {
+                try
+                {
+                    Clipboard.SetImage(image);
+                    return true;
+                }
+                catch
+                {
+                    Thread.Sleep(60);
+                }
+            }
+            return false;
+        }
+
+        private BitmapSource RenderSelfCheckCardBitmap()
+        {
+            if (_selfCheckReport == null) return null;
+
+            const double cardWidth = 900.0;
+            const double padding = 24.0;
+            const double labelWidth = 150.0;
+            const double columnGap = 12.0;
+            const double dpi = 144.0;
+            double valueWidth = cardWidth - padding * 2 - labelWidth - columnGap;
+            double pixelsPerDip = dpi / 96.0;
+
+            Brush labelBrush = UiPalette.Brush("#475569");
+            Brush valueBrush = UiPalette.Brush("#0F172A");
+            Brush sectionBrush = UiPalette.Brush("#EEF2FF");
+            Brush sectionTextBrush = UiPalette.Brush("#3730A3");
+            Brush mutedBrush = UiPalette.Brush("#6E687F");
+            Brush borderBrush = UiPalette.Brush("#E2E8F0");
+            Pen borderPen = new Pen(borderBrush, 1);
+
+            FormattedText title = CreateSelfCheckText("杂鱼串流工具箱 · 一键自检报告",
+                18, valueBrush, true, cardWidth - padding * 2 - 160, pixelsPerDip);
+            FormattedText meta = CreateSelfCheckText(SelfCheckMetaText.Text,
+                11.5, mutedBrush, false, cardWidth - padding * 2 - 160, pixelsPerDip);
+            FormattedText privacy = CreateSelfCheckText(SelfCheckPrivacyText.Text,
+                10.5, UiPalette.Brush("#4338CA"), false, 200, pixelsPerDip);
+            FormattedText footer = CreateSelfCheckText(SelfCheckFooterText.Text,
+                10.5, mutedBrush, false, cardWidth - padding * 2, pixelsPerDip);
+
+            List<SelfCheckRow> rows = BuildSelfCheckRows(_selfCheckReport, _selfCheckRevealed);
+            List<SelfCheckDrawRow> drawRows = new List<SelfCheckDrawRow>();
+            double contentHeight = padding;
+            contentHeight += title.Height + 4;
+            contentHeight += meta.Height + 14;
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                SelfCheckRow row = rows[i];
+                SelfCheckDrawRow draw = new SelfCheckDrawRow();
+                draw.Row = row;
+                if (row.IsSection)
+                {
+                    draw.Label = CreateSelfCheckText(row.Label, 12, sectionTextBrush, true,
+                        cardWidth - padding * 2, pixelsPerDip);
+                    draw.Height = 28;
+                }
+                else
+                {
+                    draw.Label = CreateSelfCheckText(row.Label, 11.5, labelBrush, false,
+                        labelWidth, pixelsPerDip);
+                    draw.Value = CreateSelfCheckText(row.Value, 11.5, valueBrush, false,
+                        valueWidth, pixelsPerDip);
+                    draw.Height = Math.Max(18, Math.Max(draw.Label.Height, draw.Value.Height)) + 10;
+                }
+                contentHeight += draw.Height + 2;
+                drawRows.Add(draw);
+            }
+
+            contentHeight += 10;
+            contentHeight += footer.Height;
+            contentHeight += padding;
+            if (contentHeight < 200) contentHeight = 200;
+
+            DrawingVisual visual = new DrawingVisual();
+            using (DrawingContext context = visual.RenderOpen())
+            {
+                context.DrawRectangle(Brushes.White, null, new Rect(0, 0, cardWidth, contentHeight));
+                context.DrawRoundedRectangle(Brushes.White, borderPen,
+                    new Rect(0.5, 0.5, cardWidth - 1, contentHeight - 1), 16, 16);
+
+                double y = padding;
+                context.DrawText(title, new Point(padding, y));
+                y += title.Height + 4;
+                context.DrawText(meta, new Point(padding, y));
+
+                double badgeWidth = privacy.Width + 16;
+                double badgeHeight = 22;
+                double badgeX = cardWidth - padding - badgeWidth;
+                context.DrawRoundedRectangle(sectionBrush, null,
+                    new Rect(badgeX, padding, badgeWidth, badgeHeight), 7, 7);
+                context.DrawText(privacy, new Point(badgeX + 8, padding + (badgeHeight - privacy.Height) / 2));
+
+                y += meta.Height + 14;
+                context.DrawLine(new Pen(borderBrush, 1),
+                    new Point(padding, y), new Point(cardWidth - padding, y));
+                y += 6;
+
+                for (int i = 0; i < drawRows.Count; i++)
+                {
+                    SelfCheckDrawRow draw = drawRows[i];
+                    if (draw.Row.IsSection)
+                    {
+                        context.DrawRoundedRectangle(sectionBrush, null,
+                            new Rect(padding, y, cardWidth - padding * 2, draw.Height), 6, 6);
+                        context.DrawText(draw.Label,
+                            new Point(padding + 8, y + (draw.Height - draw.Label.Height) / 2));
+                    }
+                    else
+                    {
+                        context.DrawText(draw.Label, new Point(padding, y + 2));
+                        context.DrawText(draw.Value, new Point(padding + labelWidth + columnGap, y + 2));
+                    }
+                    y += draw.Height + 2;
+                }
+
+                y += 10;
+                context.DrawText(footer, new Point(padding, y));
+            }
+
+            RenderTargetBitmap bitmap = new RenderTargetBitmap(
+                (int)Math.Ceiling(cardWidth * pixelsPerDip),
+                (int)Math.Ceiling(contentHeight * pixelsPerDip),
+                dpi, dpi, PixelFormats.Pbgra32);
+            bitmap.Render(visual);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        private static FormattedText CreateSelfCheckText(string text, double size, Brush brush,
+            bool semibold, double maxWidth, double pixelsPerDip)
+        {
+            Typeface typeface = new Typeface(new FontFamily("Microsoft YaHei UI"),
+                FontStyles.Normal,
+                semibold ? FontWeights.SemiBold : FontWeights.Normal,
+                FontStretches.Normal);
+            FormattedText formatted = new FormattedText(
+                string.IsNullOrEmpty(text) ? string.Empty : text,
+                CultureInfo.CurrentUICulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                size,
+                brush,
+                pixelsPerDip);
+            formatted.MaxTextWidth = Math.Max(1, maxWidth);
+            return formatted;
+        }
+
+        private sealed class SelfCheckDrawRow
+        {
+            public SelfCheckRow Row;
+            public FormattedText Label;
+            public FormattedText Value;
+            public double Height;
+        }
+
+        private void ResetSelfCheckState()
+        {
+            _selfCheckReport = null;
+            SelfCheckRowsList.ItemsSource = null;
+            SelfCheckEmptyText.Visibility = Visibility.Visible;
+            SelfCheckCopyButton.IsEnabled = false;
+            SelfCheckStartButton.IsEnabled = true;
+            SelfCheckStartButton.Content = "开始自检";
+            SelfCheckMetaText.Text = "尚未生成报告";
+            SelfCheckStatusText.Text = "尚未自检，点击「开始自检」生成诊断报告。";
+            SelfCheckStatusText.Foreground = UiPalette.MutedFg;
+            SelfCheckProgressBar.Visibility = Visibility.Collapsed;
+            SyncSelfCheckRevealToggle();
+            SelfCheckPrivacyText.Text = _selfCheckRevealed ? "公网 IP 未打码" : "公网 IP 已打码";
+        }
+
         private List<IpRow> BuildRows(List<IpAddressEntry> entries, bool ipv6)
         {
             List<IpRow> rows = new List<IpRow>();
@@ -1155,6 +1539,11 @@ namespace IpInfo.App
 
         private void MainWindow_Closed(object sender, EventArgs e)
         {
+            if (_selfCheckCts != null)
+            {
+                try { _selfCheckCts.Cancel(); }
+                catch { }
+            }
             StopConnectivityTest(false);
         }
 
@@ -1510,6 +1899,37 @@ namespace IpInfo.App
 
             _report = fallback;
             RenderReport(fallback);
+        }
+
+        /// <summary>离屏生成一键自检报告 PNG，供文档 / 自动验证使用。</summary>
+        public async Task RenderSelfCheckSnapshotAsync(string path)
+        {
+            await _initialRefresh.Task;
+            SelectPage("selfcheck");
+            await RunSelfCheckAsync();
+            await Task.Delay(300);
+
+            if (_selfCheckReport == null)
+            {
+                throw new InvalidOperationException("一键自检没有生成报告。");
+            }
+
+            BitmapSource image = RenderSelfCheckCardBitmap();
+            if (image == null)
+            {
+                throw new InvalidOperationException("一键自检报告尺寸无效。");
+            }
+
+            string directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+            PngBitmapEncoder encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(image));
+            using (FileStream stream = new FileStream(path, FileMode.Create, FileAccess.Write))
+            {
+                encoder.Save(stream);
+            }
+
+            Close();
         }
 
         /// <summary>离屏截图（自动验证用）：等待首次检测完成后渲染窗口为 PNG。</summary>

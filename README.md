@@ -8,15 +8,18 @@
 
 ![网络连通性测试](docs/connectivity-dialog.png)
 
+![一键自检报告](docs/selfcheck-preview.png)
+
 ## 功能
 
 - **本机 IPv4 / IPv6 地址列表**
   - 自动枚举所有已启用的网卡，标记主地址与网卡类型
   - 地址类型标签：公网 / 私有 / CGNAT / 链路本地 / 唯一本地等
-- **隐私遮罩（默认开启）**
-  - IPv4：`192.168.1.100` → `192.*.*.100`
-  - IPv6：`2400:3200:1234:5678:9abc:def0:1111:2222` → `2400:****:****:****:****:****:****:2222`
-  - 右上角「显示 IP / 隐藏 IP」按钮可随时切换
+- **隐私遮罩（默认开启，只遮公网 IP）**
+  - 局域网 IPv4（10/8、172.16/12、192.168/16、CGNAT）保持完整，方便排查内网
+  - 公网 IPv4：`125.113.211.223` → `125.*.*.223`
+  - 公网 IPv6：`2400:3200:1234:5678:9abc:def0:1111:2222` → `2400:****:****:****:****:****:****:2222`
+  - 链路本地 / ULA IPv6 保持完整；右上角「显示 IP / 隐藏 IP」可随时切换
 - **一键复制**
   - 每个地址右侧都有「复制」按钮，**始终复制完整 IP**（即使界面处于遮罩状态）
 - **公网 IP 检测**
@@ -41,6 +44,13 @@
   - 自动识别 VMware / VirtualBox / Hyper-V / WSL / Docker / VPN / Tailscale / 蓝牙等虚拟网卡，避免它们抢走「主地址」；虚拟网卡仍会列出并标注
 - **Sunshine 基地版官网入口**
   - Sunshine 环境页右上角提供「Sunshine 基地版官网」按钮，跳转 `https://www.alkaidlab.cn/`
+- **一键自检**
+  - 自动汇总系统版本、CPU、内存、显卡型号与驱动版本
+  - 汇总 Sunshine 版本、安装状态、服务运行 / 启动类型、虚拟显示器及驱动版本
+  - 汇总本机 IPv4 / IPv6、公网出口、是否为公网 IP、NAT 类型
+  - 如果做过网络连通性测试，自动纳入 2×2 结果与 P2P 结论；没做过则标注「已跳过」
+  - 汇总 WebView2 / Edge 等组件信息
+  - 报告默认对 IP 打码，可切换「显示 IP / 隐藏 IP」；支持一键复制为截图
 - **WebView2 运行库检测与修复**
   - 读取 Edge Update 注册表，并与 `msedgewebview2.exe` 安装目录交叉验证，区分「已安装 / 未安装 / 安装异常」
   - 显示运行库版本、安装范围、系统架构、安装路径、检测来源、Edge 浏览器版本与当前权限
@@ -87,21 +97,21 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zi
 ## 测试
 
 ```powershell
-# 1) 核心逻辑 + 真实网络探测（161 项离线检查；--live 额外 5 项联网检查）
+# 1) 核心逻辑 + 真实网络探测（165 项离线检查；--live 额外 5 项联网检查）
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 .\tests\IpInfo.CoreTests\bin\Debug\IpInfo.CoreTests.exe --live
 
 # 2) 后台 UI 冒烟测试：在独立 Windows 桌面运行，不抢当前桌面焦点
-#    自动跳过 6 项依赖剪贴板内容的校验，64 项检查
+#    自动跳过 7 项依赖剪贴板内容的校验，76 项检查
 powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1
 
-# 3) 前台完整 UI 冒烟测试：包含剪贴板内容校验，70 项检查（会短暂占用桌面）
+# 3) 前台完整 UI 冒烟测试：包含剪贴板内容校验，83 项检查（会短暂占用桌面）
 powershell -ExecutionPolicy Bypass -STA -File .\tools\ui-smoke-test.ps1
 ```
 
-后台模式通过 `CreateDesktop` 创建独立桌面，并在该桌面启动应用与 UI Automation，当前桌面不会出现窗口或抢焦点；由于非输入桌面无法可靠访问剪贴板，后台模式会跳过诊断复制、IP 复制等 6 项剪贴板内容校验。需要完整校验时再运行前台模式。
+后台模式通过 `CreateDesktop` 创建独立桌面，并在该桌面启动应用与 UI Automation，当前桌面不会出现窗口或抢焦点；由于非输入桌面无法可靠访问剪贴板，后台模式会跳过诊断复制、IP 复制、报告截图等 7 项剪贴板内容校验。需要完整校验时再运行前台模式。
 
-前台 UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 70 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 6 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论，以及 WebView2 状态卡片、诊断复制和安装窗口。
+前台 UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 83 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 6 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论、一键自检报告与复制截图，以及 WebView2 状态卡片、诊断复制和安装窗口。
 
 > 仓库已包含 `.github/workflows/build.yml`：推送到 GitHub 后会自动构建 Release、运行离线核心测试并上传构建产物。
 
@@ -126,6 +136,7 @@ ip-info/
 │  │  ├─ ConnectivityTestServer.cs 双栈 TCP 测试服务器（内网 / 公网页面 + IPv4/IPv6 探测）
 │  │  ├─ ConnectivityProbe.cs    公网 IPv4 / IPv6 TCP 出口探测
 │  │  ├─ ConnectivityEvaluator.cs 2×2 连通性矩阵与 P2P 结论
+│  │  ├─ SelfCheckCollector.cs    一键自检：系统 / Sunshine / 网络 / 组件汇总
 │  │  ├─ WebView2DetectionService.cs WebView2 注册表 / 安装目录检测
 │  │  ├─ WebView2InstallerService.cs WebView2 下载、签名校验与静默安装
 │  │  ├─ StunClient.cs           RFC 5389 STUN 客户端
@@ -161,10 +172,11 @@ ip-info/
 
 ### 隐私遮罩规则
 
-- IPv4 保留首、尾两段，中间两段替换为 `*`：`192.168.1.100` → `192.*.*.100`
-- IPv6 保留第一个和最后一个 hextet，中间六个替换为 `****`：`2400:3200:1234:5678:9abc:def0:1111:2222` → `2400:****:****:****:****:****:****:2222`
+- 只遮罩公网 IP；局域网 IPv4、CGNAT、链路本地 IPv6、唯一本地 IPv6 保持完整
+- 公网 IPv4 保留首、尾两段，中间两段替换为 `*`：`125.113.211.223` → `125.*.*.223`
+- 公网 IPv6 保留第一个和最后一个 hextet，中间六个替换为 `****`：`2400:3200:1234:5678:9abc:def0:1111:2222` → `2400:****:****:****:****:****:****:2222`
 - 遮罩只影响显示；「复制」始终复制完整地址
-- 未显示 IP 时，摘要、NAT 描述和「检测详情」中出现的本机/公网 IP 也会一并遮罩，避免从文字中泄露
+- 未显示 IP 时，摘要、NAT 描述和「检测详情」中出现的公网 IP 会一并遮罩，避免从文字中泄露
 
 ### NAT 检测原理与限制
 
