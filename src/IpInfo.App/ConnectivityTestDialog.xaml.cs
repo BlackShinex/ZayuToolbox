@@ -23,6 +23,7 @@ namespace IpInfo.App
             InitializeComponent();
             _server = server;
             _onModeShown = onModeShown;
+            App.ApplyUiTestWindowMode(this);
             Loaded += ConnectivityTestDialog_Loaded;
             Closing += ConnectivityTestDialog_Closing;
             Closed += ConnectivityTestDialog_Closed;

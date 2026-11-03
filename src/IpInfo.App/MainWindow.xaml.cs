@@ -1345,6 +1345,19 @@ namespace IpInfo.App
             }
         }
 
+        private void SunshineOfficialSiteButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                WebView2InstallerService.OpenUrl("https://www.alkaidlab.cn/");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("打开 Sunshine 基地版官网失败：" + ex.Message,
+                    "杂鱼串流工具箱", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
         private void WebView2OfficialButton_Click(object sender, RoutedEventArgs e)
         {
             try

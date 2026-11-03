@@ -7,8 +7,11 @@
 #
 # 用法（先构建 Debug）：
 #   powershell -ExecutionPolicy Bypass -File .\tools\ui-smoke-test.ps1
+#   powershell -ExecutionPolicy Bypass -File .\tools\ui-smoke-test.ps1 -SkipClipboard
+#   （后台独立桌面运行请用 tools\ui-test-background.ps1）
 param(
-    [string]$AppPath = ""
+    [string]$AppPath = "",
+    [switch]$SkipClipboard
 )
 
 $ErrorActionPreference = "Stop"
@@ -236,6 +239,8 @@ try {
     $sunshineCopy = Get-ElementByAutomationId $window "SunshineCopyButton"
     Check "显示 Sunshine 版本自检卡片" (($sunshineTexts -match "Sunshine 版本自检") -and ($sunshineTexts -match "安装来源："))
     Check "Sunshine 页不提供显示 IP" ($sunshineTexts -notmatch "显示 IP")
+    $sunshineOfficial = Get-ElementByAutomationId $window "SunshineOfficialSiteButton"
+    Check "存在 Sunshine 基地版官网按钮" ($sunshineOfficial -ne $null -and $sunshineOfficial.Current.IsEnabled)
     Check "显示 Sunshine 服务卡片" (($sunshineTexts -match "Sunshine 服务") -and ($sunshineTexts -match "启动类型："))
     $serviceToggle = Get-ElementByAutomationId $window "ServiceAutoStartToggle"
     Check "存在开机自启开关" ($serviceToggle -ne $null)
@@ -247,7 +252,11 @@ try {
         Check "非基地版时服务卡片被锁定" ($serviceCopy -ne $null -and -not $serviceCopy.Current.IsEnabled)
         Check "非基地版时开机自启被锁定" ($serviceToggle -ne $null -and -not $serviceToggle.Current.IsEnabled)
     } elseif ($serviceCopy -ne $null -and $serviceCopy.Current.IsEnabled) {
-        Check "服务诊断信息包含服务状态" (Invoke-CopyAndWait $serviceCopy "(?s)Sunshine 服务.*检测结果")
+        if ($SkipClipboard) {
+            Write-Host "  [SKIP] 后台桌面模式跳过剪贴板内容校验" -ForegroundColor Yellow
+        } else {
+            Check "服务诊断信息包含服务状态" (Invoke-CopyAndWait $serviceCopy "(?s)Sunshine 服务.*检测结果")
+        }
     }
 
     Check "显示 Zako 虚拟显示器卡片" (($sunshineTexts -match "Zako 虚拟显示器") -and ($sunshineTexts -match "设备状态："))
@@ -257,11 +266,19 @@ try {
     if ($baseLocked) {
         Check "非基地版时 Zako 卡片被锁定" ($zakoCopy -ne $null -and -not $zakoCopy.Current.IsEnabled)
     } elseif ($zakoCopy -ne $null -and $zakoCopy.Current.IsEnabled) {
-        Check "Zako 诊断信息包含系统版本" (Invoke-CopyAndWait $zakoCopy "(?s)Zako.*操作系统")
+        if ($SkipClipboard) {
+            Write-Host "  [SKIP] 后台桌面模式跳过剪贴板内容校验" -ForegroundColor Yellow
+        } else {
+            Check "Zako 诊断信息包含系统版本" (Invoke-CopyAndWait $zakoCopy "(?s)Zako.*操作系统")
+        }
     }
     Check "存在 Sunshine 诊断复制按钮" ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled)
     if ($sunshineCopy -ne $null -and $sunshineCopy.Current.IsEnabled) {
-        Check "Sunshine 诊断信息包含检测结论" (Invoke-CopyAndWait $sunshineCopy "(?s)Sunshine.*检测结果")
+        if ($SkipClipboard) {
+            Write-Host "  [SKIP] 后台桌面模式跳过剪贴板内容校验" -ForegroundColor Yellow
+        } else {
+            Check "Sunshine 诊断信息包含检测结论" (Invoke-CopyAndWait $sunshineCopy "(?s)Sunshine.*检测结果")
+        }
     }
 
     # WebView2 运行库页
@@ -278,28 +295,32 @@ try {
     Write-Host "测试复制按钮…" -ForegroundColor Cyan
     $buttons = Get-EnabledCopyButtons $window
     Check "存在可用的复制按钮" ($buttons.Count -gt 0)
-    $sawIpv4 = $false
-    $sawIpv6 = $false
-    $limit = [Math]::Min($buttons.Count, 6)
-    for ($i = 0; $i -lt $limit; $i++) {
-        Invoke-Element $buttons[$i]
-        Start-Sleep -Milliseconds 450
-        $clip = $null
-        for ($attempt = 0; $attempt -lt 5 -and $clip -eq $null; $attempt++) {
-            try {
-                $clip = [System.Windows.Forms.Clipboard]::GetText()
-                if ($clip -eq $null) { Start-Sleep -Milliseconds 200 }
-            } catch {
-                Start-Sleep -Milliseconds 300
+    if ($SkipClipboard) {
+        Write-Host "  [SKIP] 后台桌面模式跳过剪贴板内容校验" -ForegroundColor Yellow
+    } else {
+        $sawIpv4 = $false
+        $sawIpv6 = $false
+        $limit = [Math]::Min($buttons.Count, 6)
+        for ($i = 0; $i -lt $limit; $i++) {
+            Invoke-Element $buttons[$i]
+            Start-Sleep -Milliseconds 450
+            $clip = $null
+            for ($attempt = 0; $attempt -lt 5 -and $clip -eq $null; $attempt++) {
+                try {
+                    $clip = [System.Windows.Forms.Clipboard]::GetText()
+                    if ($clip -eq $null) { Start-Sleep -Milliseconds 200 }
+                } catch {
+                    Start-Sleep -Milliseconds 300
+                }
             }
+            if ([string]::IsNullOrEmpty($clip)) { continue }
+            $clip = $clip.Trim()
+            if ($clip -match '^\d{1,3}(\.\d{1,3}){3}$') { $sawIpv4 = $true }
+            if ($clip -match '^[0-9a-fA-F:]+$' -and $clip.Contains(":")) { $sawIpv6 = $true }
         }
-        if ([string]::IsNullOrEmpty($clip)) { continue }
-        $clip = $clip.Trim()
-        if ($clip -match '^\d{1,3}(\.\d{1,3}){3}$') { $sawIpv4 = $true }
-        if ($clip -match '^[0-9a-fA-F:]+$' -and $clip.Contains(":")) { $sawIpv6 = $true }
+        Check "复制按钮复制完整 IPv4" $sawIpv4
+        Check "复制按钮复制完整 IPv6" $sawIpv6
     }
-    Check "复制按钮复制完整 IPv4" $sawIpv4
-    Check "复制按钮复制完整 IPv6" $sawIpv6
 
     # WebView2 诊断复制与安装窗口
     Write-Host "测试 WebView2 诊断与安装窗口…" -ForegroundColor Cyan
@@ -307,7 +328,11 @@ try {
     $webView2Copy = Get-ElementByAutomationId $window "WebView2CopyButton"
     Check "存在 WebView2 诊断复制按钮" ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled)
     if ($webView2Copy -ne $null -and $webView2Copy.Current.IsEnabled) {
-        Check "WebView2 诊断信息包含版本和路径" (Invoke-CopyAndWait $webView2Copy "(?s)WebView2.*检测结果")
+        if ($SkipClipboard) {
+            Write-Host "  [SKIP] 后台桌面模式跳过剪贴板内容校验" -ForegroundColor Yellow
+        } else {
+            Check "WebView2 诊断信息包含版本和路径" (Invoke-CopyAndWait $webView2Copy "(?s)WebView2.*检测结果")
+        }
     }
 
     $webView2Install = Get-ElementByAutomationId $window "WebView2InstallButton"

@@ -763,8 +763,20 @@
                 <ScrollViewer x:Name="SunshineScrollViewer" VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled" Padding="28,24,28,28">
                     <StackPanel>
-                        <views:PageHeader Title="Sunshine 环境" Subtitle="版本、服务与虚拟显示器的一站式检查"
-                                          Margin="0,0,0,16"/>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <views:PageHeader Grid.Column="0" Title="Sunshine 环境"
+                                              Subtitle="版本、服务与虚拟显示器的一站式检查"/>
+                            <Button x:Name="SunshineOfficialSiteButton" Grid.Column="1"
+                                    Content="Sunshine 基地版官网"
+                                    Style="{StaticResource HeaderButton}"
+                                    VerticalAlignment="Center"
+                                    ToolTip="打开 https://www.alkaidlab.cn/"
+                                    Click="SunshineOfficialSiteButton_Click"/>
+                        </Grid>
 
                         <!-- Sunshine 版本自检 -->
                         <views:SunshineCard x:Name="VersionCardView"/>

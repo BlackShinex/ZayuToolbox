@@ -1,8 +1,10 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using IpInfo.Core;
 
@@ -10,6 +12,43 @@ namespace IpInfo.App
 {
     public partial class App : Application
     {
+        /// <summary>自动化 UI 测试模式：所有窗口都放到屏幕外且不激活，避免打扰桌面。</summary>
+        public static bool IsUiTestMode { get; private set; }
+
+        private const int GwlExStyle = -20;
+        private const int WsExNoActivate = 0x08000000;
+
+        [DllImport("user32.dll")]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        /// <summary>把测试窗口移到屏幕外，并禁止激活 / 任务栏显示。</summary>
+        public static void ApplyUiTestWindowMode(Window window)
+        {
+            if (!IsUiTestMode || window == null) return;
+
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = -12000;
+            window.Top = -12000;
+            window.ShowInTaskbar = false;
+            window.ShowActivated = false;
+            window.SourceInitialized += delegate
+            {
+                try
+                {
+                    IntPtr handle = new WindowInteropHelper(window).Handle;
+                    if (handle == IntPtr.Zero) return;
+                    int style = GetWindowLong(handle, GwlExStyle);
+                    SetWindowLong(handle, GwlExStyle, style | WsExNoActivate);
+                }
+                catch
+                {
+                }
+            };
+        }
+
         // QRCoder.dll 以嵌入资源形式打包，发布时仍然只有一个 exe；
         // 在类型初始化阶段注册解析器，确保任何二维码代码运行前已经生效。
         static App()
@@ -120,18 +159,15 @@ namespace IpInfo.App
                 return;
             }
 
+            IsUiTestMode = !string.IsNullOrEmpty(renderPath) || offscreen;
             MainWindow window = new MainWindow();
             MainWindow = window;
             if (!string.IsNullOrEmpty(pageKey)) window.SelectPage(pageKey);
 
-            if (!string.IsNullOrEmpty(renderPath) || offscreen)
+            if (IsUiTestMode)
             {
                 // 离屏模式：用于自动截图 / UI 自动化验证，不打扰桌面。
-                window.WindowStartupLocation = WindowStartupLocation.Manual;
-                window.Left = -12000;
-                window.Top = -12000;
-                window.ShowInTaskbar = false;
-                window.ShowActivated = false;
+                ApplyUiTestWindowMode(window);
             }
 
             window.Show();

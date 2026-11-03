@@ -39,6 +39,8 @@
 - **主地址智能选择**
   - 优先使用系统实际选路的物理网卡（`GetBestInterface` + 网关 + 地址类型综合判断）
   - 自动识别 VMware / VirtualBox / Hyper-V / WSL / Docker / VPN / Tailscale / 蓝牙等虚拟网卡，避免它们抢走「主地址」；虚拟网卡仍会列出并标注
+- **Sunshine 基地版官网入口**
+  - Sunshine 环境页右上角提供「Sunshine 基地版官网」按钮，跳转 `https://www.alkaidlab.cn/`
 - **WebView2 运行库检测与修复**
   - 读取 Edge Update 注册表，并与 `msedgewebview2.exe` 安装目录交叉验证，区分「已安装 / 未安装 / 安装异常」
   - 显示运行库版本、安装范围、系统架构、安装路径、检测来源、Edge 浏览器版本与当前权限
@@ -89,11 +91,17 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zi
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 .\tests\IpInfo.CoreTests\bin\Debug\IpInfo.CoreTests.exe --live
 
-# 2) UI 冒烟测试（离屏启动，验证遮罩、复制、显示 IP、二维码弹窗倒计时、回环 IPv4/IPv6 探测、WebView2 卡片与安装弹窗）
+# 2) 后台 UI 冒烟测试：在独立 Windows 桌面运行，不抢当前桌面焦点
+#    自动跳过 6 项依赖剪贴板内容的校验，64 项检查
+powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1
+
+# 3) 前台完整 UI 冒烟测试：包含剪贴板内容校验，70 项检查（会短暂占用桌面）
 powershell -ExecutionPolicy Bypass -STA -File .\tools\ui-smoke-test.ps1
 ```
 
-UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 69 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 6 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论，以及 WebView2 状态卡片、诊断复制和安装窗口。
+后台模式通过 `CreateDesktop` 创建独立桌面，并在该桌面启动应用与 UI Automation，当前桌面不会出现窗口或抢焦点；由于非输入桌面无法可靠访问剪贴板，后台模式会跳过诊断复制、IP 复制等 6 项剪贴板内容校验。需要完整校验时再运行前台模式。
+
+前台 UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 70 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 6 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论，以及 WebView2 状态卡片、诊断复制和安装窗口。
 
 > 仓库已包含 `.github/workflows/build.yml`：推送到 GitHub 后会自动构建 Release、运行离线核心测试并上传构建产物。
 
@@ -137,7 +145,8 @@ ip-info/
 ├─ tests/IpInfo.CoreTests/       无界面自测程序
 ├─ tools/
 │  ├─ build.ps1                  构建 / 打包
-│  ├─ ui-smoke-test.ps1          UI 自动化冒烟测试
+│  ├─ ui-smoke-test.ps1          UI 自动化冒烟测试（前台完整版）
+│  ├─ ui-test-background.ps1     在独立桌面运行 UI 测试，不抢焦点
 │  └─ make-icon.py               生成应用图标（可选）
 ├─ docs/                         截图与图标预览
 ├─ dist/                         本地发布产物（已被 .gitignore 忽略）

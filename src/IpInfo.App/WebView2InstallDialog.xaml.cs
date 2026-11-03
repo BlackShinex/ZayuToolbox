@@ -22,6 +22,7 @@ namespace IpInfo.App
         {
             InitializeComponent();
             _result = result;
+            App.ApplyUiTestWindowMode(this);
 
             string status = result == null ? "未知" : result.StatusText;
             CurrentStatusText.Text = "当前状态：" + status;
