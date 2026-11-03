@@ -21,12 +21,23 @@
 - 剪贴板复制改为短间隔重试；失败时只更新按钮文字，不再弹出“剪贴板被占用”的模态框。
 - 保留 WebView2 安装取消、TOCTOU 加固、单文件 exe 等现有能力。
 
+### 合并的 PR
+
+- **PR [#3](https://github.com/BlackShinex/ZayuToolbox/pull/3)（@zszcq）**：新增 Sunshine 版本、服务与 Zako 虚拟显示器检测，新增多层 NAT 跃点跟踪，并引入左侧分页导航和 Sunshine 图标。
+
 ### 构建与测试
 
 - 核心离线测试增至 134 项，UI 冒烟测试增至 61 项。
 - 版本号提升到 1.7。
 
 ## 1.6 - 2026-11-03
+
+### 合并的 PR
+
+- **PR [#1](https://github.com/BlackShinex/ZayuToolbox/pull/1)（@zszcq）**：将 `IpInfo.Core` 源码编译进主程序，改为单文件发布。
+- **PR [#2](https://github.com/BlackShinex/ZayuToolbox/pull/2)（@zszcq）**：为 WebView2 安装增加取消支持，并加固签名校验与启动之间的 TOCTOU 风险。
+
+### 变更
 
 - 构建时将 `IpInfo.Core` 源码直接编译进主程序，发布包不再包含 `IpInfo.Core.dll`。
 - WebView2 安装支持取消下载和等待；取消按钮在安装过程中保持可用。
