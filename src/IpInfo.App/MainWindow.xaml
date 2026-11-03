@@ -872,6 +872,26 @@
                                                                    TextAlignment="Right" VerticalAlignment="Top"
                                                                    TextWrapping="Wrap"/>
                                                     </Grid>
+                                                    <StackPanel x:Name="ComponentActions" Orientation="Horizontal"
+                                                                HorizontalAlignment="Right" Margin="0,8,0,0"
+                                                                Visibility="Collapsed">
+                                                        <Button x:Name="ComponentRepairButton" Content="修复"
+                                                                Style="{StaticResource CopyButton}"
+                                                                Padding="12,4" FontSize="11"
+                                                                Background="#EEF2FF" BorderBrush="#C7D2FE"
+                                                                Foreground="#4338CA"
+                                                                Tag="{Binding Key}"
+                                                                AutomationProperties.Name="修复组件"
+                                                                Click="ComponentRepairButton_Click"/>
+                                                        <Button x:Name="ComponentUninstallButton" Content="卸载"
+                                                                Style="{StaticResource CopyButton}"
+                                                                Padding="12,4" FontSize="11" Margin="6,0,0,0"
+                                                                Background="#FEF2F2" BorderBrush="#FECACA"
+                                                                Foreground="#B91C1C"
+                                                                Tag="{Binding Key}"
+                                                                AutomationProperties.Name="卸载组件"
+                                                                Click="ComponentUninstallButton_Click"/>
+                                                    </StackPanel>
                                                 </StackPanel>
                                             </Border>
                                             <DataTemplate.Triggers>
@@ -886,6 +906,7 @@
                                                     <Setter TargetName="ComponentDetail" Property="Visibility" Value="Collapsed"/>
                                                     <Setter TargetName="ComponentMeta" Property="Visibility" Value="Collapsed"/>
                                                     <Setter TargetName="ComponentStatusBorder" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="ComponentActions" Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding DeviceId}" Value="">
                                                     <Setter TargetName="ComponentDevice" Property="Visibility" Value="Collapsed"/>
@@ -893,12 +914,21 @@
                                                 <DataTrigger Binding="{Binding Version}" Value="">
                                                     <Setter TargetName="ComponentVersion" Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
+                                                <DataTrigger Binding="{Binding HasActions}" Value="True">
+                                                    <Setter TargetName="ComponentActions" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CanRepair}" Value="False">
+                                                    <Setter TargetName="ComponentRepairButton" Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CanUninstall}" Value="False">
+                                                    <Setter TargetName="ComponentUninstallButton" Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
                                             </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <TextBlock Text="组件安装 / 修复请使用 Foundation Sunshine 的桌面 GUI「设备中心」；本页只做只读状态检测，不会修改驱动。"
+                                <TextBlock Text="状态检测为只读；修复 / 卸载只对支持的组件开放，操作前会确认并请求管理员权限。"
                                            FontSize="11.5" Foreground="#6E687F" TextWrapping="Wrap"
                                            Margin="0,14,0,0"/>
                             </StackPanel>

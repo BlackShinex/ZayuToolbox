@@ -144,6 +144,7 @@ namespace IpInfo.App
             string renderPath = null;
             string selfCheckRenderPath = null;
             string componentsRenderPath = null;
+            string componentOpPreviewPath = null;
             bool reveal = false;
             bool offscreen = false;
             bool full = false;
@@ -166,6 +167,12 @@ namespace IpInfo.App
                     && i + 1 < e.Args.Length)
                 {
                     componentsRenderPath = e.Args[i + 1];
+                    i++;
+                }
+                else if (string.Equals(e.Args[i], "--component-op-preview", StringComparison.OrdinalIgnoreCase)
+                    && i + 1 < e.Args.Length)
+                {
+                    componentOpPreviewPath = e.Args[i + 1];
                     i++;
                 }
                 else if (string.Equals(e.Args[i], "--reveal", StringComparison.OrdinalIgnoreCase))
@@ -204,6 +211,7 @@ namespace IpInfo.App
             IsUiTestMode = !string.IsNullOrEmpty(renderPath)
                 || !string.IsNullOrEmpty(selfCheckRenderPath)
                 || !string.IsNullOrEmpty(componentsRenderPath)
+                || !string.IsNullOrEmpty(componentOpPreviewPath)
                 || offscreen;
             MainWindow window = new MainWindow();
             MainWindow = window;
@@ -228,6 +236,10 @@ namespace IpInfo.App
             else if (!string.IsNullOrEmpty(componentsRenderPath))
             {
                 RunComponentsRenderMode(window, componentsRenderPath);
+            }
+            else if (!string.IsNullOrEmpty(componentOpPreviewPath))
+            {
+                RunComponentOpPreviewMode(window, componentOpPreviewPath);
             }
         }
 
@@ -290,6 +302,28 @@ namespace IpInfo.App
             try
             {
                 await window.RenderComponentStatusSnapshotAsync(path);
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    File.WriteAllText(path + ".error.txt", ex.ToString());
+                }
+                catch
+                {
+                }
+            }
+            finally
+            {
+                Shutdown();
+            }
+        }
+
+        private async void RunComponentOpPreviewMode(MainWindow window, string path)
+        {
+            try
+            {
+                await window.RenderComponentOperationPreviewAsync(path);
             }
             catch (Exception ex)
             {

@@ -74,6 +74,16 @@ function Get-ElementByAutomationId($window, [string]$automationId) {
     return $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
 }
 
+function Get-ElementByButtonName($window, [string]$name) {
+    $nameCondition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::NameProperty, $name)
+    $typeCondition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::Button)
+    $condition = New-Object System.Windows.Automation.AndCondition($nameCondition, $typeCondition)
+    return $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+}
+
 function Get-EnabledCopyButtons($window) {
     $condition = New-Object System.Windows.Automation.PropertyCondition(
         [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
@@ -251,7 +261,8 @@ try {
     Check "Sunshine 页不提供显示 IP" ($sunshineTexts -notmatch "显示 IP")
     $sunshineOfficial = Get-ElementByAutomationId $window "SunshineOfficialSiteButton"
     Check "存在 Sunshine 基地版官网按钮" ($sunshineOfficial -ne $null -and $sunshineOfficial.Current.IsEnabled)
-    Check "显示 Sunshine 服务卡片" (($sunshineTexts -match "Sunshine 服务") -and ($sunshineTexts -match "启动类型："))
+    Check "显示 Sunshine 服务卡片" (($sunshineTexts -match "Sunshine 服务") -and ($sunshineTexts -match "服务详情") -and ($sunshineTexts -match "进程 PID："))
+    Check "服务状态与自启动分开显示" (($sunshineTexts -match "服务运行中|服务已停止|服务未安装") -and ($sunshineTexts -match "开机自启") -and ($sunshineTexts -notmatch "启动类型："))
     $serviceToggle = Get-ElementByAutomationId $window "ServiceAutoStartToggle"
     Check "存在开机自启开关" ($serviceToggle -ne $null)
     $serviceCopy = Get-ElementByAutomationId $window "ServiceCopyButton"
@@ -565,6 +576,9 @@ try {
         $compTexts = (Get-WindowTexts $window) -join "`n"
         Check "组件页包含显示/音频/传输组件" (($compTexts -match "ZakoDisplay") -and ($compTexts -match "Steam Streaming Speakers") -and ($compTexts -match "VB-CABLE") -and ($compTexts -match "USB/IP"))
         Check "组件页包含虚拟手柄状态" (($compTexts -match "DualSense") -and ($compTexts -match "HIDMaestro"))
+        $repairButton = Get-ElementByButtonName $window "修复组件"
+        $uninstallButton = Get-ElementByButtonName $window "卸载组件"
+        Check "组件页提供单独修复 / 卸载入口" ($repairButton -ne $null -and $uninstallButton -ne $null)
     }
 } finally {
     if ($originalClipboard -ne $null) {

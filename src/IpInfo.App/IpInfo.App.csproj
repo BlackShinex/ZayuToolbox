@@ -49,6 +49,12 @@
     <Reference Include="System.Management">
       <Private>False</Private>
     </Reference>
+    <Reference Include="System.IO.Compression">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.IO.Compression.FileSystem">
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System.Xaml">
       <Private>False</Private>
     </Reference>
@@ -93,6 +99,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="ComponentOperationDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="SunshineCard.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -125,6 +135,10 @@
     <Compile Include="ClipboardHelper.cs" />
     <Compile Include="WebView2InstallDialog.xaml.cs">
       <DependentUpon>WebView2InstallDialog.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ComponentOperationDialog.xaml.cs">
+      <DependentUpon>ComponentOperationDialog.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="SunshineCard.xaml.cs">

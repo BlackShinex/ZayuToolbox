@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -105,7 +105,6 @@ namespace IpInfo.App
             ServiceHintText.Text = "安装基地版后回到本页会自动启用。";
 
             ServiceNameText.Text = "服务名：—";
-            ServiceStartModeText.Text = "启动类型：—";
             ServiceAccountText.Text = "运行账户：—";
             ServiceProcessText.Text = "进程 PID：—";
             ServicePathText.Text = "可执行文件：—";
@@ -143,7 +142,22 @@ namespace IpInfo.App
 
             ServiceStatusChip.Background = chipBackground;
             ServiceStatusText.Foreground = chipForeground;
-            ServiceStatusText.Text = status.StateLabel;
+            if (!status.IsFound)
+            {
+                ServiceStatusText.Text = "服务未安装";
+            }
+            else if (status.IsRunning)
+            {
+                ServiceStatusText.Text = "服务运行中";
+            }
+            else if (status.State == SunshineServiceState.Stopped)
+            {
+                ServiceStatusText.Text = "服务已停止";
+            }
+            else
+            {
+                ServiceStatusText.Text = "服务" + status.StateLabel;
+            }
 
             if (!status.IsFound)
             {
@@ -153,20 +167,23 @@ namespace IpInfo.App
             }
             else
             {
-                ServiceHeadlineText.Text = status.StateLabel + " · " + status.StartModeLabel;
-                string summary = status.ServiceName;
-                if (status.ProcessId > 0) summary += " · PID " + status.ProcessId;
-                if (!string.IsNullOrEmpty(status.StartName)) summary += " · " + status.StartName;
-                ServiceSummaryText.Text = summary;
+                ServiceHeadlineText.Text = string.IsNullOrEmpty(status.ServiceName)
+                    ? "Sunshine 服务" : status.ServiceName;
+                string summary = string.Empty;
+                if (status.ProcessId > 0) summary = "PID " + status.ProcessId;
+                if (!string.IsNullOrEmpty(status.StartName))
+                {
+                    summary += (summary.Length > 0 ? " · " : string.Empty) + status.StartName;
+                }
+                ServiceSummaryText.Text = summary.Length > 0 ? summary : "服务已安装";
 
                 if (status.IsAutoStart)
-                    ServiceHintText.Text = "当前为开机自启。关闭开关会改为手动启动，需要管理员权限。";
+                    ServiceHintText.Text = "开机自启当前已开启；关闭开关会改为手动启动，需要管理员权限。";
                 else
-                    ServiceHintText.Text = "当前不是开机自启。打开开关会改为自动启动，需要管理员权限。";
+                    ServiceHintText.Text = "开机自启当前已关闭；打开开关会改为自动启动，需要管理员权限。";
             }
 
             ServiceNameText.Text = "服务名：" + NullSafe(status.ServiceName);
-            ServiceStartModeText.Text = "启动类型：" + status.StartModeLabel;
             ServiceAccountText.Text = "运行账户：" + NullSafe(status.StartName);
             ServiceProcessText.Text = "进程 PID：" + (status.ProcessId > 0 ? status.ProcessId.ToString() : "—");
             ServicePathText.Text = "可执行文件：" + NullSafe(status.ImagePath);

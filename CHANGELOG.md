@@ -28,7 +28,7 @@
   - 支持 IP 隐私打码切换，以及把报告一键复制为截图。
 - 隐私逻辑调整：只遮罩公网 IP；局域网 IPv4、CGNAT、链路本地 IPv6、唯一本地 IPv6 保持完整，网络页、连通性矩阵和自检报告同步生效。
 - 新增左侧「组件状态」页面：
-  - 只读检测 ZakoDisplay、Zako 虚拟鼠标、DualSense / HIDMaestro 虚拟手柄；
+  - 状态检测 ZakoDisplay、Zako 虚拟鼠标、DualSense / HIDMaestro 虚拟手柄；
   - 检测 Steam Streaming Speakers（声音输出）、VB-CABLE（麦克风回传）、Sunshine Virtual Microphone；
   - 检测 USB/IP 透传驱动与 HIDMaestro UDE 主机设备；
   - 检测 DLSS NR / RTX Video 画质增强组件；
@@ -36,10 +36,16 @@
 - 界面字体改为随程序嵌入的 Noto Sans SC / Noto Sans Mono（SIL OFL 1.1），不再依赖 Microsoft YaHei UI / Consolas。
 - 左侧「工作台」更名为「功能分区」，并把「组件状态」移动到「Sunshine 版本」下方。
 - 优化组件状态页排版：放大字号、改为卡片行布局，版本与设备信息不再错位。
+- 组件状态新增单独「修复 / 卸载」：
+  - ZakoDisplay、Zako 虚拟鼠标使用基地版 tools 目录中的 INF 重新安装 / 移除设备与驱动；
+  - DualSense 从基地版官方 Release 清单下载组件包，显示下载进度、速度和剩余时间，校验 SHA-256 后安装；
+  - 修复 / 卸载前二次确认，需要管理员权限时弹出 UAC；
+  - 其他组件暂不开放破坏性操作。
+- Sunshine 服务卡片去掉重复状态展示：右上角明确标注「服务运行中 / 服务已停止」，大标题改为服务名，开机自启只由开关和「已开启 / 已关闭」表达。
 
 ### 构建与测试
 
-- 核心离线测试 170 项，UI 冒烟测试前台 87 项、后台独立桌面 80 项。
+- 核心离线测试 176 项，UI 冒烟测试前台 89 项、后台独立桌面 82 项。
 - 新增 `tools/ui-test-background.ps1`：在独立 Windows 桌面运行 UI 测试，不抢当前桌面焦点；后台模式跳过 7 项剪贴板内容校验。
 - 新增 QRCoder 嵌入资源与第三方许可说明 `THIRD-PARTY-NOTICES.md`。
 - 本次改动尚未发布，版本号暂保持 1.7。

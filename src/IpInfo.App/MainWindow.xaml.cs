@@ -1341,6 +1341,54 @@ namespace IpInfo.App
             SelfCheckPrivacyText.Text = _selfCheckRevealed ? "公网 IP 未打码" : "公网 IP 已打码";
         }
 
+        private void ComponentRepairButton_Click(object sender, RoutedEventArgs e)
+        {
+            ComponentStatusRow row = GetComponentRow(sender);
+            if (row == null || !row.CanRepair || string.IsNullOrEmpty(row.Key)) return;
+
+            MessageBoxResult confirm = MessageBox.Show(
+                "将修复 " + row.Name + "。\n\n"
+                + ComponentOperationCatalog.RepairImpact(row.Key) + "\n\n继续吗？",
+                "修复组件",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.OK) return;
+
+            StartComponentOperation(row, ComponentOperationKind.Repair);
+        }
+
+        private void ComponentUninstallButton_Click(object sender, RoutedEventArgs e)
+        {
+            ComponentStatusRow row = GetComponentRow(sender);
+            if (row == null || !row.CanUninstall || string.IsNullOrEmpty(row.Key)) return;
+
+            MessageBoxResult confirm = MessageBox.Show(
+                "将卸载 " + row.Name + "。\n\n"
+                + ComponentOperationCatalog.UninstallImpact(row.Key) + "\n\n此操作会修改系统组件，确认继续吗？",
+                "卸载组件",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Warning);
+            if (confirm != MessageBoxResult.OK) return;
+
+            StartComponentOperation(row, ComponentOperationKind.Uninstall);
+        }
+
+        private static ComponentStatusRow GetComponentRow(object sender)
+        {
+            Button button = sender as Button;
+            return button == null ? null : button.DataContext as ComponentStatusRow;
+        }
+
+        private async void StartComponentOperation(ComponentStatusRow row, ComponentOperationKind kind)
+        {
+            if (row == null) return;
+            ComponentOperationDialog dialog = new ComponentOperationDialog(
+                row.Key, row.Name, row.DeviceId, kind, _componentInstallPath);
+            dialog.Owner = this;
+            dialog.ShowDialog();
+            await RunComponentStatusAsync();
+        }
+
         private async void ComponentRefreshButton_Click(object sender, RoutedEventArgs e)
         {
             await RunComponentStatusAsync();
@@ -1461,6 +1509,10 @@ namespace IpInfo.App
                     row.Version = item.Version;
                     row.Detail = item.Detail;
                     row.DeviceId = item.DeviceId;
+                    row.Key = item.Key;
+                    row.CanRepair = item.CanRepair;
+                    row.CanUninstall = item.CanUninstall;
+                    row.HasActions = item.CanRepair || item.CanUninstall;
                     Brush background;
                     Brush foreground;
                     GetComponentStatusColors(item.Health, out background, out foreground);
@@ -2192,6 +2244,25 @@ namespace IpInfo.App
 
             _report = fallback;
             RenderReport(fallback);
+        }
+
+        /// <summary>离屏生成组件修复 / 下载进度窗口 PNG，供文档 / 验证使用。</summary>
+        public async Task RenderComponentOperationPreviewAsync(string path)
+        {
+            await _initialRefresh.Task;
+            ComponentOperationDialog dialog = new ComponentOperationDialog(
+                ComponentOperationCatalog.DualSense,
+                ComponentOperationCatalog.DisplayName(ComponentOperationCatalog.DualSense),
+                string.Empty,
+                ComponentOperationKind.Repair,
+                _componentInstallPath,
+                true);
+            dialog.Owner = this;
+            dialog.Show();
+            await Task.Delay(400);
+            dialog.SavePreviewPng(path);
+            dialog.Close();
+            Close();
         }
 
         /// <summary>离屏生成组件状态页 PNG，供文档 / 自动验证使用。</summary>

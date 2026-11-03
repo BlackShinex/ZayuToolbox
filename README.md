@@ -12,6 +12,8 @@
 
 ![组件状态](docs/components-preview.png)
 
+![组件修复 / 下载进度](docs/component-operation-preview.png)
+
 ## 功能
 
 - **本机 IPv4 / IPv6 地址列表**
@@ -57,11 +59,12 @@
   - 汇总 WebView2 / Edge 等组件信息
   - 报告默认对 IP 打码，可切换「显示 IP / 隐藏 IP」；支持一键复制为截图
 - **基地版组件状态**
-  - 只读检测 ZakoDisplay 虚拟显示器、Zako 虚拟鼠标、DualSense / HIDMaestro 虚拟手柄
+  - 状态检测 ZakoDisplay 虚拟显示器、Zako 虚拟鼠标、DualSense / HIDMaestro 虚拟手柄
   - 检测 Steam Streaming Speakers（声音输出）、VB-CABLE（麦克风回传）、Sunshine Virtual Microphone
   - 检测 USB/IP 透传驱动与 HIDMaestro UDE 主机设备
   - 检测 DLSS NR / RTX Video 画质增强组件文件
   - 显示安装 / 驱动 / 运行状态、版本、设备 ID，并提供复制诊断、设备管理器、工具目录入口
+  - ZakoDisplay、Zako 虚拟鼠标、DualSense 支持单独「修复 / 卸载」；DualSense 从基地版官方 Release 下载，显示进度、速度和剩余时间，并校验 SHA-256
   - 说明哪些设备是按需创建：未启动串流时显示「未创建」并不代表组件损坏
 - **WebView2 运行库检测与修复**
   - 读取 Edge Update 注册表，并与 `msedgewebview2.exe` 安装目录交叉验证，区分「已安装 / 未安装 / 安装异常」
@@ -109,21 +112,21 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zi
 ## 测试
 
 ```powershell
-# 1) 核心逻辑 + 真实网络探测（170 项离线检查；--live 额外 5 项联网检查）
+# 1) 核心逻辑 + 真实网络探测（176 项离线检查；--live 额外 5 项联网检查）
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 .\tests\IpInfo.CoreTests\bin\Debug\IpInfo.CoreTests.exe --live
 
 # 2) 后台 UI 冒烟测试：在独立 Windows 桌面运行，不抢当前桌面焦点
-#    自动跳过 7 项依赖剪贴板内容的校验，80 项检查
+#    自动跳过 7 项依赖剪贴板内容的校验，82 项检查
 powershell -ExecutionPolicy Bypass -File .\tools\ui-test-background.ps1
 
-# 3) 前台完整 UI 冒烟测试：包含剪贴板内容校验，87 项检查（会短暂占用桌面）
+# 3) 前台完整 UI 冒烟测试：包含剪贴板内容校验，89 项检查（会短暂占用桌面）
 powershell -ExecutionPolicy Bypass -STA -File .\tools\ui-smoke-test.ps1
 ```
 
 后台模式通过 `CreateDesktop` 创建独立桌面，并在该桌面启动应用与 UI Automation，当前桌面不会出现窗口或抢焦点；由于非输入桌面无法可靠访问剪贴板，后台模式会跳过诊断复制、IP 复制、报告截图等 7 项剪贴板内容校验。需要完整校验时再运行前台模式。
 
-前台 UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 87 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 6 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论、一键自检报告与复制截图、基地版组件状态页，以及 WebView2 状态卡片、诊断复制和安装窗口。
+前台 UI 冒烟测试会通过 UI Automation 操作离屏窗口，校验 89 项行为，包括：默认遮罩、复制得到完整 IPv4/IPv6、显示/隐藏切换、网络连通性测试窗口的二维码与 6 秒倒计时、回环 IPv4/IPv6 探测后矩阵变为「连通」并给出 P2P 结论、一键自检报告与复制截图、基地版组件状态页，以及 WebView2 状态卡片、诊断复制和安装窗口。
 
 > 仓库已包含 `.github/workflows/build.yml`：推送到 GitHub 后会自动构建 Release、运行离线核心测试并上传构建产物。
 
@@ -150,6 +153,8 @@ ip-info/
 │  │  ├─ ConnectivityEvaluator.cs 2×2 连通性矩阵与 P2P 结论
 │  │  ├─ SelfCheckCollector.cs    一键自检：系统 / Sunshine / 网络 / 组件汇总
 │  │  ├─ ComponentStatusDetector.cs 基地版组件状态（PnP / 驱动 / 音频 / USB）
+│  │  ├─ ComponentOperationService.cs 组件修复 / 卸载（INF、官方 ZIP、UAC）
+│  │  ├─ ComponentOperationModels.cs 组件操作白名单 / 进度模型
 │  │  ├─ WebView2DetectionService.cs WebView2 注册表 / 安装目录检测
 │  │  ├─ WebView2InstallerService.cs WebView2 下载、签名校验与静默安装
 │  │  ├─ StunClient.cs           RFC 5389 STUN 客户端
@@ -164,6 +169,7 @@ ip-info/
 │     ├─ lib/QRCoder.dll         嵌入到 exe 的二维码生成库（MIT）
 │     ├─ Assets/Fonts/            嵌入的 Noto Sans SC / Noto Sans Mono（OFL）
 │     ├─ WebView2InstallDialog.xaml(.cs) WebView2 安装 / 修复窗口
+│     ├─ ComponentOperationDialog.xaml(.cs) 组件修复 / 卸载进度窗口
 │     ├─ UiModels.cs
 │     ├─ app.config                   Per-Monitor V2 DPI 配置
 │     └─ app.ico

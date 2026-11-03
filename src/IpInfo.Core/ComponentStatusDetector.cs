@@ -123,12 +123,14 @@ namespace IpInfo.Core
                     detail += " · " + zako.Error;
                 }
                 AddItem(report, "显示与输入", "ZakoDisplay 虚拟显示器", health, version, detail,
-                    zako.Adapter == null ? string.Empty : zako.Adapter.DeviceId);
+                    zako.Adapter == null ? string.Empty : zako.Adapter.DeviceId,
+                    ComponentOperationCatalog.ZakoDisplay);
             }
             catch (Exception ex)
             {
                 AddItem(report, "显示与输入", "ZakoDisplay 虚拟显示器",
-                    ComponentHealth.Error, "—", "检测失败：" + ex.Message, string.Empty);
+                    ComponentHealth.Error, "—", "检测失败：" + ex.Message, string.Empty,
+                    ComponentOperationCatalog.ZakoDisplay);
             }
         }
 
@@ -147,13 +149,13 @@ namespace IpInfo.Core
                 AddItem(report, "显示与输入", "Zako 虚拟鼠标",
                     string.IsNullOrEmpty(version) ? ComponentHealth.NotInstalled : ComponentHealth.Installed,
                     version, string.IsNullOrEmpty(version) ? "未检测到虚拟鼠标设备" : "驱动文件存在，设备未创建",
-                    string.Empty);
+                    string.Empty, ComponentOperationCatalog.ZakoMouse);
                 return;
             }
 
             ComponentHealth health = HealthFromPnp(device);
             AddItem(report, "显示与输入", "Zako 虚拟鼠标", health, version,
-                PnpDetail(device), device.DeviceId);
+                PnpDetail(device), device.DeviceId, ComponentOperationCatalog.ZakoMouse);
         }
 
         private static void AddDualSense(ComponentStatusReport report, string installPath, List<PnpDevice> devices)
@@ -228,7 +230,7 @@ namespace IpInfo.Core
             if (!string.IsNullOrEmpty(usbipVersion)) detail += " · USB/IP " + usbipVersion;
 
             AddItem(report, "显示与输入", "DualSense / HIDMaestro 虚拟手柄", health, version,
-                detail, sidecarPath);
+                detail, sidecarPath, ComponentOperationCatalog.DualSense);
         }
 
         private static void AddSteamSpeakers(ComponentStatusReport report, List<PnpDevice> devices)
@@ -642,7 +644,7 @@ namespace IpInfo.Core
         }
 
         private static void AddItem(ComponentStatusReport report, string category, string name,
-            ComponentHealth health, string version, string detail, string deviceId)
+            ComponentHealth health, string version, string detail, string deviceId, string key = null)
         {
             ComponentStatusItem item = new ComponentStatusItem();
             item.Category = category;
@@ -652,6 +654,12 @@ namespace IpInfo.Core
             item.Version = version ?? string.Empty;
             item.Detail = detail ?? string.Empty;
             item.DeviceId = deviceId ?? string.Empty;
+            item.Key = key ?? string.Empty;
+            if (!string.IsNullOrEmpty(item.Key))
+            {
+                item.CanRepair = ComponentOperationCatalog.CanRepair(item.Key);
+                item.CanUninstall = ComponentOperationCatalog.CanUninstall(item.Key);
+            }
             report.Items.Add(item);
         }
 

@@ -25,6 +25,9 @@ namespace IpInfo.Core
         public string Version { get; set; }
         public string Detail { get; set; }
         public string DeviceId { get; set; }
+        public string Key { get; set; }
+        public bool CanRepair { get; set; }
+        public bool CanUninstall { get; set; }
         public bool IsSection { get; set; }
 
         public ComponentStatusItem()
@@ -35,6 +38,7 @@ namespace IpInfo.Core
             Version = string.Empty;
             Detail = string.Empty;
             DeviceId = string.Empty;
+            Key = string.Empty;
         }
     }
 

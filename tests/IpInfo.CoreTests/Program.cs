@@ -58,6 +58,7 @@ namespace IpInfo.CoreTests
             TestSunshineService();
             TestZakoDisplay();
             TestComponentStatus();
+            TestComponentOperations();
 
             if (live)
             {
@@ -98,6 +99,27 @@ namespace IpInfo.CoreTests
             }
             CheckTrue("包含分组标题", hasSection);
             CheckTrue("包含具体组件", hasComponent);
+        }
+
+        private static void TestComponentOperations()
+        {
+            Console.WriteLine();
+            Console.WriteLine("[16] 组件修复 / 卸载白名单");
+
+            CheckTrue("ZakoDisplay 支持修复",
+                ComponentOperationCatalog.CanRepair(ComponentOperationCatalog.ZakoDisplay));
+            CheckTrue("Zako 虚拟鼠标支持卸载",
+                ComponentOperationCatalog.CanUninstall(ComponentOperationCatalog.ZakoMouse));
+            CheckTrue("DualSense 支持修复 / 卸载",
+                ComponentOperationCatalog.CanRepair(ComponentOperationCatalog.DualSense)
+                && ComponentOperationCatalog.CanUninstall(ComponentOperationCatalog.DualSense));
+            CheckTrue("未知组件不开放修复 / 卸载",
+                !ComponentOperationCatalog.CanRepair("unknown")
+                && !ComponentOperationCatalog.CanUninstall("unknown"));
+            CheckTrue("修复说明非空",
+                !string.IsNullOrEmpty(ComponentOperationCatalog.RepairImpact(ComponentOperationCatalog.DualSense)));
+            CheckTrue("卸载说明非空",
+                !string.IsNullOrEmpty(ComponentOperationCatalog.UninstallImpact(ComponentOperationCatalog.ZakoDisplay)));
         }
 
         private static void TestPrivacyMask()

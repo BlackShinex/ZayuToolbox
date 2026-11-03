@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="IpInfo.App.SunshineServiceCard"
+<UserControl x:Class="IpInfo.App.SunshineServiceCard"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              FontFamily="{StaticResource AppFont}">
@@ -68,8 +68,6 @@
                                    Foreground="#6E687F"/>
                         <TextBlock x:Name="ServiceNameText" Text="服务名：--" FontSize="11"
                                    Foreground="#475569" TextWrapping="Wrap" Margin="0,7,0,0"/>
-                        <TextBlock x:Name="ServiceStartModeText" Text="启动类型：--" FontSize="11"
-                                   Foreground="#475569" TextWrapping="Wrap" Margin="0,3,0,0"/>
                         <TextBlock x:Name="ServiceAccountText" Text="运行账户：--" FontSize="10.5"
                                    Foreground="#58536A" TextWrapping="Wrap" Margin="0,3,0,0"/>
                         <TextBlock x:Name="ServiceProcessText" Text="进程 PID：--" FontSize="10.5"
