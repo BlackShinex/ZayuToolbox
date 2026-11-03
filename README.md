@@ -68,7 +68,7 @@
   - 检测 USB/IP 透传驱动与 HIDMaestro UDE 主机设备
   - 检测 DLSS NR / RTX Video 画质增强组件文件
   - 显示安装 / 驱动 / 运行状态、版本、设备 ID，并提供复制诊断、设备管理器、工具目录入口
-  - ZakoDisplay、Zako 虚拟鼠标、DualSense 支持单独「修复 / 卸载」；DualSense 从基地版官方 Release 下载，显示进度、速度和剩余时间，并校验 SHA-256
+  - ZakoDisplay、Zako 虚拟鼠标、DualSense 支持单独「修复 / 卸载」；DualSense 按基地版 `tools\ds5-sidecar-package.json` 中的官方 Release 地址下载完整 `Sunshine.Ds5Sidecar.x64.zip`，校验 SHA-256、组件版本、协议和 USB/IP 0.9.8.1 兼容性后再安装
   - Steam Streaming Speakers 使用 Steam 自带 INF 重新安装；USB/IP 从官方 Release 下载 0.9.8.1 安装包并校验 SHA-256
   - Sunshine Virtual Microphone 会检查并修复 DualSense 组件 + USB/IP 依赖；VB-CABLE 需要选择 VB-Audio 官方安装包，校验数字签名后安装
   - 说明哪些设备是按需创建：未启动串流时显示「未创建」并不代表组件损坏
@@ -118,7 +118,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Release -Package -Zi
 ## 测试
 
 ```powershell
-# 1) 核心逻辑 + 真实网络探测（183 项离线检查；--live 额外 5 项联网检查）
+# 1) 核心逻辑 + 真实网络探测（184 项离线检查；--live 额外 5 项联网检查）
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -Debug -Tests
 .\tests\IpInfo.CoreTests\bin\Debug\IpInfo.CoreTests.exe --live
 

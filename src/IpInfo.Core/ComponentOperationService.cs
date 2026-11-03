@@ -437,6 +437,8 @@ namespace IpInfo.Core
             string expectedSha = JsonString(manifest, "sha256").ToLowerInvariant();
             string assetName = SafeFileName(JsonString(manifest, "asset_name"));
             long expectedSize = JsonLong(manifest, "size");
+            string manifestVersion = JsonString(manifest, "component_version");
+            int manifestProtocol = JsonInt(manifest, "protocol");
 
             if (!IsOfficialDownloadUrl(downloadUrl))
                 return Fail("组件清单中的下载地址不是基地版官方地址，已拒绝下载。");
@@ -473,6 +475,7 @@ namespace IpInfo.Core
                 string runtimeText = File.ReadAllText(runtime);
                 string compatibilityText = File.ReadAllText(compatibility);
                 string componentVersion = JsonString(runtimeText, "component_version");
+                int runtimeProtocol = JsonInt(runtimeText, "protocol");
                 string runtimeUsbip = JsonString(runtimeText, "usbip_version");
                 string compatibilityVersion = JsonString(compatibilityText, "component_version");
                 string compatibilityUsbip = JsonNestedString(compatibilityText, "usbip", "version");
@@ -484,6 +487,20 @@ namespace IpInfo.Core
                 {
                     return Fail("组件包版本 / USB-IP 兼容性不一致，已停止安装。");
                 }
+                if (!string.IsNullOrEmpty(manifestVersion)
+                    && !string.Equals(componentVersion, manifestVersion, StringComparison.Ordinal))
+                {
+                    return Fail("组件包版本与基地版清单不匹配（清单 "
+                        + manifestVersion + "，包内 " + componentVersion + "），已停止安装。");
+                }
+                if (manifestProtocol > 0 && runtimeProtocol != manifestProtocol)
+                {
+                    return Fail("组件包协议版本与基地版清单不匹配，已停止安装。");
+                }
+                if (runtimeProtocol <= 0 || runtimeUsbip.Length == 0)
+                {
+                    return Fail("组件包缺少协议或 USB/IP 版本信息，已停止安装。");
+                }
                 if (VersionUpdateService.IsNewer(
                     ComponentOperationCatalog.RequiredUsbIpVersion, runtimeUsbip))
                 {
@@ -492,7 +509,7 @@ namespace IpInfo.Core
                 }
 
                 string componentJson = BuildComponentManifest(
-                    componentVersion, runtimeUsbip,
+                    runtimeProtocol, componentVersion, runtimeUsbip,
                     Sha256File(sidecar), Sha256File(core), Sha256File(compatibility));
                 File.WriteAllText(Path.Combine(staging, "component.json"), componentJson,
                     new UTF8Encoding(false));
@@ -777,12 +794,12 @@ namespace IpInfo.Core
             }
         }
 
-        private static string BuildComponentManifest(string version, string usbipVersion,
+        private static string BuildComponentManifest(int protocol, string version, string usbipVersion,
             string sidecarSha, string coreSha, string compatibilitySha)
         {
             StringBuilder builder = new StringBuilder();
             builder.AppendLine("{");
-            builder.AppendLine("  \"protocol\": 1,");
+            builder.AppendLine("  \"protocol\": " + protocol + ",");
             builder.AppendLine("  \"component_version\": \"" + JsonEscape(version) + "\",");
             builder.AppendLine("  \"usbip_policy\": \"externally-managed-v1\",");
             builder.AppendLine("  \"usbip_version\": \"" + JsonEscape(usbipVersion) + "\",");
@@ -813,6 +830,13 @@ namespace IpInfo.Core
             Match match = Regex.Match(json, "\"" + Regex.Escape(key) + "\"\\s*:\\s*(\\d+)");
             long value;
             return match.Success && long.TryParse(match.Groups[1].Value, out value) ? value : 0;
+        }
+
+        private static int JsonInt(string json, string key)
+        {
+            Match match = Regex.Match(json, "\"" + Regex.Escape(key) + "\"\\s*:\\s*(\\d+)");
+            int value;
+            return match.Success && int.TryParse(match.Groups[1].Value, out value) ? value : 0;
         }
 
         private static string JsonEscape(string value)

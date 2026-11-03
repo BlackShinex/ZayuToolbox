@@ -142,6 +142,8 @@ namespace IpInfo.CoreTests
                 VersionUpdateService.IsNewer("v1.8", "1.7"));
             CheckTrue("1.7.1 大于 1.7",
                 VersionUpdateService.IsNewer("1.7.1", "1.7"));
+            CheckTrue("USB/IP 0.9.8.1 高于 0.9.7.7",
+                VersionUpdateService.IsNewer(ComponentOperationCatalog.RequiredUsbIpVersion, "0.9.7.7"));
             CheckTrue("1.7 不高于 1.7",
                 !VersionUpdateService.IsNewer("v1.7", "1.7"));
             CheckEqual("版本号标准化",
