@@ -49,8 +49,6 @@
                                       Click="ServiceAutoStartToggle_Click" IsEnabled="False"/>
                         <TextBlock Text="开机自启" FontSize="11.5" Foreground="#475569"
                                    VerticalAlignment="Center" Margin="8,0,0,0"/>
-                        <TextBlock x:Name="ServiceAutoStartStateText" Text="不可用" FontSize="10.5"
-                                   Foreground="#5F5A70" VerticalAlignment="Center" Margin="6,0,0,0"/>
                         <Button x:Name="ServiceCopyButton" Content="复制诊断"
                                 Style="{StaticResource CopyButton}" Margin="12,0,0,0"
                                 Click="ServiceCopyButton_Click" IsEnabled="False"/>

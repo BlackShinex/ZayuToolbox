@@ -177,10 +177,7 @@ namespace IpInfo.App
                 }
                 ServiceSummaryText.Text = summary.Length > 0 ? summary : "服务已安装";
 
-                if (status.IsAutoStart)
-                    ServiceHintText.Text = "开机自启当前已开启；关闭开关会改为手动启动，需要管理员权限。";
-                else
-                    ServiceHintText.Text = "开机自启当前已关闭；打开开关会改为自动启动，需要管理员权限。";
+                ServiceHintText.Text = "开关只控制是否开机自启；修改启动类型需要管理员权限，会单独弹出 UAC 确认。";
             }
 
             ServiceNameText.Text = "服务名：" + NullSafe(status.ServiceName);
@@ -194,21 +191,6 @@ namespace IpInfo.App
             _syncingToggle = true;
             ServiceAutoStartToggle.IsChecked = status.IsAutoStart;
             _syncingToggle = false;
-            if (!status.IsFound)
-            {
-                ServiceAutoStartStateText.Text = "不可用";
-                ServiceAutoStartStateText.Foreground = UiPalette.MutedFg;
-            }
-            else if (status.IsAutoStart)
-            {
-                ServiceAutoStartStateText.Text = "已开启";
-                ServiceAutoStartStateText.Foreground = UiPalette.SuccessFg;
-            }
-            else
-            {
-                ServiceAutoStartStateText.Text = "已关闭";
-                ServiceAutoStartStateText.Foreground = UiPalette.MutedFg;
-            }
 
             List<string> warnings = new List<string>();
             if (status.Warnings != null)

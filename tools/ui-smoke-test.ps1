@@ -262,7 +262,7 @@ try {
     $sunshineOfficial = Get-ElementByAutomationId $window "SunshineOfficialSiteButton"
     Check "存在 Sunshine 基地版官网按钮" ($sunshineOfficial -ne $null -and $sunshineOfficial.Current.IsEnabled)
     Check "显示 Sunshine 服务卡片" (($sunshineTexts -match "Sunshine 服务") -and ($sunshineTexts -match "服务详情") -and ($sunshineTexts -match "进程 PID："))
-    Check "服务状态与自启动分开显示" (($sunshineTexts -match "服务运行中|服务已停止|服务未安装") -and ($sunshineTexts -match "开机自启") -and ($sunshineTexts -notmatch "启动类型："))
+    Check "服务状态与自启动分开显示" (($sunshineTexts -match "服务运行中|服务已停止|服务未安装") -and ($sunshineTexts -match "开机自启") -and ($sunshineTexts -notmatch "启动类型：") -and ($sunshineTexts -notmatch "已开启"))
     $serviceToggle = Get-ElementByAutomationId $window "ServiceAutoStartToggle"
     Check "存在开机自启开关" ($serviceToggle -ne $null)
     $serviceCopy = Get-ElementByAutomationId $window "ServiceCopyButton"
